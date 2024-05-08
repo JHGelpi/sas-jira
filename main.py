@@ -49,7 +49,7 @@ print(f"Total issues retrieved: {len(all_issues)}")
 timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
 
 # Define the filename and the fields to export
-csv_file = f'/Users/wegelpi/Downloads/jira-output-{timestamp}.csv'
+csv_file = f'/Users/wegelpi/jira/jira-output-{timestamp}.csv'
 with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
     writer.writerow(['Issue Key', 'Summary', 'Type', 'State', 'Assignee', 'Status', 'Start Date', 'End Date', 'Sprint Name'])  # Customize headers as needed
