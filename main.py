@@ -2,7 +2,7 @@ from jira import JIRA
 import csv
 from datetime import datetime
 from sprint_parser import parse_sprint_data
-# Your server URL 
+# Server URL 
 options = {'server': 'https://rndjira.sas.com/'}
 
 start_date = datetime.now()
@@ -15,8 +15,6 @@ file_path = '/Users/wegelpi/encrypt/secrets/jira-token.txt'
 with open(file_path, 'r') as file:
     jira_api_token = file.read().strip()
 
-#jira_email = 'wes.gelpi@sas.com'
-
 #try:
     
 ## Initialize the JIRA client without authentication
@@ -26,9 +24,7 @@ jira = JIRA(options=options)
 jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
 
 # Retrieve all open issues from the COMPUTESVCS project
-#jql_query = 'project = COMPUTESVCS AND resolution = Unresolved'
 jql_query = 'project = "Compute Services" AND resolution = Unresolved AND Sprint is not EMPTY'
-#issues = jira.search_issues(jql_query, maxResults=2000)  # Adjust maxResults as needed
 
 # Initialize pagination
 start_at = 0
@@ -42,7 +38,7 @@ while True:
         break
     start_at += len(issues)
 
-# Now `all_issues` contains all issues that match the query
+# `all_issues` contains all issues that match the query
 print(f"Total issues retrieved: {len(all_issues)}")
 
 # Generate a timestamp for the filename
@@ -52,7 +48,7 @@ timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
 csv_file = f'/Users/wegelpi/jira/jira-output-{timestamp}.csv'
 with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
-    writer.writerow(['Issue Key', 'Summary', 'Type', 'State', 'Assignee', 'Status', 'Start Date', 'End Date', 'Sprint Name'])  # Customize headers as needed
+    writer.writerow(['Issue Key', 'Summary', 'Issue URL', 'Type', 'State', 'Assignee', 'Status', 'Start Date', 'End Date', 'Sprint Name', 'Sprint Owner'])  # Customize headers as needed
 
     for issue in all_issues:
         # Extract the fields you need from each issue
@@ -61,7 +57,8 @@ with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         type = issue.fields.issuetype if issue.fields.issuetype else 'No Type'
         sprint_data_string = getattr(issue.fields, 'customfield_10102', 'No Data')
         parsed_sprint_data = parse_sprint_data(sprint_data_string)
-        writer.writerow([issue.key, issue.fields.summary, type, parsed_sprint_data[0], assignee, status, parsed_sprint_data[1], parsed_sprint_data[2], parsed_sprint_data[3]])
+        issue_url = 'https://rndjira.sas.com/browse/' + str(issue.key)
+        writer.writerow([issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, parsed_sprint_data[1], parsed_sprint_data[2], parsed_sprint_data[3], parsed_sprint_data[4]])
 
 start_date = datetime.now()
 formatted_start_date = start_date.strftime('%d-%m-%y %H:%M:%S')
