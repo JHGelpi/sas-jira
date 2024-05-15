@@ -2,6 +2,30 @@
 import csv
 from datetime import datetime
 
+def triage_parser(labels):
+    collector_label = 'collector-59dc380c'
+    if collector_label in labels:
+        return True
+    else:
+        return False
+
+def oper_parser(labels):
+    required_updates_label = 'required_updates'
+    if required_updates_label in labels:
+        return True
+    else:
+        return False
+
+def escaped_bug_flag(origin, pipeline_stage):
+    if not origin or not pipeline_stage:
+        return False
+    
+    if 'CRP' in origin and pipeline_stage == 'Shipped':
+        return True
+    else: 
+        return False
+
+
 # Load sprint manager data from CSV into a dictionary
 def load_sprint_managers(filename):
     managers = {}
@@ -14,30 +38,6 @@ def load_sprint_managers(filename):
                 managers[sprint_name] = manager
     return managers
 
-#def parse_sprint_data(sprint_string):
-    # Initial data parsing
-    #parsed_data = parse_sprint_data_basic(sprint_string)
-    # Load the managers dictionary
-    #sprint_managers = load_sprint_managers(jira_project_owner_file)
-    #sprint_name = parsed_data[3]  # Assuming sprint_name is the fourth item
-
-    # Lookup the manager
-    '''
-    To look up the manager I need to:
-    1) Identify what manager is assigned to what team.  This is solved with current def load_sprint_managers code
-    2) Pass the result of def load_sprint_managers into part_sprint_data and compare each sprint to the sprint_manager[0].
-        - IF the sprint_name starts with sprint_manager[0] then sprint_owner should equal the value of sprint_manager[1]
-        - ELSE sprint_owner should be 'No Owner'
-    '''
-    #manager = managers_dict.get(sprint_name, 'No Manager')  # Default to 'No Manager' if not found
-    '''
-    for team in sprint_managers:
-        if sprint_name starts with team:
-            manager = sprint_managers[1]
-    
-    '''
-    #return parsed_data + [manager]
-
 def add_sprint_owner(sprint_managers, sprint_name):
     # sprint_owners = sprint_managers
     
@@ -48,10 +48,42 @@ def add_sprint_owner(sprint_managers, sprint_name):
     
     return 'No Manager'
 
+# Load operational epic data from CSV into a dictionary
+def load_oper_epics(filename):
+    epics = {}
+    with open(filename, mode='r', encoding='utf-8') as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip the header row if there is one
+        for row in reader:
+            if len(row) >= 2:
+                epic, sprint_team = row[0].strip(), row[1].strip()
+                epics[sprint_team] = epic
+    return epics
+
+def add_oper_epic(epic_name):
+    # Return early if epic_name is None or empty
+    if not epic_name:
+        return ''  
+
+    jira_helper_folder = '/Users/wegelpi/jira/helper_files/'
+    jira_oper_epics = str(jira_helper_folder) + 'operational-epics.csv'
+    oper_epics = load_oper_epics(jira_oper_epics)
+
+    # Iterate over the dictionary, checking if any value matches or is relevant to epic_name
+    for project, value in oper_epics.items():
+        if value == epic_name:  # Check if the value exactly matches epic_name
+            return project  # Return the project key associated with the value that matches
+    
+    return ''  # Return empty string if no matching value is found
+
 def parse_sprint_data(sprint_string):
     # Load the managers dictionary
-    jira_project_owner_file = '/Users/wegelpi/jira/jira-projects-owners.csv'
+    jira_helper_folder = '/Users/wegelpi/jira/helper_files/'
+    jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    #jira_oper_epics = jira_helper_folder & 'operational-epics.csv'
+
     sprint_managers = load_sprint_managers(jira_project_owner_file)
+    #oper_epics = load_oper_epics(jira_oper_epics)
 
     # Handle None input early
     if sprint_string is None:
@@ -77,6 +109,10 @@ def parse_sprint_data(sprint_string):
         
         sprint_owner = add_sprint_owner(sprint_managers, sprint_name)
 
+        '''I need to finish up by adding in the epic value from main.py so I can reference it in
+        def add_oper_epic'''
+        #oper_epic = add_oper_epic(oper_epics, )
+
         start_index = sprint_string.find('startDate=') + len('startDate=')
         start_date = sprint_string[start_index:sprint_string.find(',', start_index)]
 
@@ -86,19 +122,3 @@ def parse_sprint_data(sprint_string):
         return [state, start_date, end_date, sprint_name, sprint_owner]
     else:
         return ['No Data', 'No Data', 'No Data', 'No Data', 'No Data']  # Handle cases where format does not match
-
-#def extract_data(string, key):
-#    start_index = string.find(f'{key}=') + len(f'{key}=')
-#   return string[start_index:string.find(',', start_index)]
-
-# Load the managers dictionary
-# sprint_managers = load_sprint_managers(jira_project_owner_file)
-# print (sprint_managers)
-# Usage
-#sprint_data_string = 'your_sprint_data_string_here'  # This should come from your main data fetching function
-#parsed_sprint_data = parse_sprint_data(sprint_data_string, sprint_managers)
-# Example usage
-# sprint_data_string should be fetched from issue.fields as before
-# parsed_sprint_data = parse_sprint_data(sprint_data_string)
-
-
