@@ -22,7 +22,7 @@ def create_connection():
     #try:
     conn_string = f"dbname='jira_data' user='postgres' password='{db_password}' host='localhost' connect_timeout=10 sslmode='prefer'"
     #conn = psycopg2.connect("dbname='jira_data' user='postgres' password='password' host='localhost' connect_timeout=10 sslmode='prefer'")
-    print (conn_string)
+    #print (conn_string)
     conn = psycopg2.connect(conn_string)
     return conn
     #except psycopg2.OperationalError as e:
@@ -66,7 +66,13 @@ def append_csv(csv_file):
     with open(csv_file, 'r', newline='', encoding='utf-8') as f:
         next(f)  # Skip header
         cursor = conn.cursor()
-        cursor.copy_expert(f"COPY tbl_jira_sprint_data ({','.join(postgres_cols)}) FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"'", f)
+        #cursor.copy_expert(f"COPY tbl_jira_sprint_data ({','.join(postgres_cols)}) FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"'", f)
+        sql_query = f"""
+            COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
+            FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+            """
+        cursor.copy_expert(sql_query, f)
+
         conn.commit()
         cursor.close()
         print(f"Data appended successfully from {csv_file}")

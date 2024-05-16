@@ -5,8 +5,10 @@ from datetime import datetime
 def format_date(date_str):
     # Check if the date string is a placeholder for missing values
     if date_str == '<null>':
-        return 'No Date'  # Return 'No Date' or any other suitable placeholder
-
+        #return datetime.strptime('1900-12-12 12:00:00', '%Y-%m-%dT%H:%M:%S.%f%z')  # Return '' or any other suitable placeholder
+        date_string = '1900-12-12 12:00:00+00:00'
+        date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
+        return date_time_obj
     # Parse the datetime from the given string format
     try:
         date_object = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f%z')
@@ -15,7 +17,10 @@ def format_date(date_str):
         return formatted_date
     except ValueError as e:
         print(f"Error parsing date: {date_str} - {e}")
-        return ''  # Return 'Invalid Date' if parsing fails
+        date_string = '1900-12-12 12:00:00+00:00'
+        date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
+        return date_time_obj
+
 '''
 # Example usage
 date_strs = ['2024-05-22T00:00:00.000-04:00', '<null>']

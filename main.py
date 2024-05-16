@@ -29,7 +29,12 @@ jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
 
 # Retrieve all open issues from the COMPUTESVCS and GEMINI project
 #jql_query = build_jql_active()
-jql_query = build_jql_completed('2024.04')
+
+file_path = '/Users/wegelpi/jira/helper_files/sprint.txt'
+with open(file_path, 'r') as file:
+    sprint_str = file.read().strip()
+
+jql_query = build_jql_completed(sprint_str)
 
 # Initialize pagination
 start_at = 0
