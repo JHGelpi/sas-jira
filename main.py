@@ -84,7 +84,7 @@ with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
 
         writer.writerow([epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, parsed_sprint_data[3], labels, parsed_sprint_data[4]])
 
-#append_csv(csv_file)
+append_csv(csv_file)
 start_date = datetime.now()
 formatted_start_date = start_date.strftime('%d-%m-%y %H:%M:%S')
 
