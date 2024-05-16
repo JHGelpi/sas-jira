@@ -2,6 +2,27 @@
 import csv
 from datetime import datetime
 
+def format_date(date_str):
+    # Check if the date string is a placeholder for missing values
+    if date_str == '<null>':
+        return 'No Date'  # Return 'No Date' or any other suitable placeholder
+
+    # Parse the datetime from the given string format
+    try:
+        date_object = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+        # Convert the datetime object to just the date in 'yyyy-mm-dd' format
+        formatted_date = date_object.strftime('%Y-%m-%d')
+        return formatted_date
+    except ValueError as e:
+        print(f"Error parsing date: {date_str} - {e}")
+        return ''  # Return 'Invalid Date' if parsing fails
+'''
+# Example usage
+date_strs = ['2024-05-22T00:00:00.000-04:00', '<null>']
+for date_str in date_strs:
+    formatted_date = format_date(date_str)
+    print(formatted_date)'''
+
 def triage_parser(labels):
     collector_label = 'collector-59dc380c'
     if collector_label in labels:
