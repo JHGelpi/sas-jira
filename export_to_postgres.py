@@ -37,7 +37,7 @@ def load_columns(config_file):
         columns = line.strip("'").split("','")
     return tuple(columns)  # Convert list to tuple for psycopg2 compatibility
 
-def append_csv(csv_file):
+def append_csv(csv_file, tbl_flag):
     conn = None
     cursor = None
 
@@ -67,15 +67,26 @@ def append_csv(csv_file):
         next(f)  # Skip header
         cursor = conn.cursor()
         #cursor.copy_expert(f"COPY tbl_jira_sprint_data ({','.join(postgres_cols)}) FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"'", f)
-        sql_query = f"""
-            COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
-            FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-            """
-        cursor.copy_expert(sql_query, f)
+        if tbl_flag == 'hist':
+            sql_query = f"""
+                COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
+                FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+                """
+            cursor.copy_expert(sql_query, f)
 
-        conn.commit()
-        cursor.close()
-        print(f"Data appended successfully from {csv_file}")
+            conn.commit()
+            cursor.close()
+            print(f"Data appended successfully from {csv_file}")
+        elif tbl_flag == 'curr':
+            sql_query = f"""
+                COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
+                FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+                """
+            cursor.copy_expert(sql_query, f)
+
+            conn.commit()
+            cursor.close()
+            print(f"Data appended successfully from {csv_file}")
 
    #except Exception as e:
         #print("Error:", e)

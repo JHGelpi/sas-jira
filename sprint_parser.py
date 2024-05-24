@@ -113,13 +113,13 @@ def parse_sprint_data(sprint_string):
 
     # Handle None input early
     if sprint_string is None:
-        return ['No Data', 'No Data', 'No Data', 'No Data', 'No Data']
+        return ['', '', '', '', '', '']
 
     # Ensure the sprint_string is a string and not empty
     if isinstance(sprint_string, list) and sprint_string:
         sprint_string = sprint_string[0]
     elif not isinstance(sprint_string, str) or not sprint_string:
-        return ['No Data', 'No Data', 'No Data', 'No Data', 'No Data']
+        return ['', '', '', '', '', '']
 
     # Trim whitespace which might affect substring search
     sprint_string = sprint_string.strip()
@@ -135,16 +135,15 @@ def parse_sprint_data(sprint_string):
         
         sprint_owner = add_sprint_owner(sprint_managers, sprint_name)
 
-        '''I need to finish up by adding in the epic value from main.py so I can reference it in
-        def add_oper_epic'''
-        #oper_epic = add_oper_epic(oper_epics, )
-
         start_index = sprint_string.find('startDate=') + len('startDate=')
         start_date = sprint_string[start_index:sprint_string.find(',', start_index)]
 
         end_index = sprint_string.find('endDate=') + len('endDate=')
         end_date = sprint_string[end_index:sprint_string.find(',', end_index)]
 
-        return [state, start_date, end_date, sprint_name, sprint_owner]
+        complete_date_index = sprint_string.find('completeDate=') + len('completeDate=')
+        complete_date = sprint_string[complete_date_index:sprint_string.find(',', complete_date_index)]
+
+        return [state, start_date, end_date, sprint_name, sprint_owner, complete_date]
     else:
-        return ['No Data', 'No Data', 'No Data', 'No Data', 'No Data']  # Handle cases where format does not match
+        return ['', '', '', '', '', '']  # Handle cases where format does not match

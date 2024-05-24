@@ -18,6 +18,7 @@ def build_jql_active():
     jql_query += ', '.join(sprint_entries) + ')'
 
     #print (jql_query)
+    #print (jql_query)
 
     return jql_query
 
