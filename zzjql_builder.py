@@ -1,7 +1,7 @@
 #JQL builder
 import csv
 
-def build_jql_active():
+'''def build_jql_active():
     # Load the managers dictionary
     jira_helper_folder = '/Users/wegelpi/jira/helper_files/'
     jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
@@ -21,8 +21,8 @@ def build_jql_active():
     #print (jql_query)
 
     return jql_query
-
-def build_jql_completed(sprint):
+'''
+'''def build_jql_completed(sprint):
 
     # Load the managers dictionary
     jira_helper_folder = '/Users/wegelpi/jira/helper_files/'
@@ -43,9 +43,9 @@ def build_jql_completed(sprint):
     #print(jql_query)
     
     return jql_query
-
+'''
 # Load sprint manager data from CSV into a dictionary
-def load_projects(filename):
+'''def load_projects(filename):
     projects = []
     with open(filename, mode='r', encoding='utf-8') as file:
         reader = csv.reader(file)
@@ -55,6 +55,6 @@ def load_projects(filename):
                 project_name = row[0].strip()
                 projects.append(project_name)
     return projects
-
+'''
 if __name__ == "__main__":
     build_jql_completed('2024.05')

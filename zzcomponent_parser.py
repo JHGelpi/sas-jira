@@ -2,7 +2,7 @@ from jira import JIRA
 #import csv
 #from datetime import datetime
 
-def parse_component_data(components):
+'''def parse_component_data(components):
     if not components:
         return ''
 
@@ -19,8 +19,8 @@ def parse_component_data(components):
 
     # Join all component names into a single string separated by commas
     return '|'.join(component_names)
-
-def parse_fix_version_data(components):
+'''
+'''def parse_fix_version_data(components):
     if not components:
         return ''
 
@@ -37,7 +37,7 @@ def parse_fix_version_data(components):
 
     # Join all component names into a single string separated by commas
     return '|'.join(component_names)
-
+'''
 '''def parse_label_data(labels):
     if not labels:
         return ''
@@ -51,7 +51,7 @@ def parse_fix_version_data(components):
         label_names.append(labels)
     
     return '|'.join(label_names)'''
-def parse_label_data(labels):
+'''def parse_label_data(labels):
     if not labels:
         return ''
     
@@ -64,3 +64,4 @@ def parse_label_data(labels):
         label_names.append(str(label))  # Converts label to string if it's not already
     
     return '|'.join(label_names)
+'''

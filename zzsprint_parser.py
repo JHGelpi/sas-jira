@@ -2,7 +2,7 @@
 import csv
 from datetime import datetime
 
-def format_date(date_str):
+'''def format_date(date_str):
     # Check if the date string is a placeholder for missing values
     if date_str == '<null>':
         #return datetime.strptime('1900-12-12 12:00:00', '%Y-%m-%dT%H:%M:%S.%f%z')  # Return '' or any other suitable placeholder
@@ -20,7 +20,7 @@ def format_date(date_str):
         date_string = '1900-12-12 12:00:00+00:00'
         date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
         return date_time_obj
-
+'''
 '''
 # Example usage
 date_strs = ['2024-05-22T00:00:00.000-04:00', '<null>']
@@ -28,21 +28,21 @@ for date_str in date_strs:
     formatted_date = format_date(date_str)
     print(formatted_date)'''
 
-def triage_parser(labels):
+'''def triage_parser(labels):
     collector_label = 'collector-59dc380c'
     if collector_label in labels:
         return True
     else:
-        return False
+        return False'''
 
-def oper_parser(labels):
+'''def oper_parser(labels):
     required_updates_label = 'required_updates'
     if required_updates_label in labels:
         return True
     else:
         return False
-
-def escaped_bug_flag(origin, pipeline_stage):
+'''
+'''def escaped_bug_flag(origin, pipeline_stage):
     if not origin or not pipeline_stage:
         return False
     
@@ -50,10 +50,10 @@ def escaped_bug_flag(origin, pipeline_stage):
         return True
     else: 
         return False
-
+'''
 
 # Load sprint manager data from CSV into a dictionary
-def load_sprint_managers(filename):
+'''def load_sprint_managers(filename):
     managers = {}
     with open(filename, mode='r', encoding='utf-8') as file:
         reader = csv.reader(file)
@@ -63,7 +63,8 @@ def load_sprint_managers(filename):
                 sprint_name, manager = row[0].strip(), row[1].strip()
                 managers[sprint_name] = manager
     return managers
-
+'''
+'''
 def add_sprint_owner(sprint_managers, sprint_name):
     # sprint_owners = sprint_managers
     
@@ -73,8 +74,9 @@ def add_sprint_owner(sprint_managers, sprint_name):
             return sprint_managers[team]
     
     return 'No Manager'
+'''
 
-# Load operational epic data from CSV into a dictionary
+'''# Load operational epic data from CSV into a dictionary
 def load_oper_epics(filename):
     epics = {}
     with open(filename, mode='r', encoding='utf-8') as file:
@@ -84,9 +86,9 @@ def load_oper_epics(filename):
             if len(row) >= 2:
                 epic, sprint_team = row[0].strip(), row[1].strip()
                 epics[sprint_team] = epic
-    return epics
+    return epics'''
 
-def add_oper_epic(epic_name):
+'''def add_oper_epic(epic_name):
     # Return early if epic_name is None or empty
     if not epic_name:
         return ''  
@@ -101,8 +103,8 @@ def add_oper_epic(epic_name):
             return project  # Return the project key associated with the value that matches
     
     return ''  # Return empty string if no matching value is found
-
-def parse_sprint_data(sprint_string):
+'''
+'''def parse_sprint_data(sprint_string):
     # Load the managers dictionary
     jira_helper_folder = '/Users/wegelpi/jira/helper_files/'
     jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
@@ -147,3 +149,4 @@ def parse_sprint_data(sprint_string):
         return [state, start_date, end_date, sprint_name, sprint_owner, complete_date]
     else:
         return ['', '', '', '', '', '']  # Handle cases where format does not match
+'''
