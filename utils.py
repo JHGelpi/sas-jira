@@ -4,9 +4,9 @@ import json
 import psycopg2
 
 # Load sprint manager data from config.json into a dictionary
-def load_sprint_managers():
+def load_sprint_managers(filename):
     managers = {}
-    filename = '/Users/wegelpi/jira/helper_files/config.json'
+    #filename = '/Users/wegelpi/jira/helper_files/config.json'
     
     with open(filename, 'r') as file:
         data = json.load(file)
@@ -62,9 +62,10 @@ def parse_sprint_data(sprint_string, folder_trunk):
     # Load the managers dictionary
     jira_helper_folder = f'{folder_trunk}helper_files/'
     #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    jira_project_owner_file = str(jira_helper_folder) + 'config.json'
     #jira_oper_epics = jira_helper_folder & 'operational-epics.csv'
 
-    sprint_managers = load_sprint_managers()
+    sprint_managers = load_sprint_managers(jira_project_owner_file)
     #oper_epics = load_oper_epics(jira_oper_epics)
 
     # Handle None input early
@@ -105,9 +106,9 @@ def parse_sprint_data(sprint_string, folder_trunk):
         return ['', '', '', '', '', '']  # Handle cases where format does not match
 
 # Load operational epic data from CSV into a dictionary
-def load_oper_epics():
+def load_oper_epics(filename):
     epics = {}
-    filename = '/Users/wegelpi/jira/helper_files/config.json'
+    #filename = '/Users/wegelpi/jira/helper_files/config.json'
 
     # Open and load the JSON file
     with open(filename, 'r') as file:
@@ -143,7 +144,8 @@ def add_oper_epic(epic_name, folder_trunk):
         return ''  
 
     jira_helper_folder = f'{folder_trunk}helper_files/'
-    jira_oper_epics = str(jira_helper_folder) + 'operational-epics.csv'
+    #jira_oper_epics = str(jira_helper_folder) + 'operational-epics.csv'
+    jira_oper_epics = str(jira_helper_folder) + 'config.json'
     oper_epics = load_oper_epics(jira_oper_epics)
 
     # Iterate over the dictionary, checking if any value matches or is relevant to epic_name
@@ -204,6 +206,18 @@ def export_to_csv(csv_file):
     # Your existing logic for exporting to CSV or directly to PostgreSQL
     pass
 
+# Load sprint manager data from JSON into a list of project names
+def load_projects(filename):
+    projects = []
+    with open(filename, mode='r', encoding='utf-8') as file:
+        data = json.load(file)
+        # Access the list of projects under the key 'jira-project-owners'
+        for item in data.get("jira-project-owners", []):
+            project_name = item.get("Project", "").strip()
+            if project_name:  # Check if project_name is not empty
+                projects.append(project_name)
+    return projects
+"""
 # Load sprint manager data from CSV into a dictionary
 def load_projects(filename):
     projects = []
@@ -214,13 +228,14 @@ def load_projects(filename):
             if len(row) >= 1:
                 project_name = row[0].strip()
                 projects.append(project_name)
-    return projects
+    return projects"""
 
 def build_jql_active(output_base_path):
     """Construct JQL query for active issues."""
     # Load the managers dictionary
     jira_helper_folder = f'{output_base_path}helper_files/'
-    jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    jira_project_owner_file = str(jira_helper_folder) + 'config.json'
     #jira_projects = load_projects(jira_project_owner_file)
 
     projects = load_projects(jira_project_owner_file)
@@ -242,7 +257,8 @@ def build_jql_completed(sprint, folder_trunk):
     """Construct JQL query for completed issues in a specific sprint."""
     # Load the managers dictionary
     jira_helper_folder = f'{folder_trunk}helper_files/'
-    jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
+    jira_project_owner_file = str(jira_helper_folder) + 'config.json'
     #jira_projects = load_projects(jira_project_owner_file)
 
     projects = load_projects(jira_project_owner_file)

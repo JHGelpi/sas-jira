@@ -19,3 +19,8 @@ Jira Server URL: https://rndjira.sas.com/
 - issue.fields, 'components': Components
 - escaped_bug: Calculated field.  If Origin is CRP and pipeline stage is "shipped" then 'Y'
 - triage_flg: Calculated field.  If label exists that has the value of `collector-59dc380c` then 'Y'
+# Audit rules
+- Presence of fixVersion/s value if work is in a sprint
+- Presence of a parent link/is related link
+- Presence of Affects Version/s if jira type is a Bug
+- Age of last update of Bug jira type
