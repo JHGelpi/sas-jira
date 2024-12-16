@@ -1,12 +1,28 @@
-import csv
+#import csv
+from jira import JIRA
 from datetime import datetime
 import json
 import psycopg2
 
+def setup_jira_client(config):
+    try:
+        options = {'server': config['jira_server']}
+        file_path = str(config['secret_folder']) + 'jira-token.txt'
+        with open(file_path, 'r') as file:
+            jira_api_token = file.read().strip()
+
+        jira = JIRA(options=options, token_auth=jira_api_token)
+
+        ## Set the Authorization header on the session object directly
+        jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
+        return jira
+    except Exception as e:
+        print(f"Failed to initialize JIRA client: {e}")
+        return None
+    
 # Load sprint manager data from config.json into a dictionary
 def load_sprint_managers(filename):
     managers = {}
-    #filename = '/Users/wegelpi/jira/helper_files/config.json'
     
     with open(filename, 'r') as file:
         data = json.load(file)
@@ -22,25 +38,6 @@ def load_sprint_managers(filename):
                 managers[project] = owner
     
     return managers
-""" 
-def load_sprint_managers():
-    managers = {}
-    filename = '/Users/wegelpi/jira/helper_files/config.json'
-    with open(filename, 'r') as file:
-        data = json.load(file)
-    
-    managers = data.get("jira-project-owners")
-    return managers
-
-    with open(filename, mode='r', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header row if there is one
-        for row in reader:
-            if len(row) >= 2:
-                sprint_name, manager = row[0].strip(), row[1].strip()
-                managers[sprint_name] = manager
-    return managers
-"""
 
 def load_config(path):
     """Load configuration from a JSON file."""
@@ -61,12 +58,9 @@ def parse_sprint_data(sprint_string, folder_trunk):
     """Parse sprint data from the custom field format into structured data."""
     # Load the managers dictionary
     jira_helper_folder = f'{folder_trunk}helper_files/'
-    #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
     jira_project_owner_file = str(jira_helper_folder) + 'config.json'
-    #jira_oper_epics = jira_helper_folder & 'operational-epics.csv'
 
     sprint_managers = load_sprint_managers(jira_project_owner_file)
-    #oper_epics = load_oper_epics(jira_oper_epics)
 
     # Handle None input early
     if sprint_string is None:
@@ -125,18 +119,7 @@ def load_oper_epics(filename):
                 epics[sprint_team] = epic
     
     return epics
-"""
-def load_oper_epics(filename):
-    epics = {}
-    with open(filename, mode='r', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header row if there is one
-        for row in reader:
-            if len(row) >= 2:
-                epic, sprint_team = row[0].strip(), row[1].strip()
-                epics[sprint_team] = epic
-    return epics
-"""
+
 def add_oper_epic(epic_name, folder_trunk):
     """Determine the operational epic based on the epic link."""
     # Return early if epic_name is None or empty
@@ -144,7 +127,6 @@ def add_oper_epic(epic_name, folder_trunk):
         return ''  
 
     jira_helper_folder = f'{folder_trunk}helper_files/'
-    #jira_oper_epics = str(jira_helper_folder) + 'operational-epics.csv'
     jira_oper_epics = str(jira_helper_folder) + 'config.json'
     oper_epics = load_oper_epics(jira_oper_epics)
 
@@ -185,7 +167,6 @@ def format_date(date_str):
     """Format date string to a specific format or handle null values."""
     # Check if the date string is a placeholder for missing values
     if date_str == '<null>':
-        #return datetime.strptime('1900-12-12 12:00:00', '%Y-%m-%dT%H:%M:%S.%f%z')  # Return '' or any other suitable placeholder
         date_string = '1900-12-12 12:00:00+00:00'
         date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
         return date_time_obj
@@ -217,26 +198,12 @@ def load_projects(filename):
             if project_name:  # Check if project_name is not empty
                 projects.append(project_name)
     return projects
-"""
-# Load sprint manager data from CSV into a dictionary
-def load_projects(filename):
-    projects = []
-    with open(filename, mode='r', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header row if there is one
-        for row in reader:
-            if len(row) >= 1:
-                project_name = row[0].strip()
-                projects.append(project_name)
-    return projects"""
 
 def build_jql_active(output_base_path):
     """Construct JQL query for active issues."""
     # Load the managers dictionary
     jira_helper_folder = f'{output_base_path}helper_files/'
-    #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
     jira_project_owner_file = str(jira_helper_folder) + 'config.json'
-    #jira_projects = load_projects(jira_project_owner_file)
 
     projects = load_projects(jira_project_owner_file)
     project_string = '"Compute Services", "GEMINI"'
@@ -248,18 +215,13 @@ def build_jql_active(output_base_path):
     # Join all sprint entries with a comma and close the parenthesis
     jql_query += ', '.join(sprint_entries) + ')'
 
-    #print (jql_query)
-    #print (jql_query)
-
     return jql_query
 
 def build_jql_completed(sprint, folder_trunk):
     """Construct JQL query for completed issues in a specific sprint."""
     # Load the managers dictionary
     jira_helper_folder = f'{folder_trunk}helper_files/'
-    #jira_project_owner_file = str(jira_helper_folder) + 'jira-projects-owners.csv'
     jira_project_owner_file = str(jira_helper_folder) + 'config.json'
-    #jira_projects = load_projects(jira_project_owner_file)
 
     projects = load_projects(jira_project_owner_file)
     project_string = '"Compute Services", "GEMINI"'
@@ -267,12 +229,10 @@ def build_jql_completed(sprint, folder_trunk):
     # Start building the JQL query
     jql_query = f'project in ({project_string}) AND status = "Accepted and Close(Q)" AND Sprint in ('
 
-    #sprint_entries = [f'"{project} {sprint}"' for project in projects]
     sprint_entries = [f'"{sprint}"']
 
     # Join all sprint entries with a comma and close the parenthesis
     jql_query += ', '.join(sprint_entries) + ')'
-    #print (jql_query)
     return jql_query
 
 def parse_component_data(components):
@@ -349,7 +309,6 @@ def append_csv(csv_file, tbl_flag, folder_trunk):
         with open(csv_file, 'r', newline='', encoding='utf-8') as f:
             next(f)  # Skip header
             cursor = conn.cursor()
-            #cursor.copy_expert(f"COPY tbl_jira_sprint_data ({','.join(postgres_cols)}) FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"'", f)
             if tbl_flag == 'hist':
                 sql_query = f"""
                     COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
@@ -389,7 +348,6 @@ def create_connection():
 
     #try:
     conn_string = f"dbname='jira_data' user='postgres' password='{db_password}' host='localhost' connect_timeout=10 sslmode='prefer'"
-    #conn = psycopg2.connect("dbname='jira_data' user='postgres' password='password' host='localhost' connect_timeout=10 sslmode='prefer'")
-    #print (conn_string)
+
     conn = psycopg2.connect(conn_string)
     return conn

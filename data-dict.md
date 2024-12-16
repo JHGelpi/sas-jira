@@ -15,6 +15,7 @@ Jira Server URL: https://rndjira.sas.com/
 - issue.fields, 'labels': All of the labels attached to a given issue
 - issue.fields, 'customfield_15600': Pipeline stage
 - issue.fields, 'customfield_14504': Bug origin
+- issue.fields, 'customfield_15703': Requirement/Epic
 - issue.fields, 'fixVersions': Fix version
 - issue.fields, 'components': Components
 - escaped_bug: Calculated field.  If Origin is CRP and pipeline stage is "shipped" then 'Y'
