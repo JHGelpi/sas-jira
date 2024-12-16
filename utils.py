@@ -314,6 +314,7 @@ def append_csv(csv_file, tbl_flag, folder_trunk):
                     COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
                     FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
                     """
+                print ("SQL Statement from append_csv: ", sql_query)
                 cursor.copy_expert(sql_query, f)
 
                 conn.commit()
