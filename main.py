@@ -6,7 +6,8 @@ from datetime import datetime
 from utils import (parse_sprint_data, add_oper_epic, triage_parser, oper_parser, 
                    escaped_bug_flag, format_date, export_to_csv, load_config, 
                    parse_label_data, parse_fix_version_data, parse_component_data, build_jql_completed,
-                   build_jql_active, append_csv, create_connection)
+                   build_jql_active, append_csv, create_connection, setup_jira_client, fetch_issues, jira_obj_isrelated,
+                   compdiv_initiatives)
 
 def main():
     
@@ -32,13 +33,17 @@ def main():
     print(f"Fetched {len(all_issues)} issues.")
     process_and_export_issues(all_issues, config)
     
+    print ("Looking for new initiatives...")
+    compdiv_initiatives()
+    print ("Finished updating initiatives...")
+
     end_date = datetime.now()
     formatted_end_date = end_date.strftime('%d-%m-%y %H:%M:%S')
     postgres_log_end_date = formatted_end_date
     update_postgres_logs(postgres_log_start_date, postgres_log_end_date, sprint)
     print("Completed at...", formatted_end_date)
 
-def setup_jira_client(config):
+'''def setup_jira_client(config):
     try:
         print("Setting up JIRA client...")
         options = {'server': config['jira_server']}
@@ -54,7 +59,7 @@ def setup_jira_client(config):
         return jira
     except Exception as e:
         print(f"Failed to initialize JIRA client: {e}")
-        return None
+        return None'''
 
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
     config = load_config('/Users/wegelpi/jira/helper_files/config.json')
@@ -117,7 +122,7 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sp
         if conn:
             conn.close()  # Close the database connection
 
-def fetch_issues(jira, jql_query):
+'''def fetch_issues(jira, jql_query):
     start_at = 0
     max_results = 750
     all_issues = []
@@ -141,7 +146,7 @@ def fetch_issues(jira, jql_query):
                 break
             print(f"Retrying ({retries}/{max_retries}) due to error: {e}")
     print(f"Total issues fetched: {len(all_issues)}")
-    return all_issues
+    return all_issues'''
 
 def process_and_export_issues(all_issues, config):
     print("Processing and exporting issues...")
@@ -190,7 +195,13 @@ def build_row(issue, jira_server, folder_trunk):
     story_points = getattr(issue.fields, 'customfield_10002', 0)
     if story_points == None:
         story_points = 0.0
-
+    related_obj = jira_obj_isrelated(issue.key)
+    if related_obj != "No Parent":
+        parent_link = related_obj
+    else:
+        parent_link = None
+    
+    print (f"Related objects: {parent_link}")
     print(f"Row built for issue: {issue.key}")
     return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points]
 

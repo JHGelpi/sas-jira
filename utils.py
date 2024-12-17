@@ -3,6 +3,9 @@ from jira import JIRA
 from datetime import datetime
 import json
 import psycopg2
+from psycopg2.extras import execute_values
+import sys
+import logging
 
 def setup_jira_client(config):
     try:
@@ -352,3 +355,198 @@ def create_connection():
 
     conn = psycopg2.connect(conn_string)
     return conn
+
+def setup_jira_client(config):
+    try:
+        print("Setting up JIRA client...")
+        options = {'server': config['jira_server']}
+        file_path = str(config['secret_folder']) + 'jira-token.txt'
+        with open(file_path, 'r') as file:
+            jira_api_token = file.read().strip()
+
+        jira = JIRA(options=options, token_auth=jira_api_token)
+
+        ## Set the Authorization header on the session object directly
+        jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
+        print("JIRA client setup complete.")
+        return jira
+    except Exception as e:
+        print(f"Failed to initialize JIRA client: {e}")
+        return None
+
+def fetch_issues(jira, jql_query):
+    start_at = 0
+    max_results = 750
+    all_issues = []
+    retries = 0
+    max_retries = 5
+    print("Fetching issues from JIRA...")
+    while True:
+        try:
+            print(f"Querying JIRA with startAt={start_at} and maxResults={max_results}...")
+            issues = jira.search_issues(jql_query, startAt=start_at, maxResults=max_results)
+            all_issues.extend(issues)
+            print(f"Retrieved {len(issues)} issues.")
+            if len(issues) < max_results:
+                break
+            start_at += len(issues)
+        except Exception as e:
+            retries += 1
+            print(f"Error during JIRA fetch: {e}")
+            if retries > max_retries:
+                print(f"Failed after {max_retries} retries: {e}")
+                break
+            print(f"Retrying ({retries}/{max_retries}) due to error: {e}")
+    print(f"Total issues fetched: {len(all_issues)}")
+    return all_issues
+
+##import logging
+##import psycopg2
+##from psycopg2.extras import execute_values
+
+def compdiv_initiatives():
+    """
+    Update the Compute Division initiatives table in PostgreSQL (tbl_jira_initiatives) 
+    with JIRA issues matching the JQL query.
+    """
+    # Configure logging
+    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # JQL Query to fetch initiatives
+    jql = 'project = "C-ing Stars" AND labels in (compdiv-initiative-2025) ORDER BY summary ASC'
+    print ("Querying JIRA to update Compute Division initiatives list...")
+
+    # Load configuration and setup JIRA client
+    config = load_config('/Users/wegelpi/jira/helper_files/config.json')
+    jira = setup_jira_client(config)
+    if jira is None:
+        raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
+    print ("JIRA client initialized successfully.")
+
+    # Fetch initiatives from JIRA
+    initiatives = fetch_issues(jira, jql)
+    print (f"Fetched {len(initiatives)} initiatives from JIRA.")
+
+    # Connect to PostgreSQL database
+    conn = create_connection()
+    if conn is None:
+        raise Exception("Failed to connect to the PostgreSQL database.")
+    print ("Database connection established successfully.")
+
+    try:
+        cursor = conn.cursor()
+
+        # Query to check if issue_key already exists
+        existing_keys_query = "SELECT issue_key FROM tbl_jira_initiatives"
+        cursor.execute(existing_keys_query)
+        existing_keys = set(row[0] for row in cursor.fetchall())
+        print (f"Fetched {len(existing_keys)} existing issue keys from the database.")
+
+        # Prepare data for insertion
+        new_initiatives = []
+        for issue in initiatives:
+            if issue.key not in existing_keys:
+                fields = issue.fields
+                labels = '|'.join(fields.labels) if getattr(fields, 'labels', []) else ''  # Handle labels
+
+                new_initiatives.append((
+                    issue.key,
+                    fields.summary,
+                    getattr(fields, 'customfield_10002', 0),  # Example: Story Points or custom field
+                    fields.status.name,
+                    fields.issuetype.name,
+                    labels
+                ))
+                print (f"New issue to add: {issue.key} - {fields.summary}")
+
+        # Insert new initiatives into the database
+        if new_initiatives:
+            insert_query = """
+                INSERT INTO tbl_jira_initiatives (issue_key, summary, story_points, status, issue_type, labels)
+                VALUES %s
+            """
+            execute_values(cursor, insert_query, new_initiatives)
+            conn.commit()
+            print (f"Inserted {len(new_initiatives)} new initiatives into tbl_jira_initiatives.")
+        else:
+            print ("No new initiatives to insert.")
+
+    except Exception as e:
+        print (f"An error occurred: {e}")
+        conn.rollback()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+            print ("Database connection closed.")
+
+
+    '''
+    Append new initiatives to Postgres. If no new initiatives exist then don't do anything
+    '''
+
+def jira_obj_isrelated(issue_key):
+    """
+    Retrieve and process issue relationships (links, parent, sub-tasks) for a given JIRA issue.
+
+    Parameters:
+    - issue_key (str): The JIRA issue key to fetch relationships for.
+
+    Returns:
+    - None
+    """
+    # Configure logging
+    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    
+    try:
+        # Load configuration
+        config = load_config('/Users/wegelpi/jira/helper_files/config.json')
+        print ("Configuration loaded successfully.")
+
+        # Initialize JIRA client
+        jira = setup_jira_client(config)
+        if jira is None:
+            raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
+        print ("JIRA client initialized successfully.")
+
+        # Fetch issue details
+        print (f"Fetching details for issue: {issue_key}")
+        issue_data = jira.issue(issue_key, fields="issuelinks,parent,subtasks")
+        fields = issue_data.fields
+
+        # Process issue links
+        issue_links = getattr(fields, "issuelinks", [])
+        print ("Processing issue links...")
+        for link in issue_links:
+            link_type = link.type.name
+            inward = getattr(link, "inwardIssue", None)
+            outward = getattr(link, "outwardIssue", None)
+            
+            if inward:
+                print (f"{link_type} (Inward): {inward.key} - {inward.fields.summary}")
+            if outward:
+                print (f"{link_type} (Outward): {outward.key} - {outward.fields.summary}")
+
+        # Parent issue
+        parent = getattr(fields, "parent", None)
+        if parent:
+            print (f"Parent Issue: {parent.key} - {parent.fields.summary}")
+            parent_key = parent.key
+        else:
+            print ("No parent issue found.")
+            parent_key = "No Parent"
+
+        # Sub-tasks
+        subtasks = getattr(fields, "subtasks", [])
+        if subtasks:
+            print ("Processing sub-tasks...")
+            for subtask in subtasks:
+                print (f"Sub-task: {subtask.key} - {subtask.fields.summary}")
+        else:
+            print ("No sub-tasks found.")
+
+        return parent_key
+    except Exception as e:
+        print (f"An error occurred: {e}")
+        return None
