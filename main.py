@@ -1,13 +1,12 @@
 from jira import JIRA
 import sys
 import csv
-# import json
 from datetime import datetime
 from utils import (parse_sprint_data, add_oper_epic, triage_parser, oper_parser, 
-                   escaped_bug_flag, format_date, export_to_csv, load_config, 
+                   escaped_bug_flag, format_date, export_to_csv, 
                    parse_label_data, parse_fix_version_data, parse_component_data, build_jql_completed,
                    build_jql_active, append_csv, create_connection, setup_jira_client, fetch_issues, jira_obj_isrelated,
-                   compdiv_initiatives)
+                   compdiv_initiatives, get_config_data)
 
 def main():
     
@@ -15,23 +14,23 @@ def main():
     formatted_start_date = start_date.strftime('%d-%m-%y %H:%M:%S')
     postgres_log_start_date = formatted_start_date
     print("Starting at....", formatted_start_date)
-    config = load_config('/Users/wegelpi/jira/helper_files/config.json')
+    config_data = get_config_data()
     print("Configuration loaded successfully.")
-    jira = setup_jira_client(config)
+    jira = setup_jira_client()
     if jira is None:
         print("Failed to initialize JIRA client. Ensure your configuration and credentials are correct.")
         sys.exit(1)  # Exit the program if JIRA client setup fails
     print("JIRA client initialized successfully.")
     
-    sprint = config['sprints'][0]
-    print(f"Processing sprint: {sprint}")
+    #sprint = config_data['sprints'][0]
+    #print(f"Processing sprint: {sprint}")
     
-    if config['sprints'] == 'current':
-        all_issues = fetch_issues(jira, build_jql_active(sprint, config['output_base_path']))
+    if config_data['sprints'] == 'current':
+        all_issues = fetch_issues(jira, build_jql_active())
     else:
-        all_issues = fetch_issues(jira, build_jql_completed(sprint, config['output_base_path']))
+        all_issues = fetch_issues(jira, build_jql_completed())
     print(f"Fetched {len(all_issues)} issues.")
-    process_and_export_issues(all_issues, config)
+    process_and_export_issues(all_issues)
     
     print ("Looking for new initiatives...")
     compdiv_initiatives()
@@ -40,30 +39,12 @@ def main():
     end_date = datetime.now()
     formatted_end_date = end_date.strftime('%d-%m-%y %H:%M:%S')
     postgres_log_end_date = formatted_end_date
-    update_postgres_logs(postgres_log_start_date, postgres_log_end_date, sprint)
+    update_postgres_logs(postgres_log_start_date, postgres_log_end_date, config_data['sprints'])
     print("Completed at...", formatted_end_date)
 
-'''def setup_jira_client(config):
-    try:
-        print("Setting up JIRA client...")
-        options = {'server': config['jira_server']}
-        file_path = str(config['secret_folder']) + 'jira-token.txt'
-        with open(file_path, 'r') as file:
-            jira_api_token = file.read().strip()
-
-        jira = JIRA(options=options, token_auth=jira_api_token)
-
-        ## Set the Authorization header on the session object directly
-        jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
-        print("JIRA client setup complete.")
-        return jira
-    except Exception as e:
-        print(f"Failed to initialize JIRA client: {e}")
-        return None'''
-
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
-    config = load_config('/Users/wegelpi/jira/helper_files/config.json')
-    jira_sprint = config['sprints'][0]
+    config_data = get_config_data()
+    jira_sprint = config_data['sprints'][0]
 
     print("Updating PostgreSQL logs...")
     # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'
@@ -122,47 +103,22 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sp
         if conn:
             conn.close()  # Close the database connection
 
-'''def fetch_issues(jira, jql_query):
-    start_at = 0
-    max_results = 750
-    all_issues = []
-    retries = 0
-    max_retries = 5
-    print("Fetching issues from JIRA...")
-    while True:
-        try:
-            print(f"Querying JIRA with startAt={start_at} and maxResults={max_results}...")
-            issues = jira.search_issues(jql_query, startAt=start_at, maxResults=max_results)
-            all_issues.extend(issues)
-            print(f"Retrieved {len(issues)} issues.")
-            if len(issues) < max_results:
-                break
-            start_at += len(issues)
-        except Exception as e:
-            retries += 1
-            print(f"Error during JIRA fetch: {e}")
-            if retries > max_retries:
-                print(f"Failed after {max_retries} retries: {e}")
-                break
-            print(f"Retrying ({retries}/{max_retries}) due to error: {e}")
-    print(f"Total issues fetched: {len(all_issues)}")
-    return all_issues'''
-
-def process_and_export_issues(all_issues, config):
+def process_and_export_issues(all_issues):
     print("Processing and exporting issues...")
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    output_path_trunk = config['output_base_path']
+    config_data = get_config_data()
+    output_path_trunk = config_data['output_base_path']
     csv_file = f'{output_path_trunk}jira-output-{timestamp}.csv'
     print(f"Exporting issues to CSV: {csv_file}")
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
-        writer.writerow(config['csv_headers'])
+        writer.writerow(config_data['csv_headers'])
         for issue in all_issues:
-            row = build_row(issue, config['jira_server'], config['output_base_path'])
+            row = build_row(issue, config_data['jira_server'], config_data['output_base_path'])
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     export_to_csv(csv_file)
-    append_csv(csv_file, 'hist', config['output_base_path'])
+    append_csv(csv_file, 'hist', config_data['output_base_path'])
 
 def build_row(issue, jira_server, folder_trunk):
     print(f"Building row for issue: {issue.key}")
@@ -182,7 +138,7 @@ def build_row(issue, jira_server, folder_trunk):
     issue_url = f'{jira_server}browse/' + str(issue.key)
     epic_link = getattr(issue.fields, 'customfield_10301', '')
     parent_link = getattr(issue.fields, 'customfield_16301', 'No Parent')
-    oper_epic = add_oper_epic(epic_link, folder_trunk)
+    oper_epic = add_oper_epic(epic_link)
     labels = parse_label_data(getattr(issue.fields, 'labels', ''))
     pipeline_stage = str(getattr(issue.fields, 'customfield_15600', ''))
     bug_origin = str(getattr(issue.fields, 'customfield_14504', ''))

@@ -4,24 +4,59 @@ from datetime import datetime
 import json
 import psycopg2
 from psycopg2.extras import execute_values
-import sys
-import logging
+#import sys
+#import logging
 
-def setup_jira_client(config):
+def get_config_data():
+    """
+    Load configuration data from the config file.
+
+    :return: Dictionary containing configuration data
+    """
+    CONFIG_FILE_PATH = '/Users/wegelpi/jira/helper_files/'
+    CONFIG_FILE = 'config.json'
+
+    print("Loading configuration data from the config file.")
     try:
-        options = {'server': config['jira_server']}
-        file_path = str(config['secret_folder']) + 'jira-token.txt'
-        with open(file_path, 'r') as file:
-            jira_api_token = file.read().strip()
+        with open(CONFIG_FILE_PATH + CONFIG_FILE, 'r') as file:
+            config = json.load(file)
 
-        jira = JIRA(options=options, token_auth=jira_api_token)
+            # Extract and structure the configuration
+            configuration = {
+                'jira_server': config['jira_server'],
+                'secret_folder': config['secret_folder'],
+                'jira_token_file': config['token_file_path'],
+                'output_base_path': config['output_base_path'],
+                'viz_query': config['viz-query'],
+                'postgres_log_cols': config['postgres_log_cols'],
+                'insert_log_sql': config['insert_logs_sql'],
+                'sprints': config['sprints'][0],
+                'max_results': config['max_results'],
+                'fields': config['fields'],
+                'csv_settings': config['csv_settings'],
+                'jira_projects': config['jira_projects'],
+                'csv_headers': config['csv_headers'],
+                'postgres_cols': config['postgres_cols'],
+                'iris_reqs_jql': config['iris-reqs-jql'],
+                'jira_project_owners': config['jira-project-owners'],
+                'operational_epics': config['operational-epics']
+            }
 
-        ## Set the Authorization header on the session object directly
-        jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
-        return jira
-    except Exception as e:
-        print(f"Failed to initialize JIRA client: {e}")
-        return None
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f'Error loading configuration file: {e}')
+        raise
+
+    # Get JIRA token
+    print('Reading JIRA token from file.')
+    try:
+        with open(configuration['jira_token_file'], 'r') as file:
+            configuration['jira_token'] = file.read().strip()
+
+    except FileNotFoundError as e:
+        print(f'Error reading JIRA token: {e}')
+        raise
+
+    return configuration
     
 # Load sprint manager data from config.json into a dictionary
 def load_sprint_managers(filename):
@@ -41,11 +76,6 @@ def load_sprint_managers(filename):
                 managers[project] = owner
     
     return managers
-
-def load_config(path):
-    """Load configuration from a JSON file."""
-    with open(path, 'r') as file:
-        return json.load(file)
 
 def add_sprint_owner(sprint_managers, sprint_name):
     # sprint_owners = sprint_managers
@@ -103,7 +133,7 @@ def parse_sprint_data(sprint_string, folder_trunk):
         return ['', '', '', '', '', '']  # Handle cases where format does not match
 
 # Load operational epic data from CSV into a dictionary
-def load_oper_epics(filename):
+'''def load_oper_epics(filename):
     epics = {}
     #filename = '/Users/wegelpi/jira/helper_files/config.json'
 
@@ -121,24 +151,44 @@ def load_oper_epics(filename):
             if epic and sprint_team:
                 epics[sprint_team] = epic
     
-    return epics
+    return epics'''
 
-def add_oper_epic(epic_name, folder_trunk):
+'''def add_oper_epic(epic_name, folder_trunk):
     """Determine the operational epic based on the epic link."""
     # Return early if epic_name is None or empty
     if not epic_name:
         return ''  
+    config_data = get_config_data()
 
-    jira_helper_folder = f'{folder_trunk}helper_files/'
-    jira_oper_epics = str(jira_helper_folder) + 'config.json'
-    oper_epics = load_oper_epics(jira_oper_epics)
-
+    oper_epics = config_data['operational_epics']
     # Iterate over the dictionary, checking if any value matches or is relevant to epic_name
     for project, value in oper_epics.items():
         if value == epic_name:  # Check if the value exactly matches epic_name
             return project  # Return the project key associated with the value that matches
     
-    return ''  # Return empty string if no matching value is found
+    return ''  # Return empty string if no matching value is found'''
+
+def add_oper_epic(epic_name):
+    """
+    Determine the operational epic based on the epic link.
+    
+    :param epic_name: The name of the epic to look for.
+    :param folder_trunk: The folder path (unused but kept for compatibility).
+    :return: The sprint team associated with the epic or an empty string if no match is found.
+    """
+    # Return early if epic_name is None or empty
+    if not epic_name:
+        return ''
+    
+    config_data = get_config_data()
+
+    oper_epics = config_data['operational_epics']
+    # Iterate over the list of dictionaries, checking if any 'epic' matches the epic_name
+    for epic_entry in oper_epics:
+        if epic_entry.get("epic") == epic_name:  # Check if the 'epic' field matches
+            return epic_entry.get("sprint_team", "")  # Return the associated sprint team or an empty string
+    
+    return ''  # Return empty string if no matching epic is found
 
 def triage_parser(labels):
     """Parse and analyze the triage labels."""
@@ -220,22 +270,16 @@ def build_jql_active(output_base_path):
 
     return jql_query
 
-def build_jql_completed(sprint, folder_trunk):
+def build_jql_completed():
     """Construct JQL query for completed issues in a specific sprint."""
+    config_data = get_config_data()
     # Load the managers dictionary
-    jira_helper_folder = f'{folder_trunk}helper_files/'
-    jira_project_owner_file = str(jira_helper_folder) + 'config.json'
-
-    projects = load_projects(jira_project_owner_file)
-    project_string = '"Compute Services", "GEMINI"'
+    project_string = config_data['jira_projects']
 
     # Start building the JQL query
-    jql_query = f'project in ({project_string}) AND status = "Accepted and Close(Q)" AND Sprint in ('
+    jql_query = f'project in ({','.join(project_string)}) AND statusCategory = Done AND Sprint in ("{config_data['sprints']}")'
 
-    sprint_entries = [f'"{sprint}"']
-
-    # Join all sprint entries with a comma and close the parenthesis
-    jql_query += ', '.join(sprint_entries) + ')'
+    print (f"Returning the following JQL from build_jql_completed: {jql_query}")
     return jql_query
 
 def parse_component_data(components):
@@ -344,8 +388,9 @@ def append_csv(csv_file, tbl_flag, folder_trunk):
 
 def create_connection():
     """ Create and return a PostgreSQL connection using the given connection string. """
-    config = load_config('/Users/wegelpi/jira/helper_files/config.json')
-    secret_file = config['secret_folder'] + 'postgres.txt'
+    config_data = get_config_data()
+    #config = load_config('/Users/wegelpi/jira/helper_files/config.json')
+    secret_file = config_data['secret_folder'] + 'postgres.txt'
 
     with open(secret_file, 'r') as file:
         db_password = file.read().strip()
@@ -356,7 +401,9 @@ def create_connection():
     conn = psycopg2.connect(conn_string)
     return conn
 
-def setup_jira_client(config):
+def setup_jira_client():
+    config = get_config_data()
+    #config = config_data['']
     try:
         print("Setting up JIRA client...")
         options = {'server': config['jira_server']}
@@ -400,25 +447,17 @@ def fetch_issues(jira, jql_query):
     print(f"Total issues fetched: {len(all_issues)}")
     return all_issues
 
-##import logging
-##import psycopg2
-##from psycopg2.extras import execute_values
-
 def compdiv_initiatives():
     """
     Update the Compute Division initiatives table in PostgreSQL (tbl_jira_initiatives) 
     with JIRA issues matching the JQL query.
     """
-    # Configure logging
-    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # JQL Query to fetch initiatives
     jql = 'project = "C-ing Stars" AND labels in (compdiv-initiative-2025) ORDER BY summary ASC'
     print ("Querying JIRA to update Compute Division initiatives list...")
 
-    # Load configuration and setup JIRA client
-    config = load_config('/Users/wegelpi/jira/helper_files/config.json')
-    jira = setup_jira_client(config)
+    jira = setup_jira_client()
     if jira is None:
         raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
     print ("JIRA client initialized successfully.")
@@ -496,16 +535,11 @@ def jira_obj_isrelated(issue_key):
     Returns:
     - None
     """
-    # Configure logging
-    #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
     try:
-        # Load configuration
-        config = load_config('/Users/wegelpi/jira/helper_files/config.json')
-        print ("Configuration loaded successfully.")
 
         # Initialize JIRA client
-        jira = setup_jira_client(config)
+        jira = setup_jira_client()
         if jira is None:
             raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
         print ("JIRA client initialized successfully.")
