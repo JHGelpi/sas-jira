@@ -1,25 +1,38 @@
 version: '3.8'
 
 services:
-  web:
+  webserver:
+    container_name: jira-data-collector
+    image: jira-data-collector
     build: .
+    restart: always
     ports:
       - "8000:8000"
     volumes:
       - ./src:/app
+    env_file:
+      - .env
+    environment:
+      - DB_HOST: ${DB_HOST}
+      - DB_USER: ${DB_USER}
+      - DB_PASSWORD: ${DB_PASSWORD}
+      - DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/jira_data"
+      - JIRA_URL: ${JIRA_URL}
+      - JIRA_USER: ${JIRA_USER}
+      - JIRA_TOKEN: ${JIRA_TOKEN}
+      - JIRA_PROJECTS: ${JIRA_PROJECTS}
+      - JIRA_MAX_RESULT: ${JIRA_MAX_RESULT}
     depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/mydatabase
+      - []
 
-  db:
-    image: postgres:13
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mydatabase
+  #db:
+  #  image: postgres:16
+  #  volumes:
+  #    - postgres_data:/var/lib/postgresql/data
+  #  environment:
+  #    - POSTGRES_USER=user
+  #    - POSTGRES_PASSWORD=password
+  #    - POSTGRES_DB=mydatabase
 
-volumes:
-  postgres_data:
+#volumes:
+#  postgres_data:

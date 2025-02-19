@@ -4,7 +4,7 @@ import json
 import psycopg2
 from psycopg2.extras import execute_values
 
-def get_config_data():
+'''def get_config_data():
     """
     Load configuration data from the config file.
 
@@ -53,9 +53,9 @@ def get_config_data():
         print(f'Error reading JIRA token: {e}')
         raise
 
-    return configuration
+    return configuration'''
     
-# Load sprint manager data from config.json into a dictionary
+'''# Load sprint manager data from config.json into a dictionary
 def load_sprint_managers(filename):
     managers = {}
     
@@ -72,9 +72,9 @@ def load_sprint_managers(filename):
             if project and owner:
                 managers[project] = owner
     
-    return managers
+    return managers'''
 
-def add_sprint_owner(sprint_managers, sprint_name):
+'''def add_sprint_owner(sprint_managers, sprint_name):
     # sprint_owners = sprint_managers
     
     for team in sprint_managers:
@@ -83,8 +83,9 @@ def add_sprint_owner(sprint_managers, sprint_name):
             return sprint_managers[team]
     
     return 'No Manager'
+'''
 
-def parse_sprint_data(sprint_string, folder_trunk):
+'''def parse_sprint_data(sprint_string, folder_trunk):
     """Parse sprint data from the custom field format into structured data."""
     # Load the managers dictionary
     jira_helper_folder = f'{folder_trunk}helper_files/'
@@ -127,7 +128,7 @@ def parse_sprint_data(sprint_string, folder_trunk):
 
         return [state, start_date, end_date, sprint_name, sprint_owner, complete_date]
     else:
-        return ['', '', '', '', '', '']  # Handle cases where format does not match
+        return ['', '', '', '', '', '']  # Handle cases where format does not match'''
 
 # Load operational epic data from CSV into a dictionary
 '''def load_oper_epics(filename):
@@ -165,7 +166,7 @@ def parse_sprint_data(sprint_string, folder_trunk):
     
     return ''  # Return empty string if no matching value is found'''
 
-def add_oper_epic(epic_name):
+'''def add_oper_epic(epic_name):
     """
     Determine the operational epic based on the epic link.
     
@@ -186,8 +187,8 @@ def add_oper_epic(epic_name):
             return epic_entry.get("sprint_team", "")  # Return the associated sprint team or an empty string
     
     return ''  # Return empty string if no matching epic is found
-
-def triage_parser(labels):
+'''
+'''def triage_parser(labels):
     """Parse and analyze the triage labels."""
     collector_label = 'collector-59dc380c'
     if collector_label in labels:
@@ -211,9 +212,9 @@ def escaped_bug_flag(origin, pipeline_stage):
     if 'CRP' in origin and pipeline_stage == 'Shipped':
         return True
     else: 
-        return False
+        return False'''
 
-def format_date(date_str):
+'''def format_date(date_str):
     """Format date string to a specific format or handle null values."""
     # Check if the date string is a placeholder for missing values
     if date_str == '<null>':
@@ -235,9 +236,9 @@ def format_date(date_str):
 def export_to_csv(csv_file):
     """Export data to a CSV file, placeholder for your actual database export logic."""
     # Your existing logic for exporting to CSV or directly to PostgreSQL
-    pass
+    pass'''
 
-# Load sprint manager data from JSON into a list of project names
+'''# Load sprint manager data from JSON into a list of project names
 def load_projects(filename):
     projects = []
     with open(filename, mode='r', encoding='utf-8') as file:
@@ -247,7 +248,7 @@ def load_projects(filename):
             project_name = item.get("Project", "").strip()
             if project_name:  # Check if project_name is not empty
                 projects.append(project_name)
-    return projects
+    return projects'''
 
 def build_jql_active(output_base_path):
     """Construct JQL query for active issues."""
@@ -279,7 +280,7 @@ def build_jql_completed():
     print (f"Returning the following JQL from build_jql_completed: {jql_query}")
     return jql_query
 
-def parse_component_data(components):
+'''def parse_component_data(components):
     """Parse component data from JIRA issue fields."""
     if not components:
         return ''
@@ -296,9 +297,9 @@ def parse_component_data(components):
             component_names.append('No Component Name')
 
     # Join all component names into a single string separated by commas
-    return '|'.join(component_names)
+    return '|'.join(component_names)'''
 
-def parse_fix_version_data(components):
+'''def parse_fix_version_data(components):
     """Parse fix version data from JIRA issue fields."""
     if not components:
         return ''
@@ -315,9 +316,9 @@ def parse_fix_version_data(components):
             component_names.append('')
 
     # Join all component names into a single string separated by commas
-    return '|'.join(component_names)
+    return '|'.join(component_names)'''
 
-def parse_label_data(labels):
+'''def parse_label_data(labels):
     """Parse label data from JIRA issue fields."""
     if not labels:
         return ''
@@ -330,64 +331,15 @@ def parse_label_data(labels):
         # Ensure that label is a string, if the label structure is simple and contains direct string items
         label_names.append(str(label))  # Converts label to string if it's not already
     
-    return '|'.join(label_names)
+    return '|'.join(label_names)'''
 
-def append_csv(csv_file, tbl_flag, folder_trunk):
-    conn = None
-    cursor = None
 
-    conn = create_connection()
-    if conn is None:
-        return
-    
-    # Connect to JIRA
-    config_file = f'{folder_trunk}helper_files/config.json'
 
-    try:
-        with open(config_file, 'r') as file:
-            config = json.load(file)
-        
-        #postgres_cols = tuple(config_file['postgres_cols'])
-        postgres_cols = tuple(config['postgres_cols'])
-
-        with open(csv_file, 'r', newline='', encoding='utf-8') as f:
-            next(f)  # Skip header
-            cursor = conn.cursor()
-            if tbl_flag == 'hist':
-                sql_query = f"""
-                    COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
-                    FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                    """
-                print ("SQL Statement from append_csv: ", sql_query)
-                cursor.copy_expert(sql_query, f)
-
-                conn.commit()
-                cursor.close()
-                print(f"Data appended successfully from {csv_file}")
-            elif tbl_flag == 'curr':
-                sql_query = f"""
-                    COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
-                    FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                    """
-                cursor.copy_expert(sql_query, f)
-
-                conn.commit()
-                cursor.close()
-                print(f"Data appended successfully from {csv_file}")
-    except Exception as e:
-        print(f"Failed to process the file: {e}")
-    finally:
-        # Closing the connection
-        if cursor:
-            cursor.close()  # Close the cursor
-        if conn:
-            conn.close()  # Close the database connection
-
-def create_connection():
+'''def create_connection():
     """ Create and return a PostgreSQL connection using the given connection string. """
-    config_data = get_config_data()
+    #config_data = get_config_data()
     #config = load_config('/Users/wegelpi/jira/helper_files/config.json')
-    secret_file = config_data['secret_folder'] + 'postgres.txt'
+    #secret_file = config_data['secret_folder'] + 'postgres.txt'
 
     with open(secret_file, 'r') as file:
         db_password = file.read().strip()
@@ -396,10 +348,10 @@ def create_connection():
     conn_string = f"dbname='jira_data' user='postgres' password='{db_password}' host='localhost' connect_timeout=10 sslmode='prefer'"
 
     conn = psycopg2.connect(conn_string)
-    return conn
+    return conn'''
 
 def setup_jira_client():
-    config = get_config_data()
+    #config = get_config_data()
     #config = config_data['']
     try:
         print("Setting up JIRA client...")
@@ -522,7 +474,7 @@ def compdiv_initiatives():
     Append new initiatives to Postgres. If no new initiatives exist then don't do anything
     '''
 
-def jira_obj_isrelated(issue_key):
+'''def jira_obj_isrelated(issue_key):
     """
     Retrieve and process issue relationships (links, parent, sub-tasks) for a given JIRA issue.
 
@@ -581,3 +533,4 @@ def jira_obj_isrelated(issue_key):
     except Exception as e:
         print (f"An error occurred: {e}")
         return None
+'''
