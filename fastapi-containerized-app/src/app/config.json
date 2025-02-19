@@ -1,0 +1,73 @@
+{
+        "max_results": 750,
+        "fields": {
+            "epic_link": "customfield_10301",
+            "parent_link": "customfield_16301",
+            "sprint_field": "customfield_10102",
+            "issue_type": "issuetype",
+            "assignee": "assignee",
+            "status": "status"
+        },
+        "csv_settings": {
+            "delimiter": ",",
+            "quotechar": "\"",
+            "quoting": "QUOTE_ALL"
+        },
+		"csv_headers": [
+			"Epic Link", 
+			"Parent Link",
+			"Operational Epic Team",
+			"Operational Flag",
+			"Triage Origin",
+			"Pipeline Discovery Stage",
+			"Bug Origin",
+			"Escaped Bug",
+			"Fix Version",
+			"Component",
+			"Issue Key",
+			"Summary",
+			"Issue URL",
+			"Type",
+			"State",
+			"Assignee",
+			"Status",
+			"Start Date",
+			"End Date",
+			"Completed Date",
+			"Sprint Name",
+			"Labels",
+			"Sprint Owner",
+			"Export Date",
+			"Story Points"
+			],
+	"postgres_cols": [
+		"epic_link",
+		"parent_link",
+		"operational_epic_team",
+		"operational_flag",
+		"triage_origin_flag",
+		"pipeline_stage",
+		"bug_origin",
+		"escaped_bug_flag",
+		"fix_version",
+		"components",
+		"issue_key",
+		"issue_summary",
+		"issue_url",
+		"issue_type",
+		"issue_state",
+		"issue_assignee",
+		"issue_status",
+		"start_date",
+		"end_date",
+		"completed_date",
+		"sprint_name",
+		"labels",
+		"sprint_owner",
+		"update_date",
+		"story_points"
+		],
+	"iris-reqs-jql": [
+    	"labels in (\"cross-divisional\") AND issuetype = \"Requirement\" AND created >= \"2023/01/01\""
+  		]
+    }

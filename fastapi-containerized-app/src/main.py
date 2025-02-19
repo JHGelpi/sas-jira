@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from datetime import datetime
-from daily_jira_data import (setup_jira_client, fetch_issues, process_and_export_issues,
+from app.daily_jira_data import (setup_jira_client, fetch_issues, process_and_export_issues,
                              update_postgres_logs, build_jql)
+import asyncio
 import sys
 #from app.api.routes import router as api_router
 #from app.db import models
@@ -66,4 +67,4 @@ async def daily():
     return 
 
 if __name__ == "__main__":
-    daily()
+    asyncio.run(daily())

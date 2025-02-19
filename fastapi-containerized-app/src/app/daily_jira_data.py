@@ -9,6 +9,7 @@ import os
 import csv
 import json
 import psycopg2
+from psycopg2 import pool
 from datetime import datetime, timedelta
 from fastapi import FastAPI
 from jira import JIRA
@@ -17,6 +18,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+
+# Initialize the connection pool
+db_password = os.getenv('DB_PASSWORD')
+db_user = os.getenv('DB_USER')
+db_name = os.getenv('DB_NAME')
+db_host = os.getenv('DB_HOST')
+db_timeout = os.getenv('DB_CONN_TIMEOUT')
+
+conn_string = f"dbname='{db_name}' user='{db_user}' password='{db_password}' host='{db_host}' connect_timeout={db_timeout} sslmode='prefer'"
+connection_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=conn_string)
 
 def setup_jira_client():
     # Database connection
@@ -38,20 +49,15 @@ def setup_jira_client():
     return jira
 
 def create_connection():
-    """ Create and return a PostgreSQL connection using the given connection string. """
-    db_password = os.getenv('DB_PASSWORD')
-    db_user = os.getenv('DB_USER')
-    db_name = os.getenv('DB_NAME')
-    db_host = os.getenv('DB_HOST')
-    db_timeout = os.getenv('DB_CONN_TIMEOUT')
     
-    conn_string = f"dbname='{db_name}' user='{db_user}' password='{db_password}' host='{db_host}' connect_timeout={db_timeout} sslmode='prefer'"
-
-    conn = psycopg2.connect(conn_string)
-    return conn
+    """ Get a connection from the pool. """
+    if connection_pool:
+        return connection_pool.getconn()
+    else:
+        raise Exception("Connection pool is not initialized.")
 
 def build_row(issue, jira_server, folder_trunk):
-    print(f"Building row for issue: {issue.key}")
+    #print(f"Building row for issue: {issue.key}")
     sprint_data_list = []
     start_date = datetime.now()
 
@@ -87,8 +93,8 @@ def build_row(issue, jira_server, folder_trunk):
     else:
         parent_link = None
     
-    print (f"Related objects: {parent_link}")
-    print(f"Row built for issue: {issue.key}")
+    #print (f"Related objects: {parent_link}")
+    #print(f"Row built for issue: {issue.key}")
     return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points]
 
 def process_and_export_issues(all_issues):
@@ -96,18 +102,23 @@ def process_and_export_issues(all_issues):
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     #config_data = get_config_data()
     output_dir = os.getenv('OUTPUT_DIR')
-    csv_file = f'{output_dir}jira-output-{timestamp}.csv'
+    current_working_directory = os.getcwd()
+    folder_path = os.path.join(current_working_directory, output_dir)
+    csv_file = os.path.join(folder_path, f'jira-output-{timestamp}.csv')
+    #csv_file = f'{output_dir}jira-output-{timestamp}.csv'
+    print(f"Exporting issues to CSV: {csv_file}")
+    csv_file = f'jira-output-{timestamp}.csv'
     print(f"Exporting issues to CSV: {csv_file}")
     
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         writer.writerow(os.getenv("CSV_HEADERS").split(','))
         for issue in all_issues:
-            row = build_row(issue, os.getenv("JIRA_URL"), output_dir)
+            row = build_row(issue, os.getenv("JIRA_URL"), csv_file)
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     #export_to_csv(csv_file)
-    append_csv(csv_file, 'daily', output_dir)
+    append_csv(folder_path & csv_file, 'daily')
 
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
     #config_data = get_config_data()
@@ -168,9 +179,13 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sp
         if cursor:
             cursor.close()  # Close the cursor
         if conn:
-            conn.close()  # Close the database connection
+            connection_pool.putconn(conn)  # Return the connection to the pool
 
-def append_csv(csv_file, tbl_flag, folder_trunk):
+def append_csv(csv_file, tbl_flag):
+    #output_dir = os.getenv('OUTPUT_DIR')
+    current_working_directory = os.getcwd()
+    #folder_path = os.path.join(current_working_directory, output_dir)
+    #config_folder = ""
     conn = None
     cursor = None
 
@@ -179,7 +194,7 @@ def append_csv(csv_file, tbl_flag, folder_trunk):
         return
     
     # Connect to JIRA
-    config_file = f'{folder_trunk}helper_files/config.json'
+    config_file = f'{current_working_directory}/config.json'
 
     try:
         with open(config_file, 'r') as file:
@@ -283,14 +298,14 @@ def escaped_bug_flag(origin, pipeline_stage):
     
 def format_date(date_str):
     """Format date string to a specific format or handle null values."""
-    # Check if the date string is a placeholder for missing values
-    if date_str == '<null>':
+    # Check if the date string is empty or a placeholder for missing values
+    if not date_str or date_str == '<null>':
         date_string = '1900-12-12 12:00:00+00:00'
         date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
         return date_time_obj
     # Parse the datetime from the given string format
     try:
-        date_object = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+        date_object = datetime.strptime(date_str, '%Y-%m-%dT%Hß:%M:%S.%f%z')
         # Convert the datetime object to just the date in 'yyyy-mm-dd' format
         formatted_date = date_object.strftime('%Y-%m-%d')
         return formatted_date
@@ -428,8 +443,8 @@ def jira_obj_isrelated(issue_key):
 def parse_sprint_data(sprint_string, folder_trunk):
     """Parse sprint data from the custom field format into structured data."""
     # Load the managers dictionary
-    jira_helper_folder = f'{folder_trunk}helper_files/'
-    jira_project_owner_file = str(jira_helper_folder) + 'config.json'
+    #jira_helper_folder = f'{folder_trunk}helper_files/'
+    #jira_project_owner_file = str(jira_helper_folder) + 'config.json'
 
     sprint_managers = load_sprint_managers()
 
@@ -485,7 +500,7 @@ def load_sprint_managers():
     try:
         # Query to get project-owner pairs from the table
         query = """
-            SELECT project, owner
+            SELECT project, project_owner
             FROM tbl_jira_project_owners
         """
         cursor.execute(query)
@@ -605,11 +620,23 @@ def build_jql():
     cursor = conn.cursor()
 
     sql_query = """
-        SELECT MAX(endDTTM)
+        SELECT MAX("endDTTM")
         FROM tbl_run_log
         WHERE "runType" = 'DAILY';
     """
     cursor.execute(sql_query)
+    last_run_time = cursor.fetchone()[0]
 
-    jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{cursor.fetchone()[0]}'"
+    cursor.close()
+    conn.close()
+
+    # Handle the case where last_run_time is None
+    if last_run_time is None:
+        last_run_time = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M')
+    else:
+        last_run_time = last_run_time.strftime('%Y-%m-%d %H:%M')
+
+    jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{last_run_time}'"
+
+    print (f"JQL Statement: {jql}")
     return jql
