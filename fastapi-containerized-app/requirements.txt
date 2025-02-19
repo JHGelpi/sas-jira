@@ -1,0 +1,9 @@
+FastAPI
+uvicorn
+sqlalchemy
+asyncpg
+alembic
+APScheduler
+httpx
+pydantic
+python-dotenv
