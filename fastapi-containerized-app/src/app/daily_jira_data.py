@@ -105,14 +105,14 @@ def build_row(issue, jira_server, folder_trunk):
     #print(f"Row built for issue: {issue.key}")
     return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points]
 
-def process_and_export_issues(all_issues):
+def process_and_export_issues(all_issues, run_flag):
     print("Processing and exporting issues...")
     base_dir = os.path.dirname(os.path.abspath(__file__))
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     output_dir = os.getenv('OUTPUT_DIR')
     #current_working_directory = os.getcwd()
     folder_path = f"{base_dir}{output_dir}"
-    print(f"Folder path: {folder_path}")
+    #print(f"Folder path: {folder_path}")
     csv_file = os.path.join(folder_path, f'jira-output-{timestamp}.csv')
 
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
@@ -120,11 +120,12 @@ def process_and_export_issues(all_issues):
         writer.writerow(os.getenv("CSV_HEADERS").split(','))
         for issue in all_issues:
             row = build_row(issue, os.getenv("JIRA_URL"), csv_file)
+            row.append(run_flag)  # Add run_flag to the end of the row
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     full_path = f"{csv_file}"
-    append_csv(full_path, 'daily')
-
+    append_csv(full_path, run_flag)
+''''
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
     print("Updating PostgreSQL logs...")
     # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'
@@ -182,8 +183,8 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sp
             cursor.close()  # Close the cursor
         if conn:
             connection_pool.putconn(conn)  # Return the connection to the pool
-
-def append_csv(csv_file, tbl_flag):
+'''
+def append_csv(csv_file, run_flag):
     current_working_directory = os.getcwd()
     conn = None
     cursor = None
@@ -541,8 +542,8 @@ def fetch_issues(jira, jql_query):
     print(f"Total issues fetched: {len(all_issues)}")
     return all_issues
 
-def update_postgres_logs(postgres_log_start_date, postgres_log_end_date):
-    jira_sprint = 'daily'
+def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, run_flag):
+    jira_sprint = run_flag
     print("Updating PostgreSQL logs...")
     # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'
     try:
@@ -568,7 +569,7 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date):
 
         # Parameterized query to avoid syntax issues
         exec_origin = 'python'
-        run_type = 'DAILY'
+        run_type = run_flag
 
         sql_query = """
             INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
@@ -600,29 +601,43 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date):
         if conn:
             conn.close()  # Close the database connection
 
-def build_jql():
+def build_jql(jql_flag):
     # This function will look at the run logs and build the JQL statement based on the last log entry
     conn = create_connection()
     cursor = conn.cursor()
 
-    sql_query = """
-        SELECT MAX("endDTTM")
-        FROM tbl_run_log
-        WHERE "runType" = 'DAILY';
-    """
-    cursor.execute(sql_query)
-    last_run_time = cursor.fetchone()[0]
+    if jql_flag == 'daily':
+        sql_query = """
+            SELECT MAX("endDTTM")
+            FROM tbl_run_log
+            WHERE "runType" = 'DAILY';
+        """
+        cursor.execute(sql_query)
+        last_run_time = cursor.fetchone()[0]
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    # Handle the case where last_run_time is None
-    if last_run_time is None:
-        last_run_time = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M')
-    else:
-        last_run_time = last_run_time.strftime('%Y-%m-%d %H:%M')
+        # Handle the case where last_run_time is None
+        if last_run_time is None:
+            last_run_time = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M')
+        else:
+            last_run_time = last_run_time.strftime('%Y-%m-%d %H:%M')
 
-    jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{last_run_time}'"
+        jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{last_run_time}'"
 
-    print (f"JQL Statement: {jql}")
+    elif jql_flag == 'release':
+        #Monthly JQL
+        sql_query = """
+            select max(a.release_date) from tbl_jira_releases a where a.release_date <= current_date;
+        """
+        cursor.execute(sql_query)
+        last_run_time = cursor.fetchone()[0]
+
+        start_date = last_run_time - timedelta(days=30)
+        # project = "Compute Services" AND statusCategory = Done AND updatedDate >= '2025-02-20' ORDER BY updated ASC
+        jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND statusCategory = Done AND updated >= '{start_date}' ORDER BY updated ASC"
+
+
+    #print (f"JQL Statement: {jql}")
     return jql
