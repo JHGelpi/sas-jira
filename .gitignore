@@ -1,3 +1,4 @@
 .env
 tmp/
 fastapi-containerized-app/src/app/
+fastapi-containerized-app/src/cron.log
