@@ -107,15 +107,14 @@ def build_row(issue, jira_server, folder_trunk):
 
 def process_and_export_issues(all_issues):
     print("Processing and exporting issues...")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     output_dir = os.getenv('OUTPUT_DIR')
-    current_working_directory = os.getcwd()
-    folder_path = f"{current_working_directory}{output_dir}"
-    #folder_path = os.path.join(current_working_directory, output_dir)
+    #current_working_directory = os.getcwd()
+    folder_path = f"{base_dir}{output_dir}"
+    print(f"Folder path: {folder_path}")
     csv_file = os.path.join(folder_path, f'jira-output-{timestamp}.csv')
 
-    #csv_file = f'jira-output-{timestamp}.csv'
-    
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         writer.writerow(os.getenv("CSV_HEADERS").split(','))
@@ -123,14 +122,10 @@ def process_and_export_issues(all_issues):
             row = build_row(issue, os.getenv("JIRA_URL"), csv_file)
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
-    #export_to_csv(csv_file)
     full_path = f"{csv_file}"
     append_csv(full_path, 'daily')
 
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
-    #config_data = get_config_data()
-    #jira_sprint = config_data['sprints'][0]
-
     print("Updating PostgreSQL logs...")
     # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'
     try:
@@ -189,15 +184,17 @@ def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sp
             connection_pool.putconn(conn)  # Return the connection to the pool
 
 def append_csv(csv_file, tbl_flag):
-    #output_dir = os.getenv('OUTPUT_DIR')
     current_working_directory = os.getcwd()
-    #folder_path = os.path.join(current_working_directory, output_dir)
-    #config_folder = ""
     conn = None
     cursor = None
 
+    #conn = create_connection()
+
     conn = create_connection()
+    cursor = conn.cursor()
+
     if conn is None:
+        print("Failed to establish database connection.")
         return
     
     # Connect to JIRA
@@ -207,33 +204,33 @@ def append_csv(csv_file, tbl_flag):
         with open(config_file, 'r') as file:
             config = json.load(file)
         
-        #postgres_cols = tuple(config_file['postgres_cols'])
         postgres_cols = tuple(config['postgres_cols'])
 
         with open(csv_file, 'r', newline='', encoding='utf-8') as f:
             next(f)  # Skip header
-            cursor = conn.cursor()
-            if tbl_flag == 'hist':
+            with conn.cursor() as cursor:
                 sql_query = f"""
-                    COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
-                    FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                    """
-                #print ("SQL Statement from append_csv: ", sql_query)
+                        COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+                        """
                 cursor.copy_expert(sql_query, f)
 
-                conn.commit()
-                cursor.close()
-                #print(f"Data appended successfully from {csv_file}")
-            elif tbl_flag == 'curr':
-                sql_query = f"""
-                    COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
-                    FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                    """
-                cursor.copy_expert(sql_query, f)
+                '''if tbl_flag == 'hist':
+                    sql_query = f"""
+                        COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+                        """
+                    cursor.copy_expert(sql_query, f)
+
+                    conn.commit()
+                elif tbl_flag == 'curr':
+                    sql_query = f"""
+                        COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
+                        """
+                    cursor.copy_expert(sql_query, f)'''
 
                 conn.commit()
-                cursor.close()
-                #print(f"Data appended successfully from {csv_file}")
     except Exception as e:
         print(f"Failed to process the file: {e}")
     finally:
@@ -242,6 +239,8 @@ def append_csv(csv_file, tbl_flag):
             cursor.close()  # Close the cursor
         if conn:
             conn.close()  # Close the database connection
+
+
 
 def add_oper_epic(epic_name):
     """
@@ -322,18 +321,6 @@ def format_date(date_str):
         date_time_obj = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S%z')  
         return date_time_obj
 
-'''# Load sprint manager data from JSON into a list of project names
-def load_projects(filename):
-    projects = []
-    with open(filename, mode='r', encoding='utf-8') as file:
-        data = json.load(file)
-        # Access the list of projects under the key 'jira-project-owners'
-        for item in data.get("jira-project-owners", []):
-            project_name = item.get("Project", "").strip()
-            if project_name:  # Check if project_name is not empty
-                projects.append(project_name)
-    return projects'''
-
 def parse_component_data(components):
     """Parse component data from JIRA issue fields."""
     if not components:
@@ -404,16 +391,13 @@ def jira_obj_isrelated(issue_key):
         jira = setup_jira_client()
         if jira is None:
             raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
-        #print ("JIRA client initialized successfully.")
 
         # Fetch issue details
-        #print (f"Fetching details for issue: {issue_key}")
         issue_data = jira.issue(issue_key, fields="issuelinks,parent,subtasks")
         fields = issue_data.fields
 
         # Process issue links
         issue_links = getattr(fields, "issuelinks", [])
-        #print ("Processing issue links...")
         for link in issue_links:
             link_type = link.type.name
             inward = getattr(link, "inwardIssue", None)
@@ -423,14 +407,12 @@ def jira_obj_isrelated(issue_key):
                 print (f"{link_type} (Inward): {inward.key} - {inward.fields.summary}")
             if outward:
                 print (f"{link_type} (Outward): {outward.key} - {outward.fields.summary}")
-'''
+            '''
         # Parent issue
         parent = getattr(fields, "parent", None)
         if parent:
-            #print (f"Parent Issue: {parent.key} - {parent.fields.summary}")
             parent_key = parent.key
         else:
-            #print ("No parent issue found.")
             parent_key = "No Parent"
 
         # Sub-tasks
@@ -451,8 +433,6 @@ def jira_obj_isrelated(issue_key):
 def parse_sprint_data(sprint_string, folder_trunk):
     """Parse sprint data from the custom field format into structured data."""
     # Load the managers dictionary
-    #jira_helper_folder = f'{folder_trunk}helper_files/'
-    #jira_project_owner_file = str(jira_helper_folder) + 'config.json'
 
     sprint_managers = load_sprint_managers()
 
@@ -562,8 +542,6 @@ def fetch_issues(jira, jql_query):
     return all_issues
 
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date):
-    #config_data = get_config_data()
-    #jira_sprint = config_data['sprints'][0]
     jira_sprint = 'daily'
     print("Updating PostgreSQL logs...")
     # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'

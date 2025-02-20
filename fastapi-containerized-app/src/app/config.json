@@ -1,5 +1,4 @@
 {
-        "max_results": 750,
         "fields": {
             "epic_link": "customfield_10301",
             "parent_link": "customfield_16301",
@@ -13,33 +12,6 @@
             "quotechar": "\"",
             "quoting": "QUOTE_ALL"
         },
-		"csv_headers": [
-			"Epic Link", 
-			"Parent Link",
-			"Operational Epic Team",
-			"Operational Flag",
-			"Triage Origin",
-			"Pipeline Discovery Stage",
-			"Bug Origin",
-			"Escaped Bug",
-			"Fix Version",
-			"Component",
-			"Issue Key",
-			"Summary",
-			"Issue URL",
-			"Type",
-			"State",
-			"Assignee",
-			"Status",
-			"Start Date",
-			"End Date",
-			"Completed Date",
-			"Sprint Name",
-			"Labels",
-			"Sprint Owner",
-			"Export Date",
-			"Story Points"
-			],
 	"postgres_cols": [
 		"epic_link",
 		"parent_link",
