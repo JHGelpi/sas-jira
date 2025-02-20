@@ -89,5 +89,5 @@ async def daily():
     return 
 
 if __name__ == "__main__":
-    #asyncio.run(daily())
-    asyncio.run(release())
+    asyncio.run(daily())
+    #asyncio.run(release())
