@@ -17,11 +17,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 # Print environment variables to verify
-print(f"DB_HOST: {os.getenv('DB_HOST')}")
+'''print(f"DB_HOST: {os.getenv('DB_HOST')}")
 print(f"DB_USER: {os.getenv('DB_USER')}")
 print(f"DB_PASSWORD: {os.getenv('DB_PASSWORD')}")
 print(f"DB_NAME: {os.getenv('DB_NAME')}")
 print(f"DB_CONN_TIMEOUT: {os.getenv('DB_CONN_TIMEOUT')}")
+print(f"OUTPUT_DIR: {os.getenv('OUTPUT_DIR')}")
+print(f"JIRA_MAX_RESULT: {os.getenv('JIRA_MAX_RESULT')}")'''
 
 app = FastAPI()
 
@@ -106,15 +108,13 @@ def build_row(issue, jira_server, folder_trunk):
 def process_and_export_issues(all_issues):
     print("Processing and exporting issues...")
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    #config_data = get_config_data()
     output_dir = os.getenv('OUTPUT_DIR')
     current_working_directory = os.getcwd()
-    folder_path = os.path.join(current_working_directory, output_dir)
+    folder_path = f"{current_working_directory}{output_dir}"
+    #folder_path = os.path.join(current_working_directory, output_dir)
     csv_file = os.path.join(folder_path, f'jira-output-{timestamp}.csv')
-    #csv_file = f'{output_dir}jira-output-{timestamp}.csv'
-    print(f"Exporting issues to CSV: {csv_file}")
-    csv_file = f'jira-output-{timestamp}.csv'
-    print(f"Exporting issues to CSV: {csv_file}")
+
+    #csv_file = f'jira-output-{timestamp}.csv'
     
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
@@ -124,7 +124,8 @@ def process_and_export_issues(all_issues):
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     #export_to_csv(csv_file)
-    append_csv(folder_path & csv_file, 'daily')
+    full_path = f"{csv_file}"
+    append_csv(full_path, 'daily')
 
 def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
     #config_data = get_config_data()
@@ -200,8 +201,8 @@ def append_csv(csv_file, tbl_flag):
         return
     
     # Connect to JIRA
-    config_file = f'{current_working_directory}/config.json'
-
+    config_file = f'{current_working_directory}/fastapi-containerized-app/src/app/config.json'
+    
     try:
         with open(config_file, 'r') as file:
             config = json.load(file)
@@ -217,12 +218,12 @@ def append_csv(csv_file, tbl_flag):
                     COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
                     FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
                     """
-                print ("SQL Statement from append_csv: ", sql_query)
+                #print ("SQL Statement from append_csv: ", sql_query)
                 cursor.copy_expert(sql_query, f)
 
                 conn.commit()
                 cursor.close()
-                print(f"Data appended successfully from {csv_file}")
+                #print(f"Data appended successfully from {csv_file}")
             elif tbl_flag == 'curr':
                 sql_query = f"""
                     COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
@@ -232,7 +233,7 @@ def append_csv(csv_file, tbl_flag):
 
                 conn.commit()
                 cursor.close()
-                print(f"Data appended successfully from {csv_file}")
+                #print(f"Data appended successfully from {csv_file}")
     except Exception as e:
         print(f"Failed to process the file: {e}")
     finally:
@@ -311,7 +312,7 @@ def format_date(date_str):
         return date_time_obj
     # Parse the datetime from the given string format
     try:
-        date_object = datetime.strptime(date_str, '%Y-%m-%dT%Hß:%M:%S.%f%z')
+        date_object = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f%z')
         # Convert the datetime object to just the date in 'yyyy-mm-dd' format
         formatted_date = date_object.strftime('%Y-%m-%d')
         return formatted_date
@@ -403,43 +404,44 @@ def jira_obj_isrelated(issue_key):
         jira = setup_jira_client()
         if jira is None:
             raise Exception("Failed to initialize JIRA client. Check configuration and credentials.")
-        print ("JIRA client initialized successfully.")
+        #print ("JIRA client initialized successfully.")
 
         # Fetch issue details
-        print (f"Fetching details for issue: {issue_key}")
+        #print (f"Fetching details for issue: {issue_key}")
         issue_data = jira.issue(issue_key, fields="issuelinks,parent,subtasks")
         fields = issue_data.fields
 
         # Process issue links
         issue_links = getattr(fields, "issuelinks", [])
-        print ("Processing issue links...")
+        #print ("Processing issue links...")
         for link in issue_links:
             link_type = link.type.name
             inward = getattr(link, "inwardIssue", None)
             outward = getattr(link, "outwardIssue", None)
-            
+            '''
             if inward:
                 print (f"{link_type} (Inward): {inward.key} - {inward.fields.summary}")
             if outward:
                 print (f"{link_type} (Outward): {outward.key} - {outward.fields.summary}")
-
+'''
         # Parent issue
         parent = getattr(fields, "parent", None)
         if parent:
-            print (f"Parent Issue: {parent.key} - {parent.fields.summary}")
+            #print (f"Parent Issue: {parent.key} - {parent.fields.summary}")
             parent_key = parent.key
         else:
-            print ("No parent issue found.")
+            #print ("No parent issue found.")
             parent_key = "No Parent"
 
         # Sub-tasks
-        subtasks = getattr(fields, "subtasks", [])
-        if subtasks:
-            print ("Processing sub-tasks...")
+        #subtasks = getattr(fields, "subtasks", [])
+        
+        '''if subtasks:
+            #print ("Processing sub-tasks...")
             for subtask in subtasks:
                 print (f"Sub-task: {subtask.key} - {subtask.fields.summary}")
         else:
-            print ("No sub-tasks found.")
+            print ("No sub-tasks found.")'''
 
         return parent_key
     except Exception as e:
@@ -535,10 +537,10 @@ def add_sprint_owner(sprint_managers, sprint_name):
 
 def fetch_issues(jira, jql_query):
     start_at = 0
-    max_results = 750
+    max_results = int(os.getenv('JIRA_MAX_RESULT'))
     all_issues = []
     retries = 0
-    max_retries = 5
+    max_retries = int(os.getenv('JIRA_MAX_RETRIES'))
     print("Fetching issues from JIRA...")
     while True:
         try:
