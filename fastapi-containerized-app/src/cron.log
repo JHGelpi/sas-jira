@@ -1,1 +1,2 @@
 /bin/sh: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/run_main.sh: No such file or directory
+/Library/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/main.py': [Errno 2] No such file or directory

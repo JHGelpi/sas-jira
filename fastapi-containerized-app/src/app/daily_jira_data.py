@@ -641,3 +641,44 @@ def build_jql(jql_flag):
 
     #print (f"JQL Statement: {jql}")
     return jql
+
+def release_run_check():
+    # Check to see if the release run needs to be triggered
+    try:
+        conn = create_connection()  # Create the database connection
+        with conn.cursor() as cursor:
+            sql_query = """
+                    select max(a.release_date) from tbl_jira_releases a where a.release_date <= current_date;
+                """
+            
+            cursor.execute(sql_query)
+            target_release_date = cursor.fetchone()[0]
+            
+            sql_query_daily = """
+                    select max(date(a."endDTTM")) from tbl_run_log a where a."runType" = 'daily';
+                """
+            cursor.execute(sql_query_daily)
+            daily_last_run = cursor.fetchone()[0]
+            
+            sql_query_release = """
+                    select max(date(a."endDTTM")) from tbl_run_log a where a."runType" = 'release';
+                """
+            cursor.execute(sql_query_release)
+            release_last_run = cursor.fetchone()[0]
+    except Exception as e:
+        print(f"Failed to create database connection: {e}")
+        return {"error": "Failed to create database connection"}
+    finally:
+        if conn:
+            conn.close()
+
+    # If the release date is today and the release run has not been triggered, then trigger it
+    # If the last run date is AFTER the target_release_date, then trigger the release run
+    if daily_last_run != release_last_run:
+        if daily_last_run is None or daily_last_run >= target_release_date:
+            print("Triggering release run...")
+            return True
+        else:
+            return False
+    else:
+        return False
