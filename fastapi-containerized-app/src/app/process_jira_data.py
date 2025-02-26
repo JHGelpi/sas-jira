@@ -146,6 +146,8 @@ def build_row(issue, jira_server, folder_trunk):
     export_date = start_date.strftime('%Y-%m-%d %H:%M:%S')
     components = parse_component_data(getattr(issue.fields, 'components', ''))
     story_points = getattr(issue.fields, 'customfield_10002', 0)
+    created_date = format_date(issue.fields.created)
+    updated_date = format_date(issue.fields.updated)
     if story_points == None:
         story_points = 0.0
     related_obj = jira_obj_isrelated(issue.key)
@@ -156,7 +158,11 @@ def build_row(issue, jira_server, folder_trunk):
     
     print (f"Related objects: {parent_link}")
     print(f"Row built for issue: {issue.key}")
-    return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points]
+    return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, \
+            bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, \
+            issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, \
+            sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points, \
+            created_date, updated_date]
 
 if __name__ == '__main__':
     main()

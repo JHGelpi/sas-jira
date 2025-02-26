@@ -38,7 +38,9 @@
 		"sprint_owner",
 		"update_date",
 		"story_points",
-		"run_flag"
+		"run_flag",
+		"created_date",
+		"jira_updated_date"
 		],
 	"iris-reqs-jql": [
     	"labels in (\"cross-divisional\") AND issuetype = \"Requirement\" AND created >= \"2023/01/01\""
