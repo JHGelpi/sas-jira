@@ -39,7 +39,7 @@
 		"update_date",
 		"story_points",
 		"run_flag",
-		"created_date",
+		"jira_created_date",
 		"jira_updated_date"
 		],
 	"iris-reqs-jql": [

@@ -64,7 +64,7 @@ def create_connection():
     else:
         raise Exception("Connection pool is not initialized.")
 
-def build_row(issue, jira_server, folder_trunk):
+def build_row(issue, jira_server, folder_trunk, run_flag):
     #print(f"Building row for issue: {issue.key}")
     sprint_data_list = []
     start_date = datetime.now()
@@ -100,10 +100,15 @@ def build_row(issue, jira_server, folder_trunk):
         parent_link = related_obj
     else:
         parent_link = None
-    
+    jira_created_date = format_date(issue.fields.created)
+    jira_updated_date = format_date(issue.fields.updated)
     #print (f"Related objects: {parent_link}")
     #print(f"Row built for issue: {issue.key}")
-    return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points]
+    return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, \
+            escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, \
+            parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, \
+            parsed_sprint_data[3], labels, parsed_sprint_data[4], export_date, story_points, run_flag, \
+            jira_created_date, jira_updated_date]
 
 def process_and_export_issues(all_issues, run_flag):
     print("Processing and exporting issues...")
@@ -119,8 +124,8 @@ def process_and_export_issues(all_issues, run_flag):
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         writer.writerow(os.getenv("CSV_HEADERS").split(','))
         for issue in all_issues:
-            row = build_row(issue, os.getenv("JIRA_URL"), csv_file)
-            row.append(run_flag)  # Add run_flag to the end of the row
+            row = build_row(issue, os.getenv("JIRA_URL"), csv_file, run_flag)
+            #row.append(run_flag)  # Add run_flag to the end of the row
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     full_path = f"{csv_file}"
@@ -215,6 +220,8 @@ def append_csv(csv_file, run_flag):
                         COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
                         FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
                         """
+                print (f"Executing SQL Query: {sql_query}")
+
                 cursor.copy_expert(sql_query, f)
 
                 '''if tbl_flag == 'hist':
@@ -666,6 +673,12 @@ def release_run_check():
                 """
             cursor.execute(sql_query_release)
             release_last_run = cursor.fetchone()[0]
+
+            sql_query_last_release = """
+                select max(completed_date) from tbl_jira_sprint_data where run_flag = 'release';
+            """
+            cursor.execute(sql_query_last_release)
+            last_release_run_date = cursor.fetchone()[0]
     except Exception as e:
         print(f"Failed to create database connection: {e}")
         return {"error": "Failed to create database connection"}
@@ -675,11 +688,19 @@ def release_run_check():
 
     # If the release date is today and the release run has not been triggered, then trigger it
     # If the last run date is AFTER the target_release_date, then trigger the release run
-    if daily_last_run != release_last_run:
-        if daily_last_run is None or daily_last_run >= target_release_date:
+    if daily_last_run >= target_release_date:
+        if release_last_run is None or release_last_run < target_release_date:
+            print(f"Daily last run: {daily_last_run}")
+            print(f"Target release date: {target_release_date}")
             print("Triggering release run...")
             return True
         else:
+            print(f"Release last run: {release_last_run}")
+            print(f"Target release date: {target_release_date}")
+            print("Release run already triggered for this period. Skipping...")
             return False
     else:
+        print(f"Daily last run: {daily_last_run}")
+        print(f"Target release date: {target_release_date}")
+        print("Not yet time for release run. Skipping...")
         return False

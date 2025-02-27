@@ -1,13 +1,19 @@
-/*view_jira_status_changes*/
-CREATE VIEW jira_status_changes AS
 SELECT 
+    a.id,
     a.issue_key,
     a.issue_type,
-    MAX(a.update_date) AS previous_update_date,
-    b.update_date AS current_update_date,
+    a.update_date AS update_date,
+    a.jira_created_date,
     a.issue_status AS previous_status,
     b.issue_status AS current_status,
-    a.id
+    CASE
+        WHEN LOWER(REPLACE(TRIM(b.issue_status), ' ', '')) = LOWER(REPLACE(TRIM(a.issue_status), ' ', '')) THEN 'CURR'
+        ELSE 'HIST' 
+    END AS current_flg,
+    CASE
+        WHEN b.issue_status = 'In Progress' THEN EXTRACT(DAY FROM AGE(b.update_date, a.jira_created_date))
+        ELSE NULL
+    END AS days_to_in_progress
 FROM 
     view_jira_sprint_data a
 JOIN 
@@ -18,14 +24,15 @@ WHERE
     a.issue_status <> b.issue_status
     AND a.run_flag = 'daily'
     AND b.run_flag = 'daily'
-    --AND a.issue_key = 'COMPDIV-14'
 GROUP BY
+    a.id,
     a.issue_key,
     a.issue_type,
+    a.jira_created_date,
+    a.update_date,
     b.update_date,
     b.issue_status,
-    a.issue_status,
-    a.id
+    a.issue_status
 HAVING 
     MAX(a.update_date) = (
         SELECT MAX(a1.update_date)
@@ -34,51 +41,24 @@ HAVING
         AND a1.update_date < b.update_date
         AND a1.run_flag = 'daily'
     )
-ORDER BY a.issue_key;
-
-/*view_jira_sprint_data*/
- SELECT
-        CASE
-            WHEN a.epic_link::text <> ''::text THEN a.epic_link
-            ELSE a.parent_link
-        END AS issue_parent,
-    a.epic_link,
-    a.parent_link,
-    a.operational_epic_team,
-    a.operational_flag,
-    a.triage_origin_flag,
-    a.pipeline_stage,
-    a.bug_origin,
-    a.escaped_bug_flag,
-    a.fix_version,
-    a.components,
-    a.issue_key,
-    a.issue_summary,
-    a.issue_url,
-    a.issue_type,
-    a.issue_state,
-    a.issue_assignee,
-        CASE
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Accepted and Close(Q)'::text THEN 'Closed'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Developing(W)'::text THEN 'In Progress'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'In Dev'::text THEN 'In Progress'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Dev-ready(Q)'::text THEN 'Dev Ready'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Ready for Dev'::text THEN 'Dev Ready'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'In Test'::text THEN 'Testing'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Testing(W)'::text THEN 'Testing'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Test-ready(Q)'::text THEN 'Ready for Test'::character varying
-            WHEN TRIM(BOTH FROM a.issue_status) = 'Review-ready(Q)'::text THEN 'Review-ready'::character varying
-            ELSE a.issue_status
-        END AS issue_status,
-    a.story_points,
-    a.start_date,
-    a.end_date,
-    a.sprint_name,
-    a.labels,
-    a.sprint_owner,
-    a.update_date,
+UNION
+SELECT 
     a.id,
-    a.completed_date,
-    a.run_flag
-   FROM tbl_jira_sprint_data a
-  ORDER BY a.end_date DESC, a.issue_key DESC;
+    a.issue_key,
+    a.issue_type,
+    a.update_date AS update_date,
+    a.jira_created_date,
+    a.issue_status AS previous_status,
+    a.issue_status AS current_status,
+    NULL AS current_flg,
+    CASE
+        WHEN a.issue_status = 'In Progress' THEN EXTRACT(DAY FROM AGE(a.update_date, a.jira_created_date))
+        ELSE NULL
+    END AS days_to_in_progress
+FROM 
+    view_jira_sprint_data a
+WHERE 
+    a.run_flag = 'daily'
+    AND (SELECT MAX(b.update_date) FROM view_jira_sprint_data b
+         WHERE b.issue_key = a.issue_key) = a.update_date
+ORDER BY issue_key, update_date DESC;
