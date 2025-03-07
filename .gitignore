@@ -5,3 +5,4 @@ fastapi-containerized-app/src/cron.log
 fastapi-containerized-app/src/cron.log
 *.log
 fastapi-containerized-app/src/cron.log
+*.log
