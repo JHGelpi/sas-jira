@@ -90,3 +90,17 @@ select --a.issue_status,
 	and a.issue_status in('Closed', 'Accepted and Close(Q)')
 	--group by a.issue_status
 	;
+
+-- Escaped bugs time to resolution
+select a.issue_key,
+    a.jira_created_date,
+    a.jira_updated_date,
+    a.sprint_name,
+    EXTRACT(DAY FROM (DATE_TRUNC('day', a.jira_updated_date) - DATE_TRUNC('day', a.jira_created_date))) AS resolution_time_days
+from public.tbl_jira_sprint_data a
+where a.issue_status in('Closed', 'Accepted and Close(Q)')
+and a.issue_type = 'Bug'
+and a.escaped_bug_flag = 'Y'
+and a.sprint_name like '%2025.%'
+and a.jira_created_date is not null
+;
