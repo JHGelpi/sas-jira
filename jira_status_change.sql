@@ -62,3 +62,31 @@ WHERE
     AND (SELECT MAX(b.update_date) FROM view_jira_sprint_data b
          WHERE b.issue_key = a.issue_key) = a.update_date
 ORDER BY issue_key, update_date DESC;
+
+--Investment in our Initiatives
+select 
+	--a.initiative_issue_key,
+	count(a.issue_key) num_issues,
+	sum(a.story_points) points
+	from public.tbl_initiative_children a 
+	join public.tbl_initiative_issue_keys b on b.issue_key = a.initiative_issue_key
+	where a.issue_type = 'Story'
+	and b."IRIS" = 'false'
+	--group by a.initiative_issue_key
+	--order by a.initiative_issue_key
+	;
+
+--Total points accepted and closed in 2025
+select --a.issue_status,
+	sum(a.story_points) total_points
+	from public.tbl_jira_sprint_data a
+	join (select a.issue_key,
+		max(a.id) max_id
+		from public.tbl_jira_sprint_data a
+		where a.issue_status in('Closed', 'Accepted and Close(Q)')
+		group by a.issue_key
+	order by a.issue_key) b on a.id = b.max_id
+	where a.completed_date >= '2025-01-01'
+	and a.issue_status in('Closed', 'Accepted and Close(Q)')
+	--group by a.issue_status
+	;
