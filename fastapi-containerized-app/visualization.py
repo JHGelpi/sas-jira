@@ -94,7 +94,7 @@ def scatter_plot():
     # Show all plots
     plt.show()
 
-def box_whisker():
+'''def box_whisker():
 
     #load_dotenv()
 
@@ -122,9 +122,9 @@ def box_whisker():
     plt.boxplot(df['resolution_time_days'], vert=False)
     plt.xlabel('Resolution Time (Days)')
     plt.title('Box and Whisker Plot of Resolution Time for Bugs')
-    plt.show()
+    plt.show()'''
 
-def histogram():
+'''def histogram():
 
     #load_dotenv()
 
@@ -160,7 +160,7 @@ def histogram():
     plt.ylabel('Frequency')
     plt.title('Histogram of Resolution Time for Bugs')
     plt.legend()
-    plt.show()
+    plt.show()'''
 
 def sql_statement():
     sql_query = """
