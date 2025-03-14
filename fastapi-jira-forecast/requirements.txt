@@ -10,3 +10,4 @@ scikit-learn
 schedule
 pytest
 pytest-asyncio
+matplotlib
