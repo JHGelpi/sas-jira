@@ -11,6 +11,11 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Read allowed Jira project keys from the environment variable and build a list.
+# Environment variable example:
+# JIRA_PROJECTS=COMPDIV, COMPTRIAGE, COMPLANG, COMPUTESVCS, COMPWLM, COMPHOST, COMPBEIJING, GEMINI, COMPSRVCORE, COMPCONNECT, COMPOBSERVE, COMPDIVPUNE, COMPSRVCAS
+allowed_projects_str = os.getenv("JIRA_PROJECTS", "")
+ALLOWED_PROJECTS = [proj.strip() for proj in allowed_projects_str.split(",") if proj.strip()]
 
 # Initialize the Jira client
 def setup_jira_client():
@@ -21,8 +26,6 @@ def setup_jira_client():
         server=jira_url,
         token_auth=jira_api_token
     )
-
-    # Removed direct update of _session.headers
     return jira
 
 # Create a connection to the PostgreSQL database
@@ -33,7 +36,10 @@ def create_connection():
     db_host = os.getenv('DB_HOST')
     db_timeout = os.getenv('DB_CONN_TIMEOUT')
 
-    conn_string = f"dbname='{db_name}' user='{db_user}' password='{db_password}' host='{db_host}' connect_timeout={db_timeout} sslmode='prefer'"
+    conn_string = (
+        f"dbname='{db_name}' user='{db_user}' password='{db_password}' "
+        f"host='{db_host}' connect_timeout={db_timeout} sslmode='prefer'"
+    )
     return psycopg2.connect(conn_string)
 
 # Fetch issue keys from the database
@@ -46,20 +52,30 @@ def fetch_issue_keys():
     conn.close()
     return issue_keys
 
-# Fetch issues from Jira based on issue keys
+# Fetch issues from Jira based on issue keys,
+# but only include issues whose project key is in ALLOWED_PROJECTS.
 def fetch_issues(jira, issue_keys):
     all_issues = []
     for issue_key in issue_keys:
-        issue = jira.issue(issue_key, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
-        all_issues.append((issue_key, issue))  # Store the initiative_issue_key with the issue
-        # Fetch related issues
+        issue = jira.issue(
+            issue_key,
+            fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
+        )
+        if issue.fields.project.key not in ALLOWED_PROJECTS:
+            logger.info(f"Issue {issue.key} not in allowed projects, skipping.")
+            continue
+
+        all_issues.append((issue_key, issue))  # Associate the initiative_issue_key with this issue
+
+        # Fetch related issues recursively.
         related_issues = fetch_related_issues(jira, issue, initiative_issue_key=issue_key)
         all_issues.extend(related_issues)
     return all_issues
 
-# Fetch related issues (both direct and indirect)
+# Maximum recursion depth safeguard.
 MAX_RECURSION_DEPTH = 750
-# This is a safeguard to prevent infinite recursion in case of circular references
+
+# Fetch related issues (both direct and indirect) recursively.
 def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_key=None):
     if visited is None:
         visited = set()
@@ -70,55 +86,66 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
 
     related_issues = []
     issue_links = getattr(issue.fields, "issuelinks", [])
+    
+    # Allowed link types: note that we now include "Hierarchy".
+    allowed_link_types = ["Is Child", "Is Parent", "Relates", "Has Parent", "Hierarchy"]
+
     for link in issue_links:
         inward = getattr(link, "inwardIssue", None)
         outward = getattr(link, "outwardIssue", None)
         link_type = getattr(link, "type", None)
+        
+        if link_type:
+            logger.info(f"Issue {issue.key} has link type: {link_type.name}")
+        else:
+            logger.info(f"Issue {issue.key} has a link with no defined type.")
 
-        # Handle "Has Parent" and other relationships
-        if link_type and link_type.name in ["Is Child", "Is Parent", "Relates", "Has Parent"]:
+        if link_type and link_type.name in allowed_link_types:
             if inward and inward.key not in visited:
                 visited.add(inward.key)
-                print(f"Fetching inward.key: {inward.key}")
-                related_issue = jira.issue(inward.key, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
-                # If the related issue is in tbl_initiative_issue_keys, set it as the initiative_issue_key
-                if is_initiative_issue_key(inward.key):
-                    initiative_issue_key = inward.key
-                related_issues.append((initiative_issue_key, related_issue))
-                related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
+                logger.info(f"Fetching inward issue: {inward.key}")
+                related_issue = jira.issue(
+                    inward.key,
+                    fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
+                )
+                # Only include the issue if its project is allowed.
+                if related_issue.fields.project.key in ALLOWED_PROJECTS:
+                    related_issues.append((initiative_issue_key, related_issue))
+                    related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
+                else:
+                    logger.info(f"Issue {related_issue.key} not in allowed projects, skipping.")
             if outward and outward.key not in visited:
                 visited.add(outward.key)
-                print(f"Fetching outward.key {outward.key}")
-                related_issue = jira.issue(outward.key, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
-                # If the related issue is in tbl_initiative_issue_keys, set it as the initiative_issue_key
-                if is_initiative_issue_key(outward.key):
-                    initiative_issue_key = outward.key
-                related_issues.append((initiative_issue_key, related_issue))
-                related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
+                logger.info(f"Fetching outward issue: {outward.key}")
+                related_issue = jira.issue(
+                    outward.key,
+                    fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
+                )
+                if related_issue.fields.project.key in ALLOWED_PROJECTS:
+                    related_issues.append((initiative_issue_key, related_issue))
+                    related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
+                else:
+                    logger.info(f"Issue {related_issue.key} not in allowed projects, skipping.")
 
-    # Check if the issue is an Epic and fetch its children
+    # If the issue is an Epic, fetch its children using a properly quoted JQL query.
     if issue.fields.issuetype.name == "Epic":
-        jql = f'"Epic Link" = {issue.key}'
-        epic_children = jira.search_issues(jql, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
+        jql = f'"Epic Link" = "{issue.key}"'
+        logger.info(f"Querying Epic children with JQL: {jql}")
+        epic_children = jira.search_issues(
+            jql,
+            fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
+        )
         for child in epic_children:
             if child.key not in visited:
                 visited.add(child.key)
-                related_issues.append((initiative_issue_key, child))
-                related_issues.extend(fetch_related_issues(jira, child, visited, depth + 1, initiative_issue_key))
-
+                if child.fields.project.key in ALLOWED_PROJECTS:
+                    related_issues.append((initiative_issue_key, child))
+                    related_issues.extend(fetch_related_issues(jira, child, visited, depth + 1, initiative_issue_key))
+                else:
+                    logger.info(f"Epic child {child.key} not in allowed projects, skipping.")
     return related_issues
 
-# Check if the issue key exists in tbl_initiative_issue_keys
-def is_initiative_issue_key(issue_key):
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM tbl_initiative_issue_keys WHERE issue_key = %s", (issue_key,))
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return result is not None
-
-# Store issues in PostgreSQL
+# Store issues in PostgreSQL.
 def store_issues(issues):
     conn = create_connection()
     cursor = conn.cursor()
@@ -136,9 +163,10 @@ def store_issues(issues):
         if story_points is None:
             story_points = 0
 
-        # Insert the data into the table
         cursor.execute("""
-            INSERT INTO tbl_initiative_children (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points, effective_dttm)
+            INSERT INTO tbl_initiative_children (
+                initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points, effective_dttm
+            )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points, effective_dttm))
 
@@ -146,7 +174,7 @@ def store_issues(issues):
     cursor.close()
     conn.close()
 
-# Main function
+# Main function.
 def init_child_main():
     jira = setup_jira_client()
     issue_keys = fetch_issue_keys()
