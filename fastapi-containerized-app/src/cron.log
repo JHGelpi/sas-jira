@@ -685,3 +685,894 @@ Release last run: 2025-02-20
 Target release date: 2025-02-20
 Release run already triggered for this period. Skipping...
 Skipping release run...
+Starting daily run at.... 14-03-25 09:00:03
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 358 issues.
+Total issues fetched: 1358
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250314090059.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 14-03-25 09:06:51
+Release last run: 2025-02-20
+Target release date: 2025-02-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 15-03-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 460 issues.
+Total issues fetched: 1460
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250315090053.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 15-03-25 09:07:05
+Release last run: 2025-02-20
+Target release date: 2025-02-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 16-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 461 issues.
+Total issues fetched: 1461
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250316090057.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 16-03-25 09:07:03
+Release last run: 2025-02-20
+Target release date: 2025-02-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 17-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 472 issues.
+Total issues fetched: 1472
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250317090110.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 17-03-25 09:08:53
+Release last run: 2025-02-20
+Target release date: 2025-02-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 18-03-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 894 issues.
+Total issues fetched: 1894
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250318090119.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 18-03-25 09:12:31
+Release last run: 2025-02-20
+Target release date: 2025-02-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 20-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 48 issues.
+Total issues fetched: 2048
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250320090133.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 20-03-25 09:05:32
+Daily last run: 2025-03-20
+Target release date: 2025-03-20
+Triggering release run...
+Release run check is true. Running release...
+Starting at.... 20-03-25 09:05:32
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 46 issues.
+Total issues fetched: 1046
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250320090606.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed at... 20-03-25 09:08:02
+Starting daily run at.... 21-03-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 88 issues.
+Total issues fetched: 2088
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250321090120.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 21-03-25 09:10:47
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 22-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 134 issues.
+Total issues fetched: 2134
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250322090110.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 22-03-25 09:09:52
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 23-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 134 issues.
+Total issues fetched: 2134
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250323090115.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 23-03-25 09:09:57
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 24-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 138 issues.
+Total issues fetched: 2138
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250324090309.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 24-03-25 09:15:37
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 25-03-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 165 issues.
+Total issues fetched: 2165
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250325090155.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 25-03-25 09:07:12
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 26-03-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 185 issues.
+Total issues fetched: 2185
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250326090125.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 26-03-25 09:06:35
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 27-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 255 issues.
+Total issues fetched: 2255
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250327090143.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 27-03-25 09:14:02
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 28-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 288 issues.
+Total issues fetched: 2288
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250328090143.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 28-03-25 09:11:39
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 29-03-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 315 issues.
+Total issues fetched: 2315
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250329090125.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 29-03-25 09:11:09
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 30-03-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 321 issues.
+Total issues fetched: 2321
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250330090129.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 30-03-25 09:11:05
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 01-04-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 376 issues.
+Total issues fetched: 2376
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250401090205.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 01-04-25 09:08:37
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 02-04-25 09:00:09
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 418 issues.
+Total issues fetched: 2418
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250402090149.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 02-04-25 09:06:53
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 03-04-25 09:00:09
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 449 issues.
+Total issues fetched: 2449
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250403090205.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 03-04-25 09:07:35
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 04-04-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 482 issues.
+Total issues fetched: 2482
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250404090219.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 04-04-25 09:07:18
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 05-04-25 09:00:04
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x108f7c740>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x108f7c740>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 76, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 51, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 48, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x108f7c740>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 06-04-25 09:00:06
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x108278890>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x108278890>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 76, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 51, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 48, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x108278890>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 07-04-25 09:00:06
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x109870830>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x109870830>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 76, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 51, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 48, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x109870830>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 08-04-25 09:00:04
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 858 issues.
+Total issues fetched: 2858
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250408090201.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 08-04-25 09:07:43
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 09-04-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 933 issues.
+Total issues fetched: 2933
+Processing and exporting issues...
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 61, in daily
+    process_and_export_issues(all_issues, run_flag)
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 120, in process_and_export_issues
+    row = build_row(issue, os.getenv("JIRA_URL"), csv_file, run_flag)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 80, in build_row
+    oper_epic = add_oper_epic(epic_link)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 193, in add_oper_epic
+    cursor.execute(query, (epic_name,))
+psycopg2.errors.UndefinedTable: relation "tbl_jira_oper_epics" does not exist
+LINE 3:             FROM tbl_jira_oper_epics
+                         ^
+

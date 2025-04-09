@@ -88,11 +88,28 @@ def scatter_plot():
 
     for box in boxes:
         q1 = box[0]
+        q3 = box[3]
         plt.annotate(f'{q1:.2f}', xy=(q1, 1), xytext=(q1, 1.05),
                      arrowprops=dict(facecolor='green', shrink=0.05), fontsize=8, ha='center')
+        plt.annotate(f'{q3:.2f}', xy=(q3, 1), xytext=(q3, 1.05),
+                     arrowprops=dict(facecolor='green', shrink=0.05), fontsize=8, ha='center')
+
+    export_path = '/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/__ComputeDiv-Leadership/okr_data/'
+    export_date = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+    # Save the scatter plot
+    plt.figure(1)
+    plt.savefig(f'{export_path}scatter_plot_{export_date}.png')
+
+    # Save the histogram
+    plt.figure(2)
+    plt.savefig(f'{export_path}histogram_{export_date}.png')
+
+    # Save the box and whisker plot
+    plt.figure(3)
+    plt.savefig(f'{export_path}box_whisker_plot_{export_date}.png')
 
     # Show all plots
-    plt.show()
+    #plt.show()
 
 '''def box_whisker():
 

@@ -59,8 +59,7 @@ def fetch_issues(jira, issue_keys):
 
 # Fetch related issues (both direct and indirect)
 MAX_RECURSION_DEPTH = 750
-'''This does not appear to be filtering on just the initiative jiras before running the recursion.
-One example of this:'''
+# This is a safeguard to prevent infinite recursion in case of circular references
 def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_key=None):
     if visited is None:
         visited = set()
@@ -76,18 +75,25 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
         outward = getattr(link, "outwardIssue", None)
         link_type = getattr(link, "type", None)
 
-        if link_type and link_type.name in ["Is Child", "Is Parent", "Relates"]:
+        # Handle "Has Parent" and other relationships
+        if link_type and link_type.name in ["Is Child", "Is Parent", "Relates", "Has Parent"]:
             if inward and inward.key not in visited:
                 visited.add(inward.key)
                 print(f"Fetching inward.key: {inward.key}")
                 related_issue = jira.issue(inward.key, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
-                related_issues.append((initiative_issue_key, related_issue))  # Store the initiative_issue_key with the related issue
+                # If the related issue is in tbl_initiative_issue_keys, set it as the initiative_issue_key
+                if is_initiative_issue_key(inward.key):
+                    initiative_issue_key = inward.key
+                related_issues.append((initiative_issue_key, related_issue))
                 related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
             if outward and outward.key not in visited:
                 visited.add(outward.key)
                 print(f"Fetching outward.key {outward.key}")
                 related_issue = jira.issue(outward.key, fields="issue.key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002")
-                related_issues.append((initiative_issue_key, related_issue))  # Store the initiative_issue_key with the related issue
+                # If the related issue is in tbl_initiative_issue_keys, set it as the initiative_issue_key
+                if is_initiative_issue_key(outward.key):
+                    initiative_issue_key = outward.key
+                related_issues.append((initiative_issue_key, related_issue))
                 related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
 
     # Check if the issue is an Epic and fetch its children
@@ -97,10 +103,20 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
         for child in epic_children:
             if child.key not in visited:
                 visited.add(child.key)
-                related_issues.append((initiative_issue_key, child))  # Store the initiative_issue_key with the child issue
+                related_issues.append((initiative_issue_key, child))
                 related_issues.extend(fetch_related_issues(jira, child, visited, depth + 1, initiative_issue_key))
 
     return related_issues
+
+# Check if the issue key exists in tbl_initiative_issue_keys
+def is_initiative_issue_key(issue_key):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM tbl_initiative_issue_keys WHERE issue_key = %s", (issue_key,))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result is not None
 
 # Store issues in PostgreSQL
 def store_issues(issues):
@@ -108,46 +124,34 @@ def store_issues(issues):
     cursor = conn.cursor()
     for initiative_issue_key, issue in issues:
         issue_key = issue.key
-        print(f"Storing issue {issue_key}")
         summary = issue.fields.summary
         issue_type = issue.fields.issuetype.name
-        print(f"Issue type {issue_type}")
         status = issue.fields.status.name
-        print(f"Status {status}")
         assignee = issue.fields.assignee.displayName if issue.fields.assignee else 'Unassigned'
-        print(f"Assignee {assignee}")
         created = issue.fields.created
-        print(f"Created {created}")
         updated = issue.fields.updated
         story_points = getattr(issue.fields, 'customfield_10002', None)
-        print(f"Story points {story_points}")
+        effective_dttm = datetime.now()
 
         if story_points is None:
             story_points = 0
-        # insert_sql = ""
+
+        # Insert the data into the table
         cursor.execute("""
-            INSERT INTO tbl_initiative_children (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points)
-            VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (issue_key) DO UPDATE
-            SET initiative_issue_key = EXCLUDED.initiative_issue_key,
-                issue_key = EXCLUDED.issue_key,
-                summary = EXCLUDED.summary,
-                issue_type = EXCLUDED.issue_type,
-                status = EXCLUDED.status,
-                assignee = EXCLUDED.assignee,
-                created = EXCLUDED.created,
-                updated = EXCLUDED.updated
-        """, (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points))
+            INSERT INTO tbl_initiative_children (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points, effective_dttm)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (initiative_issue_key, issue_key, summary, issue_type, status, assignee, created, updated, story_points, effective_dttm))
+
     conn.commit()
     cursor.close()
     conn.close()
 
 # Main function
-def main():
+def init_child_main():
     jira = setup_jira_client()
     issue_keys = fetch_issue_keys()
     issues = fetch_issues(jira, issue_keys)
     store_issues(issues)
 
 if __name__ == "__main__":
-    main()
+    init_child_main()

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from datetime import datetime
 from app.daily_jira_data import (setup_jira_client, fetch_issues, process_and_export_issues,
                              update_postgres_logs, build_jql, release_run_check)
+from app.initiative_children import init_child_main
 import asyncio
 import sys
 
@@ -37,6 +38,7 @@ async def release():
     end_date = datetime.now()
     formatted_end_date = end_date.strftime('%d-%m-%y %H:%M:%S')
     postgres_log_end_date = formatted_end_date
+
     update_postgres_logs(postgres_log_start_date, postgres_log_end_date, run_flag)
     print("Completed at...", formatted_end_date)
 
@@ -67,6 +69,16 @@ async def daily():
     if release_run_check() == True:
         print("Release run check is true. Running release...")
         await release()
+        # Run post-release stats
+        '''
+        Calculate the KR: 30% of our work was invested in Compute Division Initiatives
+        '''
+        print("Calculating post-release stats...")
+        print("Running init_child_main()...")
+        init_child_main()
+        print("init_child_main() completed.")
+        print("Post-release stats calculated.")
+
     else:
         print("Skipping release run...")
 

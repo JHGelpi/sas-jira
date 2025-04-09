@@ -39,9 +39,6 @@ connection_pool = psycopg2.pool.SimpleConnectionPool(1, 20, dsn=conn_string)
 
 def setup_jira_client():
     # Database connection
-    #conn = psycopg2.connect(os.getenv('DATABASE_URL'))
-    #cursor = conn.cursor()
-    #options = {'server': conn}
     jira_api_token = os.getenv('JIRA_TOKEN')
     jira_url = os.getenv('JIRA_URL')
 
@@ -50,7 +47,6 @@ def setup_jira_client():
         token_auth=jira_api_token
     )
 
-    #jira = JIRA(options=options, token_auth=jira_api_token)
     ## Set the Authorization header on the session object directly
     jira._session.headers.update({'Authorization': f'Bearer {jira_api_token}'})
 
@@ -65,7 +61,6 @@ def create_connection():
         raise Exception("Connection pool is not initialized.")
 
 def build_row(issue, jira_server, folder_trunk, run_flag):
-    #print(f"Building row for issue: {issue.key}")
     sprint_data_list = []
     start_date = datetime.now()
 
@@ -102,8 +97,7 @@ def build_row(issue, jira_server, folder_trunk, run_flag):
         parent_link = None
     jira_created_date = format_date(issue.fields.created)
     jira_updated_date = format_date(issue.fields.updated)
-    #print (f"Related objects: {parent_link}")
-    #print(f"Row built for issue: {issue.key}")
+
     return [epic_link, parent_link,oper_epic, oper_flg, triage_flg, pipeline_stage, bug_origin, \
             escaped_bug, fix_version, components, issue.key, issue.fields.summary, issue_url, type, \
             parsed_sprint_data[0], assignee, status, sprint_start_date, sprint_end_date, completed_date, \
@@ -115,9 +109,8 @@ def process_and_export_issues(all_issues, run_flag):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     output_dir = os.getenv('OUTPUT_DIR')
-    #current_working_directory = os.getcwd()
     folder_path = f"{base_dir}{output_dir}"
-    #print(f"Folder path: {folder_path}")
+
     csv_file = os.path.join(folder_path, f'jira-output-{timestamp}.csv')
 
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
@@ -125,76 +118,15 @@ def process_and_export_issues(all_issues, run_flag):
         writer.writerow(os.getenv("CSV_HEADERS").split(','))
         for issue in all_issues:
             row = build_row(issue, os.getenv("JIRA_URL"), csv_file, run_flag)
-            #row.append(run_flag)  # Add run_flag to the end of the row
             writer.writerow(row)
     print(f"CSV export complete: {csv_file}")
     full_path = f"{csv_file}"
     append_csv(full_path, run_flag)
-''''
-def update_postgres_logs(postgres_log_start_date, postgres_log_end_date, jira_sprint):
-    print("Updating PostgreSQL logs...")
-    # Convert dates to the format 'YYYY-MM-DD HH:MM:SS'
-    try:
-        start_date_formatted = datetime.strptime(postgres_log_start_date, "%d-%m-%y %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
-        end_date_formatted = datetime.strptime(postgres_log_end_date, "%d-%m-%y %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
-    except ValueError as e:
-        print(f"Date format error: {e}")
-        return
 
-    conn = None
-    cursor = None
-
-    conn = create_connection()
-    if conn is None:
-        print("Failed to establish database connection.")
-        return
-
-    try:
-        cursor = conn.cursor()
-        if cursor is None:
-            print("Failed to create a cursor.")
-            return
-
-        # Parameterized query to avoid syntax issues
-        exec_origin = 'python'
-        run_type = 'CURR' if jira_sprint == 'current' else 'HIST'
-
-        sql_query = """
-            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
-            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
-        """
-        log_record = {
-            "exec_origin": exec_origin,
-            "start_date": start_date_formatted,
-            "end_date": end_date_formatted,
-            "sprint": jira_sprint,
-            "run_type": run_type
-        }
-
-        # Execute the parameterized query
-        print("Executing SQL Query:", sql_query)
-
-        cursor.execute(sql_query, log_record)
-        conn.commit()
-        print("PostgreSQL logs updated successfully.")
-
-        cursor.close()
-
-    except Exception as e:
-        print(f"Failed to process the file: {e}")
-    finally:
-        # Closing the connection
-        if cursor:
-            cursor.close()  # Close the cursor
-        if conn:
-            connection_pool.putconn(conn)  # Return the connection to the pool
-'''
 def append_csv(csv_file, run_flag):
     current_working_directory = os.getcwd()
     conn = None
     cursor = None
-
-    #conn = create_connection()
 
     conn = create_connection()
     cursor = conn.cursor()
@@ -204,7 +136,6 @@ def append_csv(csv_file, run_flag):
         return
     
     # Connect to JIRA
-    #config_file = f'{current_working_directory}/fastapi-containerized-app/src/app/config.json'
     config_file = f'{current_working_directory}/app/config.json'
 
     try:
@@ -223,21 +154,6 @@ def append_csv(csv_file, run_flag):
                 print (f"Executing SQL Query: {sql_query}")
 
                 cursor.copy_expert(sql_query, f)
-
-                '''if tbl_flag == 'hist':
-                    sql_query = f"""
-                        COPY tbl_jira_sprint_data ({','.join(postgres_cols)})
-                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                        """
-                    cursor.copy_expert(sql_query, f)
-
-                    conn.commit()
-                elif tbl_flag == 'curr':
-                    sql_query = f"""
-                        COPY tbl_jira_active_tickets ({','.join(postgres_cols)})
-                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '\"' NULL 'NULL'
-                        """
-                    cursor.copy_expert(sql_query, f)'''
 
                 conn.commit()
     except Exception as e:
@@ -411,28 +327,13 @@ def jira_obj_isrelated(issue_key):
             link_type = link.type.name
             inward = getattr(link, "inwardIssue", None)
             outward = getattr(link, "outwardIssue", None)
-            '''
-            if inward:
-                print (f"{link_type} (Inward): {inward.key} - {inward.fields.summary}")
-            if outward:
-                print (f"{link_type} (Outward): {outward.key} - {outward.fields.summary}")
-            '''
+
         # Parent issue
         parent = getattr(fields, "parent", None)
         if parent:
             parent_key = parent.key
         else:
             parent_key = "No Parent"
-
-        # Sub-tasks
-        #subtasks = getattr(fields, "subtasks", [])
-        
-        '''if subtasks:
-            #print ("Processing sub-tasks...")
-            for subtask in subtasks:
-                print (f"Sub-task: {subtask.key} - {subtask.fields.summary}")
-        else:
-            print ("No sub-tasks found.")'''
 
         return parent_key
     except Exception as e:
