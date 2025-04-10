@@ -2,7 +2,8 @@ import os
 import psycopg2
 from jira import JIRA
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date
 import logging
 
 load_dotenv()
@@ -11,13 +12,31 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Read allowed Jira project keys from the environment variable and build a list.
-# Environment variable example:
-# JIRA_PROJECTS=COMPDIV, COMPTRIAGE, COMPLANG, COMPUTESVCS, COMPWLM, COMPHOST, COMPBEIJING, GEMINI, COMPSRVCORE, COMPCONNECT, COMPOBSERVE, COMPDIVPUNE, COMPSRVCAS
+# Define the time threshold: 6 months ago from now.
+SIX_MONTHS_AGO = datetime.now() - timedelta(days=180)
+# Format for JQL (e.g., "2023-04-09")
+six_months_str = SIX_MONTHS_AGO.strftime("%Y-%m-%d")
+
+def is_recent(issue):
+    """
+    Returns True if the issue's updated date is within the last 6 months.
+    """
+    try:
+        updated_dt = parse_date(issue.fields.updated)
+        # Convert the aware datetime to a naive datetime for comparison.
+        updated_dt = updated_dt.replace(tzinfo=None)
+    except Exception as e:
+        logger.error(f"Error parsing updated date for issue {issue.key}: {e}")
+        return False
+    return updated_dt >= SIX_MONTHS_AGO
+
+
+# Read allowed Jira project keys from the environment variable.
+# Example: JIRA_PROJECTS=COMPDIV, COMPTRIAGE, COMPLANG, COMPUTESVCS, COMPWLM, COMPHOST, COMPDIVPUNE, GEMINI, COMPSRVCORE, COMPCONNECT, COMPOBSERVE, COMPSRVCAS
 allowed_projects_str = os.getenv("JIRA_PROJECTS", "")
 ALLOWED_PROJECTS = [proj.strip() for proj in allowed_projects_str.split(",") if proj.strip()]
 
-# Initialize the Jira client
+# Initialize the Jira client.
 def setup_jira_client():
     jira_api_token = os.getenv('JIRA_TOKEN')
     jira_url = os.getenv('JIRA_URL')
@@ -28,7 +47,7 @@ def setup_jira_client():
     )
     return jira
 
-# Create a connection to the PostgreSQL database
+# Create a connection to the PostgreSQL database.
 def create_connection():
     db_password = os.getenv('DB_PASSWORD')
     db_user = os.getenv('DB_USER')
@@ -42,7 +61,7 @@ def create_connection():
     )
     return psycopg2.connect(conn_string)
 
-# Fetch issue keys from the database
+# Fetch initiative issue keys from the database.
 def fetch_issue_keys():
     conn = create_connection()
     cursor = conn.cursor()
@@ -53,7 +72,7 @@ def fetch_issue_keys():
     return issue_keys
 
 # Fetch issues from Jira based on issue keys,
-# but only include issues whose project key is in ALLOWED_PROJECTS.
+# but only if the issue is in an allowed project and updated in the last 6 months.
 def fetch_issues(jira, issue_keys):
     all_issues = []
     for issue_key in issue_keys:
@@ -64,16 +83,18 @@ def fetch_issues(jira, issue_keys):
         if issue.fields.project.key not in ALLOWED_PROJECTS:
             logger.info(f"Issue {issue.key} not in allowed projects, skipping.")
             continue
+        if not is_recent(issue):
+            logger.info(f"Issue {issue.key} was not updated in the last 6 months, skipping.")
+            continue
 
-        all_issues.append((issue_key, issue))  # Associate the initiative_issue_key with this issue
-
+        all_issues.append((issue_key, issue))
         # Fetch related issues recursively.
         related_issues = fetch_related_issues(jira, issue, initiative_issue_key=issue_key)
         all_issues.extend(related_issues)
     return all_issues
 
 # Maximum recursion depth safeguard.
-MAX_RECURSION_DEPTH = 750
+MAX_RECURSION_DEPTH = 10
 
 # Fetch related issues (both direct and indirect) recursively.
 def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_key=None):
@@ -87,8 +108,10 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
     related_issues = []
     issue_links = getattr(issue.fields, "issuelinks", [])
     
-    # Allowed link types: note that we now include "Hierarchy".
-    allowed_link_types = ["Is Child", "Is Parent", "Relates", "Has Parent", "Hierarchy"]
+    # Allowed link types now include several relationship variants.
+    allowed_link_types = [
+        "Is Child", "Is Parent", "Relates", "Is Related To", "Related", "Has Parent", "Hierarchy"
+    ]
 
     for link in issue_links:
         inward = getattr(link, "inwardIssue", None)
@@ -108,12 +131,11 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
                     inward.key,
                     fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
                 )
-                # Only include the issue if its project is allowed.
-                if related_issue.fields.project.key in ALLOWED_PROJECTS:
+                if related_issue.fields.project.key in ALLOWED_PROJECTS and is_recent(related_issue):
                     related_issues.append((initiative_issue_key, related_issue))
                     related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
                 else:
-                    logger.info(f"Issue {related_issue.key} not in allowed projects, skipping.")
+                    logger.info(f"Issue {related_issue.key} not in allowed projects or not updated recently, skipping.")
             if outward and outward.key not in visited:
                 visited.add(outward.key)
                 logger.info(f"Fetching outward issue: {outward.key}")
@@ -121,15 +143,15 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
                     outward.key,
                     fields="key,summary,issuetype,status,assignee,created,updated,issuelinks,parent,subtasks,customfield_10002,project"
                 )
-                if related_issue.fields.project.key in ALLOWED_PROJECTS:
+                if related_issue.fields.project.key in ALLOWED_PROJECTS and is_recent(related_issue):
                     related_issues.append((initiative_issue_key, related_issue))
                     related_issues.extend(fetch_related_issues(jira, related_issue, visited, depth + 1, initiative_issue_key))
                 else:
-                    logger.info(f"Issue {related_issue.key} not in allowed projects, skipping.")
+                    logger.info(f"Issue {related_issue.key} not in allowed projects or not updated recently, skipping.")
 
-    # If the issue is an Epic, fetch its children using a properly quoted JQL query.
+    # If the issue is an Epic, fetch its children using a JQL query that only returns recently updated child issues.
     if issue.fields.issuetype.name == "Epic":
-        jql = f'"Epic Link" = "{issue.key}"'
+        jql = f'"Epic Link" = "{issue.key}" AND updated >= "{six_months_str}"'
         logger.info(f"Querying Epic children with JQL: {jql}")
         epic_children = jira.search_issues(
             jql,
@@ -138,11 +160,11 @@ def fetch_related_issues(jira, issue, visited=None, depth=0, initiative_issue_ke
         for child in epic_children:
             if child.key not in visited:
                 visited.add(child.key)
-                if child.fields.project.key in ALLOWED_PROJECTS:
+                if child.fields.project.key in ALLOWED_PROJECTS and is_recent(child):
                     related_issues.append((initiative_issue_key, child))
                     related_issues.extend(fetch_related_issues(jira, child, visited, depth + 1, initiative_issue_key))
                 else:
-                    logger.info(f"Epic child {child.key} not in allowed projects, skipping.")
+                    logger.info(f"Epic child {child.key} not in allowed projects or not updated recently, skipping.")
     return related_issues
 
 # Store issues in PostgreSQL.

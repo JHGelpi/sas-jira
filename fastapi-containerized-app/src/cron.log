@@ -1576,3 +1576,40 @@ psycopg2.errors.UndefinedTable: relation "tbl_jira_oper_epics" does not exist
 LINE 3:             FROM tbl_jira_oper_epics
                          ^
 
+Starting daily run at.... 10-04-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=1000 and maxResults=1000...
+Retrieved 1000 issues.
+Querying JIRA with startAt=2000 and maxResults=1000...
+Retrieved 977 issues.
+Total issues fetched: 2977
+Processing and exporting issues...
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 61, in daily
+    process_and_export_issues(all_issues, run_flag)
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 120, in process_and_export_issues
+    row = build_row(issue, os.getenv("JIRA_URL"), csv_file, run_flag)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 80, in build_row
+    oper_epic = add_oper_epic(epic_link)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 193, in add_oper_epic
+    cursor.execute(query, (epic_name,))
+psycopg2.errors.UndefinedTable: relation "tbl_jira_oper_epics" does not exist
+LINE 3:             FROM tbl_jira_oper_epics
+                         ^
+
