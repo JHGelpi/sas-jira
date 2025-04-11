@@ -11,3 +11,4 @@ schedule
 pytest
 pytest-asyncio
 matplotlib
+python-dateutil
