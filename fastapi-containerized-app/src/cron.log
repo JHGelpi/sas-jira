@@ -1613,3 +1613,9 @@ psycopg2.errors.UndefinedTable: relation "tbl_jira_oper_epics" does not exist
 LINE 3:             FROM tbl_jira_oper_epics
                          ^
 
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 5, in <module>
+    from app.initiative_children import init_child_main
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
+    from dateutil.parser import parse as parse_date
+ModuleNotFoundError: No module named 'dateutil'
