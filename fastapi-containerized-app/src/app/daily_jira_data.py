@@ -136,7 +136,8 @@ def append_csv(csv_file, run_flag):
         return
     
     # Connect to JIRA
-    config_file = f'{current_working_directory}/app/config.json'
+    #config_file = f'{current_working_directory}/app/config.json'
+    config_file = '/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/config.json'
 
     try:
         with open(config_file, 'r') as file:
