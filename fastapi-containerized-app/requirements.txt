@@ -7,3 +7,4 @@ APScheduler
 httpx
 pydantic
 python-dotenv
+python-dateutil

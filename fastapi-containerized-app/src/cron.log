@@ -1619,3 +1619,21 @@ Traceback (most recent call last):
   File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
     from dateutil.parser import parse as parse_date
 ModuleNotFoundError: No module named 'dateutil'
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 5, in <module>
+    from app.initiative_children import init_child_main
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
+    from dateutil.parser import parse as parse_date
+ModuleNotFoundError: No module named 'dateutil'
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 5, in <module>
+    from app.initiative_children import init_child_main
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
+    from dateutil.parser import parse as parse_date
+ModuleNotFoundError: No module named 'dateutil'
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 5, in <module>
+    from app.initiative_children import init_child_main
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
+    from dateutil.parser import parse as parse_date
+ModuleNotFoundError: No module named 'dateutil'
