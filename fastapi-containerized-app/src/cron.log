@@ -1637,3 +1637,138 @@ Traceback (most recent call last):
   File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 6, in <module>
     from dateutil.parser import parse as parse_date
 ModuleNotFoundError: No module named 'dateutil'
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPWLM-286
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPWLM-286, will retry [1/3] in 10.706357155980768s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 15-04-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 273 issues.
+Total issues fetched: 3273
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250415090218.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 15-04-25 09:10:50
+Release last run: 2025-03-20
+Target release date: 2025-03-20
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11ab67ef0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [1/3] in 17.8302263952242s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11ab67ef0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11ab21280>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [2/3] in 36.36388479376878s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11ab21280>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11c3d9b50>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [3/3] in 45.24694488535849s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11c3d9b50>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 17-04-25 09:00:09
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x11c3d9e20>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11c3d9e20>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 53, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 45, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11c3d9e20>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
