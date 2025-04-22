@@ -1772,3 +1772,136 @@ Traceback (most recent call last):
   File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
     raise ConnectionError(e, request=request)
 requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x11c3d9e20>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 18-04-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 471 issues.
+Total issues fetched: 3471
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250418090319.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 18-04-25 09:19:17
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 19-04-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 512 issues.
+Total issues fetched: 3512
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250419090151.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 19-04-25 09:17:05
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 20-04-25 09:00:05
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 512 issues.
+Total issues fetched: 3512
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250420090145.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 20-04-25 09:16:39
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-62773
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-62773, will retry [1/3] in 17.62667665942714s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-33918
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-33918, will retry [1/3] in 14.143893689158986s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-8325
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-8325, will retry [1/3] in 13.56126999258577s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 21-04-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 512 issues.
+Total issues fetched: 3512
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250421090204.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 21-04-25 09:17:16
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
