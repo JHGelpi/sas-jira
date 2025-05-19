@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+from datetime import datetime
 
 # Load environment variables (e.g., OKR_SQL_FILE, DB credentials, VIZ_DIR)
 load_dotenv()
@@ -58,6 +59,7 @@ def preprocess(df):
 def plot_by_category(df):
     """Generate and save one line chart per investment_category."""
     df = preprocess(df)
+    
     for cat, sub in df.groupby('investment_category'):
         sub_sorted = sub.sort_values('sprint_order', ascending=True)
         fig = px.line(
@@ -77,7 +79,8 @@ def plot_by_category(df):
         )
         # Save chart to file
         safe_name = cat.replace(' ', '_').replace('/', '_')
-        out_file = VIZ_PATH / f"{safe_name}.html"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_file = VIZ_PATH / f"{safe_name}_{timestamp}.html"
         fig.write_html(out_file)
         print(f"Saved chart for {cat} to {out_file}")
 
@@ -102,7 +105,8 @@ def plot_master(df):
             categoryarray=df_sorted['normalized_sprint'].unique()
         )
     )
-    out_file = VIZ_PATH / "all_categories.html"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_file = VIZ_PATH / f"all_categories_{timestamp}.html"
     fig.write_html(out_file)
     print(f"Saved master chart to {out_file}")
 
