@@ -107,7 +107,7 @@ def plot_master(df):
     print(f"Saved master chart to {out_file}")
 
 
-def main():
+def trends_main():
     df = fetch_data()
     print(df.head())
     plot_by_category(df)
@@ -115,4 +115,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    trends_main()

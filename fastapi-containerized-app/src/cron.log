@@ -2010,3 +2010,945 @@ Release last run: 2025-04-17
 Target release date: 2025-04-17
 Release run already triggered for this period. Skipping...
 Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-67363
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-67363, will retry [1/3] in 18.29152838565573s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-22504
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-22504, will retry [1/3] in 16.688086112259374s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPLANG-320
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPLANG-320, will retry [1/3] in 15.231532431146476s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPCONNECT-48
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPCONNECT-48, will retry [1/3] in 14.193676961825826s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPCONNECT-20
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPCONNECT-20, will retry [1/3] in 13.636744384313367s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 25-04-25 09:00:06
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 645 issues.
+Total issues fetched: 3645
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250425090220.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 25-04-25 09:19:22
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062461e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [1/3] in 12.5613904301703s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062461e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1020c4e30>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [2/3] in 26.616557069857446s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1020c4e30>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062bd910>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [3/3] in 58.810067125535824s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062bd910>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 26-04-25 09:00:06
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x1062bdbe0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062bdbe0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 53, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 45, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1062bdbe0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x103545460>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [1/3] in 12.791570267249949s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x103545460>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104c91460>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [2/3] in 27.209949133177517s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104c91460>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10639d820>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [3/3] in 56.61779133664014s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10639d820>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 27-04-25 09:00:05
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x10639daf0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10639daf0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 53, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 45, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10639daf0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-13216
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-13216, will retry [1/3] in 10.336678755516111s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPDIVPUNE-9
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPDIVPUNE-9, will retry [1/3] in 14.371489444350942s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 29-04-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 685 issues.
+Total issues fetched: 3685
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250429090236.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 29-04-25 09:12:15
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-66591
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-66591, will retry [1/3] in 19.366743842879345s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-11738
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-11738, will retry [1/3] in 17.362292922647388s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 30-04-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3750 and maxResults=750...
+Retrieved 157 issues.
+Total issues fetched: 3907
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250430090226.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 30-04-25 09:20:23
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d100>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [1/3] in 11.413225122104254s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d100>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10309dee0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [2/3] in 37.737539571891276s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10309dee0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d610>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [3/3] in 58.8898667008253s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d610>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 07-05-25 09:16:14
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x10442d8e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d8e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 53, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 45, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x10442d8e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 12-05-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26321552x4', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (1/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26321552x4', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456250x5', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (2/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456250x5', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456256x4', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (3/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456256x4', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456266x4', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Failed after 3 retries: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Mon, 12 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x26456266x4', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Total issues fetched: 0
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250512090008.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 12-05-25 09:00:08
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 13-05-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376738x7', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (1/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376738x7', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376745x6', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (2/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376745x6', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376759x8', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (3/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376759x8', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376764x6', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Failed after 3 retries: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Tue, 13 May 2025 13:00:07 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x28376764x6', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Total issues fetched: 0
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250513090008.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 13-05-25 09:00:08
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 14-05-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30147315x2', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (1/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30147315x2', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30147317x1', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (2/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30147317x1', 'X-ANODEID': 'rndjirap2', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30221433x7', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (3/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30221433x7', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30221438x6', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Failed after 3 retries: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Wed, 14 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x30221438x6', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Total issues fetched: 0
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250514090008.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 14-05-25 09:00:08
+Release last run: 2025-04-17
+Target release date: 2025-04-17
+Release run already triggered for this period. Skipping...
+Skipping release run...
+Starting daily run at.... 15-05-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934103x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (1/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934103x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934107x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (2/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934107x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934112x4', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (3/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934112x4', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31988472x1', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Failed after 3 retries: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:08 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31988472x1', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Total issues fetched: 0
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250515090008.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 15-05-25 09:00:08
+Daily last run: 2025-05-15
+Target release date: 2025-05-15
+Triggering release run...
+Release run check is true. Running release...
+Starting at.... 15-05-25 09:00:09
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934165x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (1/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934165x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934169x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (2/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934169x5', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=98', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31988527x1', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Retrying (3/3) due to error: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31988527x1', 'X-ANODEID': 'rndjirap1', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=97', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Querying JIRA with startAt=0 and maxResults=750...
+Error during JIRA fetch: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934179x4', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Failed after 3 retries: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/field
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934179x4', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=96', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":[],"errors":{}}
+Total issues fetched: 0
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250515090009.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed at... 15-05-25 09:00:09
+Calculating post-release stats...
+Running init_child_main()...
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 78, in daily
+    init_child_main()
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 203, in init_child_main
+    issues = fetch_issues(jira, issue_keys)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/initiative_children.py", line 79, in fetch_issues
+    issue = jira.issue(
+            ^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 1810, in issue
+    issue.find(id, params=params)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resources.py", line 263, in find
+    self._find_by_url(url, params)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resources.py", line 279, in _find_by_url
+    self._load(url, params=params)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resources.py", line 451, in _load
+    r = self._session.get(url, headers=headers, params=params)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 247, in request
+    elif raise_on_error(response, **processed_kwargs):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 72, in raise_on_error
+    raise JIRAError(
+jira.exceptions.JIRAError: JiraError HTTP 401 url: https://rndjira.sas.com/rest/api/2/issue/COMPDIV-19?fields=key%2Csummary%2Cissuetype%2Cstatus%2Cassignee%2Ccreated%2Cupdated%2Cissuelinks%2Cparent%2Csubtasks%2Ccustomfield_10002%2Cproject
+	text: You do not have the permission to see the specified issue., Login Required
+	
+	response headers = {'Date': 'Thu, 15 May 2025 13:00:09 GMT', 'Server': 'Apache/2.4.37 (Rocky Linux) OpenSSL/1.1.1k', 'X-AREQUESTID': '540x31934210x3', 'X-ANODEID': 'rndjirap0', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': 'sandbox', 'Strict-Transport-Security': 'max-age=31536000', 'X-AUSERNAME': 'anonymous', 'Cache-Control': 'no-cache, no-store, no-transform', 'WWW-Authenticate': 'OAuth realm="https%3A%2F%2Frndjira.sas.com"', 'Content-Type': 'application/json;charset=UTF-8', 'Keep-Alive': 'timeout=5, max=99', 'Connection': 'Keep-Alive', 'Transfer-Encoding': 'chunked'}
+	response text = {"errorMessages":["You do not have the permission to see the specified issue.","Login Required"],"errors":{}}
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPWLM-125
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPWLM-125, will retry [1/3] in 18.44267760811458s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-62008
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-62008, will retry [1/3] in 13.106808620256704s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-61443
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-61443, will retry [1/3] in 19.95192518951968s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-14636
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPUTESVCS-14636, will retry [1/3] in 14.857383247288695s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPTRIAGE-410
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPTRIAGE-410, will retry [1/3] in 12.917998746675007s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPSRVCORE-88
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPSRVCORE-88, will retry [1/3] in 12.592277634557396s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+WARNING:jira.resilientsession:Got ConnectionError [('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))] errno:None on GET https://rndjira.sas.com/rest/api/2/issue/COMPDIV-10
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/issue/COMPDIV-10, will retry [1/3] in 12.273699722935465s. Err: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+Starting daily run at.... 16-05-25 09:00:07
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=4500 and maxResults=750...
+Retrieved 62 issues.
+Total issues fetched: 4562
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250516090310.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 16-05-25 09:24:39
+Release last run: 2025-05-15
+Target release date: 2025-05-15
+Release run already triggered for this period. Skipping...
+Skipping release run...
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1037798e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [1/3] in 17.290119283283268s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1037798e0>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1037cdb80>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [2/3] in 23.534191469987064s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1037cdb80>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+WARNING:jira.resilientsession:Got ConnectionError [HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104401730>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))] errno:None on GET https://rndjira.sas.com/rest/api/2/serverInfo
+
+WARNING:jira.resilientsession:Got recoverable error from GET https://rndjira.sas.com/rest/api/2/serverInfo, will retry [3/3] in 38.36658968567873s. Err: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104401730>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 18-05-25 09:00:08
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/socket.py", line 963, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 491, in _make_request
+    raise new_e
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 467, in _make_request
+    self._validate_conn(conn)
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 1099, in _validate_conn
+    conn.connect()
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 616, in connect
+    self.sock = sock = self._new_conn()
+                       ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x104401a00>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104401a00>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 88, in <module>
+    asyncio.run(daily())
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 53, in daily
+    jira = setup_jira_client()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py", line 45, in setup_jira_client
+    jira = JIRA(
+           ^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 660, in __init__
+    si = self.server_info()
+         ^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 3599, in server_info
+    j = self._get_json("serverInfo")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/client.py", line 4358, in _get_json
+    else self._session.get(url, params=params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 246, in request
+    raise exception
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/jira/resilientsession.py", line 224, in request
+    response = super().request(
+               ^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/wegelpi/Library/Python/3.12/lib/python/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='rndjira.sas.com', port=443): Max retries exceeded with url: /rest/api/2/serverInfo (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x104401a00>: Failed to resolve 'rndjira.sas.com' ([Errno 8] nodename nor servname provided, or not known)"))
+Starting daily run at.... 19-05-25 09:00:08
+JIRA client initialized successfully.
+Fetching issues from JIRA...
+Querying JIRA with startAt=0 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=1500 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=2250 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3000 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=3750 and maxResults=750...
+Retrieved 750 issues.
+Querying JIRA with startAt=4500 and maxResults=750...
+Retrieved 77 issues.
+Total issues fetched: 4577
+Processing and exporting issues...
+CSV export complete: /Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/tmp/jira_data/jira-output-20250519090247.csv
+Executing SQL Query: 
+                        COPY tbl_jira_sprint_data (epic_link,parent_link,operational_epic_team,operational_flag,triage_origin_flag,pipeline_stage,bug_origin,escaped_bug_flag,fix_version,components,issue_key,issue_summary,issue_url,issue_type,issue_state,issue_assignee,issue_status,start_date,end_date,completed_date,sprint_name,labels,sprint_owner,update_date,story_points,run_flag,jira_created_date,jira_updated_date)
+                        FROM STDIN WITH CSV HEADER DELIMITER ',' QUOTE '"' NULL 'NULL'
+                        
+Updating PostgreSQL logs...
+Executing SQL Query: 
+            INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+            VALUES (%(exec_origin)s, %(start_date)s, %(end_date)s, %(sprint)s, %(run_type)s);
+        
+PostgreSQL logs updated successfully.
+Completed daily run at... 19-05-25 09:16:07
+Release last run: 2025-05-15
+Target release date: 2025-05-15
+Release run already triggered for this period. Skipping...
+Skipping release run...

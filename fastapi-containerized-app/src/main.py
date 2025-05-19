@@ -3,6 +3,7 @@ from datetime import datetime
 from app.daily_jira_data import (setup_jira_client, fetch_issues, process_and_export_issues,
                              update_postgres_logs, build_jql, release_run_check)
 from app.initiative_children import init_child_main
+from app.investment_trends import trends_main
 import asyncio
 import sys
 
@@ -77,6 +78,11 @@ async def daily():
         print("Running init_child_main()...")
         init_child_main()
         print("init_child_main() completed.")
+        print("Post-release stats calculated.")
+        
+        print("Running trends_main()...")
+        trends_main()
+        print("trends_main() completed.")
         print("Post-release stats calculated.")
 
     else:
