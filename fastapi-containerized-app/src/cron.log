@@ -2952,3 +2952,9 @@ Release last run: 2025-05-15
 Target release date: 2025-05-15
 Release run already triggered for this period. Skipping...
 Skipping release run...
+Traceback (most recent call last):
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py", line 6, in <module>
+    from app.investment_trends import trends_main
+  File "/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/investment_trends.py", line 4, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
