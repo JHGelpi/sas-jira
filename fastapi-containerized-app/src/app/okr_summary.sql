@@ -10,7 +10,12 @@ FROM (
         count(a.issue_key) as num_jiras,
         sum(a.sum_story_points) as story_points 
     FROM public.view_dedup_investment_flags a
-    WHERE a.sprint_name LIKE ANY (ARRAY['%2025.01%', '%2025.02%', '%2025.03%', '%2025.04%', '%2025.05%'])
+    WHERE EXISTS (
+        SELECT 1
+        FROM tbl_jira_releases r
+        WHERE r.release_date <= current_date
+          AND a.sprint_name LIKE '%' || r.fix_version || '%'
+    )
         AND a.iris is null
         AND a.initiative_flag = 'Y'
     GROUP BY a.normalized_sprint
@@ -20,7 +25,12 @@ FROM (
         count(a.issue_key) as num_jiras,
         sum(a.sum_story_points) as story_points 
     FROM public.view_dedup_investment_flags a
-    WHERE a.sprint_name LIKE ANY (ARRAY['%2025.01%', '%2025.02%', '%2025.03%', '%2025.04%', '%2025.05%'])
+    WHERE EXISTS (
+        SELECT 1
+        FROM tbl_jira_releases r
+        WHERE r.release_date <= current_date
+          AND a.sprint_name LIKE '%' || r.fix_version || '%'
+    )
         AND a.iris is null
         AND a.initiative_flag is null
         AND a.bug_flag is null
@@ -31,7 +41,12 @@ FROM (
         count(a.issue_key) as num_jiras,
         sum(a.sum_story_points) as story_points 
     FROM public.view_dedup_investment_flags a
-    WHERE a.sprint_name LIKE ANY (ARRAY['%2025.01%', '%2025.02%', '%2025.03%', '%2025.04%', '%2025.05%'])
+    WHERE EXISTS (
+        SELECT 1
+        FROM tbl_jira_releases r
+        WHERE r.release_date <= current_date
+          AND a.sprint_name LIKE '%' || r.fix_version || '%'
+    )
         AND a.bug_flag = 'Bug'
         AND a.iris is null
     GROUP BY a.normalized_sprint
@@ -41,7 +56,12 @@ FROM (
         count(a.issue_key) as num_jiras,
         sum(a.sum_story_points) as story_points 
     FROM public.view_dedup_investment_flags a
-    WHERE a.sprint_name LIKE ANY (ARRAY['%2025.01%', '%2025.02%', '%2025.03%', '%2025.04%', '%2025.05%'])
+    WHERE EXISTS (
+        SELECT 1
+        FROM tbl_jira_releases r
+        WHERE r.release_date <= current_date
+          AND a.sprint_name LIKE '%' || r.fix_version || '%'
+    )
         AND a.iris = true
     GROUP BY a.normalized_sprint
 ) a
