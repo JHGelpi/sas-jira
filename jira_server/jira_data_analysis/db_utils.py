@@ -1,0 +1,121 @@
+import os
+import psycopg2
+from psycopg2 import pool
+from datetime import datetime
+
+# --- Connection Pool ---
+# Initialize the connection pool once when the module is loaded.
+try:
+    CONNECTION_POOL = psycopg2.pool.SimpleConnectionPool(
+        minconn=1,
+        maxconn=20,
+        dsn=os.getenv('DATABASE_URL')
+    )
+    print("Database connection pool initialized successfully.")
+except psycopg2.OperationalError as e:
+    print(f"FATAL: Could not initialize database connection pool: {e}")
+    CONNECTION_POOL = None
+
+def get_connection_pool():
+    """Returns the initialized connection pool."""
+    if not CONNECTION_POOL:
+        raise ConnectionError("Database pool is not available.")
+    return CONNECTION_POOL
+
+# --- Data Loading Utilities ---
+
+def load_sprint_managers(db_pool) -> dict:
+    """Loads sprint manager data from the database into a dictionary for quick lookup."""
+    managers = {}
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT project, project_owner FROM tbl_jira_project_owners")
+            for row in cursor.fetchall():
+                managers[row[0]] = row[1]
+    except Exception as e:
+        print(f"Error loading sprint managers: {e}")
+    finally:
+        db_pool.putconn(conn)
+    return managers
+
+def load_operational_epics(db_pool) -> dict:
+    """Loads operational epic data into a dictionary for quick lookup."""
+    epics = {}
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT epic, sprint_team FROM tbl_jira_oper_epics")
+            for row in cursor.fetchall():
+                epics[row[0]] = row[1]
+    except Exception as e:
+        print(f"Error loading operational epics: {e}")
+    finally:
+        db_pool.putconn(conn)
+    return epics
+    
+def fetch_initiative_keys(db_pool) -> list:
+    """Fetches all initiative issue keys from the database."""
+    keys = []
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT issue_key FROM tbl_initiative_issue_keys")
+            keys = [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        print(f"Error fetching initiative keys: {e}")
+    finally:
+        db_pool.putconn(conn)
+    return keys
+
+# --- Logging and Checks ---
+
+def update_run_log(db_pool, start_time: datetime, end_time: datetime, run_flag: str):
+    """Logs the execution details of a run into the database."""
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") 
+                VALUES (%s, %s, %s, %s, %s);
+            """
+            # Note: 'sprint' and 'runType' seem to be the same. Consolidating to run_flag.
+            log_record = ('python', start_time, end_time, run_flag, run_flag.upper())
+            cursor.execute(sql, log_record)
+            conn.commit()
+            print(f"Successfully logged '{run_flag}' run.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Failed to update run log: {e}")
+    finally:
+        db_pool.putconn(conn)
+
+def release_run_check(db_pool) -> bool:
+    """
+    Checks if the latest daily run occurred on or after the target release date,
+    and if a release run for that period has not already been completed.
+    """
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cursor:
+            # 1. Get the target release date (most recent one that has passed)
+            cursor.execute("SELECT MAX(release_date) FROM tbl_jira_releases WHERE release_date <= current_date;")
+            target_release_date = cursor.fetchone()[0]
+            if not target_release_date:
+                return False # No applicable releases
+
+            # 2. Get the date of the last 'release' type run
+            cursor.execute("SELECT MAX(date(endDTTM)) FROM tbl_run_log WHERE runType = 'RELEASE';")
+            last_release_run_date = cursor.fetchone()[0]
+
+            # Trigger if a release run has never happened or if it was before the current target release
+            if last_release_run_date is None or last_release_run_date < target_release_date:
+                return True
+            
+    except Exception as e:
+        print(f"Database error during release check: {e}")
+        return False
+    finally:
+        db_pool.putconn(conn)
+    
+    return False

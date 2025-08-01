@@ -1,0 +1,18 @@
+# FastAPI and Server
+fastapi
+uvicorn[standard]
+
+# Jira Integration
+jira
+
+# Data Processing and Plotting
+pandas
+plotly
+python-dotenv
+SQLAlchemy
+
+# PostgreSQL Database Driver
+psycopg2-binary
+
+# Date parsing utility
+python-dateutil
