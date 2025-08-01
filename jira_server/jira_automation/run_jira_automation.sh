@@ -10,4 +10,4 @@ cd /Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation
 # source /path/to/virtual/env
 
 #Run the python script
-/usr/local/bin/python3 main.py
+/usr/local/bin/python3 app.py

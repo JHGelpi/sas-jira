@@ -1,12 +1,12 @@
 import os
 from fastapi import FastAPI, BackgroundTasks, HTTPException
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 # Import the task functions
 from jira_data_analysis.tasks import run_jira_export_task, run_initiative_analysis_task, run_investment_trends_task, check_if_release_run_is_due
 
 # Load environment variables from .env file
-load_dotenv()
+#load_dotenv()
 
 app = FastAPI(
     title="Jira Data Processing API",
