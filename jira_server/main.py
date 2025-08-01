@@ -3,8 +3,12 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException
 #from dotenv import load_dotenv
 
 # Import the task functions
-from jira_data_analysis.tasks import run_jira_export_task, run_initiative_analysis_task, run_investment_trends_task, check_if_release_run_is_due
-
+from tasks import (run_jira_export_task, 
+                    run_initiative_analysis_task, 
+                    run_investment_trends_task, 
+                    check_if_release_run_is_due,
+                    run_jira_icebox_task)
+#from jira_automation import app
 # Load environment variables from .env file
 #load_dotenv()
 
@@ -53,5 +57,14 @@ async def trigger_release_job(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_investment_trends_task)
     return {"message": "Release analysis job has been started in the background."}
 
+@app.post("/jobs/jiraicebox", status_code=202, summary="Trigger Jira icebox updates")
+async def trigger_jira_icebox_job(background_tasks: BackgroundTasks):
+    """
+    Starts the Jira icebox update job. This job runs in the background.
+    """
+    print("Jira icebox job endpoint triggered. Scheduling background tasks.")
+    # --- FIX: Call the correct task function ---
+    background_tasks.add_task(run_jira_icebox_task)
+    return {"message": "Jira icebox update job has been started in the background."}
+
 # To run the app, use the 'run_app.sh' script or execute this command in your terminal:
-# uvicorn main:app --reload

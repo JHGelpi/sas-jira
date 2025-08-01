@@ -1,23 +1,49 @@
 import os
+import sys
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
+from dotenv import load_dotenv
 
-# --- Connection Pool ---
-# Initialize the connection pool once when the module is loaded.
-try:
-    CONNECTION_POOL = psycopg2.pool.SimpleConnectionPool(
-        minconn=1,
-        maxconn=20,
-        dsn=os.getenv('DATABASE_URL')
-    )
-    print("Database connection pool initialized successfully.")
-except psycopg2.OperationalError as e:
-    print(f"FATAL: Could not initialize database connection pool: {e}")
-    CONNECTION_POOL = None
+# Load environment variables
+load_dotenv()
+
+# --- Connection Pool Initialization ---
+
+# This function will be called once when the module is first imported.
+def initialize_connection_pool():
+    """
+    Initializes and returns a database connection pool.
+    Exits the application if the connection fails.
+    """
+    db_url = os.getenv('DATABASE_URL')
+
+    if not db_url:
+        print("FATAL: DATABASE_URL environment variable is not set. Please check your .env file.")
+        sys.exit(1) # Exit the application immediately
+
+    try:
+        print("Attempting to initialize database connection pool...")
+        pool = psycopg2.pool.SimpleConnectionPool(
+            minconn=1,
+            maxconn=20,
+            dsn=db_url
+        )
+        print("Database connection pool initialized successfully.")
+        return pool
+    except psycopg2.OperationalError as e:
+        print(f"FATAL: Could not connect to the database using the provided DATABASE_URL.")
+        print(f"Error details: {e}")
+        print("Please ensure the database is running and the DATABASE_URL is correct in your .env file.")
+        sys.exit(1) # Exit the application immediately
+
+# Initialize the pool when the module is loaded.
+CONNECTION_POOL = initialize_connection_pool()
 
 def get_connection_pool():
     """Returns the initialized connection pool."""
+    # The application will have already exited if the pool is None,
+    # so this check is now for robustness.
     if not CONNECTION_POOL:
         raise ConnectionError("Database pool is not available.")
     return CONNECTION_POOL
@@ -105,7 +131,9 @@ def release_run_check(db_pool) -> bool:
                 return False # No applicable releases
 
             # 2. Get the date of the last 'release' type run
-            cursor.execute("SELECT MAX(date(endDTTM)) FROM tbl_run_log WHERE runType = 'RELEASE';")
+            cursor.execute("""
+                SELECT MAX(date("endDTTM")) FROM tbl_run_log WHERE "runType" = 'RELEASE';
+            """)
             last_release_run_date = cursor.fetchone()[0]
 
             # Trigger if a release run has never happened or if it was before the current target release

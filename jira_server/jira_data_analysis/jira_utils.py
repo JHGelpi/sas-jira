@@ -1,5 +1,7 @@
 import re
 from datetime import datetime
+# --- FIX: Import the parse_date function ---
+from dateutil.parser import parse as parse_date
 
 def format_date(date_str: str) -> str | None:
     """

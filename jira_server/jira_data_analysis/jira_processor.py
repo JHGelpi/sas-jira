@@ -2,10 +2,10 @@ import os
 import csv
 from datetime import datetime, timedelta
 from io import StringIO
-import psycopg2.extras
+#import psycopg2.extras
 
-import db_utils
-from jira_utils import parse_sprint_data, parse_label_data, parse_fix_version_data, parse_component_data, escaped_bug_flag, triage_parser, oper_parser, format_date
+from . import db_utils
+from .jira_utils import parse_sprint_data, parse_label_data, parse_fix_version_data, parse_component_data, escaped_bug_flag, triage_parser, oper_parser, format_date
 
 def build_jql(db_pool, jql_flag: str) -> str:
     """Builds the JQL query based on the last successful run log."""
@@ -15,7 +15,7 @@ def build_jql(db_pool, jql_flag: str) -> str:
             if jql_flag == 'daily':
                 # Get the end time of the last successful daily run
                 cursor.execute("""
-                    SELECT MAX("endDTTM") FROM tbl_run_log WHERE "runType" = 'DAILY' AND "sprint" = 'daily';
+                    SELECT MAX("endDTTM") FROM tbl_run_log WHERE "runType" = 'daily';
                 """)
                 last_run_time = cursor.fetchone()[0]
                 
