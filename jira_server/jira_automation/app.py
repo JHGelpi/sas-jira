@@ -10,6 +10,7 @@ load_dotenv()
 JIRA_SERVER = os.getenv("JIRA_SERVER")
 JQL_QUERY = os.getenv("JQL_QUERY")
 LABEL_TO_ADD = os.getenv("LABEL_TO_ADD")
+#LABEL_IGNORE = os.getenv("LABEL_IGNORE")
 COMMENT_TO_ADD = os.getenv("COMMENT_TO_ADD")
 COMMENT_TO_ADD_ICEBOX = os.getenv("COMMENT_TO_ADD_ICEBOX")
 
