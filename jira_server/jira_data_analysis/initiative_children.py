@@ -6,8 +6,8 @@ from jira import JIRA
 import psycopg2.extras
 
 # Use relative imports
-#from jira_data_analysis import db_utils
-import db_utils
+from jira_data_analysis import db_utils
+#import db_utils
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
