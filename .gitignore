@@ -1,7 +1,7 @@
 .env
 tmp/
-fastapi-containerized-app/src/*.log
+fastapi-containerized-app/
 *.log
 fastapi-jira-forecast/
 venv/
-fastapi-containerized-app/src/app/tmp
+jira_server/__pycache__/

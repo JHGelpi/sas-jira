@@ -117,4 +117,7 @@ def run_jira_icebox_task():
         print(f"An error occurred during the Jira icebox task: {e}")
     finally:
         end_time = datetime.now()
+        print("--------------")
         print(f"Jira icebox task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+        print("--------------")
+

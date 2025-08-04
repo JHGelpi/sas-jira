@@ -15,7 +15,7 @@ def build_jql(db_pool, jql_flag: str) -> str:
             if jql_flag == 'daily':
                 # Get the end time of the last successful daily run
                 cursor.execute("""
-                    SELECT MAX("endDTTM") FROM tbl_run_log WHERE "runType" = 'daily';
+                    SELECT MAX("endDTTM") FROM tbl_run_log WHERE ("runType" = 'DAILY' OR "runType" = 'daily');
                 """)
                 last_run_time = cursor.fetchone()[0]
                 
