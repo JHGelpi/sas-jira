@@ -5,8 +5,22 @@ from psycopg2 import pool
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from a .env file
+#load_dotenv()
+# 1. Get the absolute path of the directory where the current script is located.
+#    For example: /Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. Get the parent directory's path by going one level up.
+#    This will be: /Users/wegelpi/github_repos/sas-jira/jira_server
+project_root = os.path.dirname(current_dir)
+
+# 3. Construct the full path to the .env file located in the project root.
+dotenv_path = os.path.join(project_root, '.env')
+
+# 4. Load the .env file from the specified path.
+#    The script will now have access to all the environment variables.
+load_dotenv(dotenv_path=dotenv_path)
 
 # --- Connection Pool Initialization ---
 

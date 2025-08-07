@@ -1,21 +1,23 @@
 #!/bin/bash
-# File: run_icebox_job.sh
+# File: run_icebox_job.sh (Updated)
+# This script now uses curl to trigger the FastAPI server endpoint.
 
-# This script is designed to be run by a cron job to trigger the Jira icebox update.
-
-# IMPORTANT: Update this path if your project is located elsewhere.
+# The absolute path to your project directory.
 PROJECT_DIR="/Users/wegelpi/github_repos/sas-jira/jira_server"
 LOG_DIR="${PROJECT_DIR}/logs"
 LOG_FILE="${LOG_DIR}/cron_icebox.log"
 TIMESTAMP=$(date +"%Y-%m-%d %T")
 
-# --- Create the log directory if it doesn't exist ---
+# Create the log directory if it doesn't exist to prevent errors.
 mkdir -p "$LOG_DIR"
 
 # --- Execution ---
 echo "---" >> "$LOG_FILE"
-echo "[$TIMESTAMP] Cron job started: Triggering /jobs/jiraicebox" >> "$LOG_FILE"
+echo "[$TIMESTAMP] Cron job started: Triggering /jobs/jiraicebox endpoint..." >> "$LOG_FILE"
 
+# Execute the curl command to trigger the API.
+# The -s flag makes curl silent (no progress meter).
+# The output and any errors are redirected to the log file.
 /usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/jiraicebox >> "$LOG_FILE" 2>&1
 
 echo "" >> "$LOG_FILE"
