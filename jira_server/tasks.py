@@ -8,11 +8,29 @@ from jira_data_analysis import initiative_children
 from jira_data_analysis import investment_trends
 from jira_data_analysis import db_utils
 
+# Use absolute imports from the project's root directory
+#from jira_data_analysis import jira_processor, initiative_children, investment_trends, db_utils
+
+# --- FIX: Use a more robust import structure for each module ---
+# This prevents one failed import from affecting the others.
 try:
     from jira_automation import app as jira_automation_app
 except ImportError:
     jira_automation_app = None
-    print("WARNING: Could not import the 'jira_automation' module. The icebox job will not run.")
+    print("WARNING: Could not import 'jira_automation.app'. The icebox job will be unavailable.")
+
+try:
+    from jira_automation import ticket_aging
+except ImportError:
+    ticket_aging = None
+    print("WARNING: Could not import 'jira_automation.ticket_aging'. The ticket aging job will be unavailable.")
+
+try:
+    from jira_automation import daily_pushes
+except ImportError:
+    daily_pushes = None
+    print("WARNING: Could not import 'jira_automation.daily_pushes'. The daily pushes job will be unavailable.")
+
 
 def get_jira_client():
     """Initializes and returns a JIRA client."""
@@ -120,4 +138,24 @@ def run_jira_icebox_task():
         print("--------------")
         print(f"Jira icebox task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
         print("--------------")
+# --- NEW: Task function for the daily push report ---
+def run_daily_pushes_task():
+    """
+    Worker task to generate the daily push report.
+    """
+    start_time = datetime.now()
+    print(f"Starting daily push report task at {start_time.isoformat()}...")
+
+    if not daily_pushes or not hasattr(daily_pushes, 'main'):
+        print("ERROR: The 'jira_automation.daily_pushes' module or its 'main' function is not available.")
+        return
+
+    try:
+        daily_pushes.main()
+        print("Daily push report task completed successfully.")
+    except Exception as e:
+        print(f"An error occurred during the daily push report task: {e}")
+    finally:
+        end_time = datetime.now()
+        print(f"Daily push report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 

@@ -7,7 +7,8 @@ from tasks import (run_jira_export_task,
                     run_initiative_analysis_task, 
                     run_investment_trends_task, 
                     check_if_release_run_is_due,
-                    run_jira_icebox_task)
+                    run_jira_icebox_task,
+                    run_daily_pushes_task)
 #from jira_automation import app
 # Load environment variables from .env file
 #load_dotenv()
@@ -15,7 +16,7 @@ from tasks import (run_jira_export_task,
 app = FastAPI(
     title="Jira Data Processing API",
     description="An API to trigger and manage Jira data processing jobs.",
-    version="2.0.0"
+    version="2.3.0"
 )
 
 @app.get("/", summary="Root Welcome Message")
@@ -67,4 +68,13 @@ async def trigger_jira_icebox_job(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_jira_icebox_task)
     return {"message": "Jira icebox update job has been started in the background."}
 
-# To run the app, use the 'run_app.sh' script or execute this command in your terminal:
+# --- Endpoint for the daily push report ---
+@app.post("/jobs/daily-pushes", status_code=202, summary="Generate Daily Push Report")
+async def trigger_daily_pushes_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to find all tickets with pushes in the last 24 hours
+    and generates a CSV report.
+    """
+    print("Daily push report job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_daily_pushes_task)
+    return {"message": "Daily push report job has been started in the background."}
