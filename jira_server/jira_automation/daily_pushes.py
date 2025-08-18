@@ -9,6 +9,7 @@ import json
 import re
 import pandas as pd
 import plotly.express as px
+import shutil
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -54,7 +55,7 @@ def _extract_json_from_string(text: str) -> dict | None:
     except (json.JSONDecodeError, IndexError):
         return None
 
-def generate_html_report(activities: list, report_path: str, days: str):
+def generate_html_report(activities: list, report_path: str, days: str, report_dir: str):
     """Generates a self-contained HTML report with a chart and a data table."""
     logger.info("Generating HTML report...")
     
@@ -71,12 +72,16 @@ def generate_html_report(activities: list, report_path: str, days: str):
     daily_counts = df.groupby('date').size().reset_index(name='count')
     daily_counts = daily_counts.sort_values('date')
 
+    # --- NEW: Create the refresh timestamp ---
+    refresh_time = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    chart_title = f'Merged Pull Request Activity (Last {days} Days)'
+    
     # Create a bar chart with Plotly
     fig = px.bar(
         daily_counts,
         x='date',
         y='count',
-        title=f'Merged Pull Request Activity (Last {days} Days)',
+        title=chart_title,
         labels={'date': 'Date', 'count': 'Number of Merged PRs'}
     )
     fig.update_layout(xaxis_title="Date", yaxis_title="Count")
@@ -85,11 +90,15 @@ def generate_html_report(activities: list, report_path: str, days: str):
     # Build the HTML table from the detailed activities
     table_rows = ""
     for act in activities:
+        # --- FIX: Parse and reformat the timestamp for display ---
+        dt_object = pd.to_datetime(act['timestamp'])
+        formatted_timestamp = dt_object.strftime('%d-%m-%Y %H:%M:%S')
+
         # Make the ticket key a link to Jira
         ticket_link = f"<a href='https://rndjira.sas.com/browse/{act['ticket']}' target='_blank'>{act['ticket']}</a>"
         table_rows += f"""
         <tr>
-            <td>{act['timestamp']}</td>
+            <td>{formatted_timestamp}</td>
             <td>{act['type']}</td>
             <td>{ticket_link}</td>
             <td>{act['summary']}</td>
@@ -110,6 +119,8 @@ def generate_html_report(activities: list, report_path: str, days: str):
             body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; }}
             .container {{ padding: 20px; max-width: 1200px; margin: auto; }}
             h1 {{ color: #333; }}
+            h2 {{ color: #555; }}
+            .subtitle {{ color: #666; font-size: 0.9em; margin-top: -15px; margin-bottom: 20px;}}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
             th, td {{ padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }}
             th {{ background-color: #007bff; color: white; }}
@@ -126,6 +137,7 @@ def generate_html_report(activities: list, report_path: str, days: str):
             {chart_html}
             
             <h2>Detailed Activity</h2>
+            <p class="subtitle">Data last refreshed on: {refresh_time}</p>
             <table>
                 <thead>
                     <tr>
@@ -146,10 +158,28 @@ def generate_html_report(activities: list, report_path: str, days: str):
     </html>
     """
 
-    # Write the HTML content to a file
+    # Write the timestamped HTML content to a file
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    logger.info(f"✅ Successfully generated HTML report at: {report_path}")
+    logger.info(f"✅ Successfully generated timestamped HTML report at: {report_path}")
+
+    # Save a copy with a consistent name for embedding
+    latest_report_path = os.path.join(report_dir, 'latest_push_report.html')
+    with open(latest_report_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    logger.info(f"✅ Successfully updated latest report at: {latest_report_path}")
+
+    # --- NEW: Copy the latest report to the homepage directory ---
+    homepage_dir = os.getenv('HOMEPAGE_REPORTS_DIR')
+    if homepage_dir:
+        try:
+            # Ensure the destination directory exists
+            os.makedirs(homepage_dir, exist_ok=True)
+            destination_path = os.path.join(homepage_dir, 'latest_push_report.html')
+            shutil.copy(latest_report_path, destination_path)
+            logger.info(f"✅ Successfully copied latest report to homepage directory: {destination_path}")
+        except Exception as e:
+            logger.error(f"❌ Failed to copy report to homepage directory: {e}")
 
 
 def get_daily_push_report(jira):
@@ -242,7 +272,7 @@ def get_daily_push_report(jira):
         
         activities.sort(key=lambda x: x['timestamp'], reverse=True)
         
-        generate_html_report(activities, report_path, days_to_check)
+        generate_html_report(activities, report_path, days_to_check, report_dir)
 
     except Exception as e:
         logger.error(f"❌ An error occurred while generating the report: {e}")
