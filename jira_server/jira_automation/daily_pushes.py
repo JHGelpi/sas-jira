@@ -7,6 +7,8 @@ import csv
 from collections import defaultdict
 import json
 import re
+import pandas as pd
+import plotly.express as px
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -52,11 +54,108 @@ def _extract_json_from_string(text: str) -> dict | None:
     except (json.JSONDecodeError, IndexError):
         return None
 
+def generate_html_report(activities: list, report_path: str, days: str):
+    """Generates a self-contained HTML report with a chart and a data table."""
+    logger.info("Generating HTML report...")
+    
+    if not activities:
+        logger.info("No activities to report. Skipping HTML generation.")
+        return
+
+    # Convert data to a Pandas DataFrame for easy manipulation
+    df = pd.DataFrame(activities)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['date'] = df['timestamp'].dt.date
+
+    # Aggregate data for the chart: count of PRs per day
+    daily_counts = df.groupby('date').size().reset_index(name='count')
+    daily_counts = daily_counts.sort_values('date')
+
+    # Create a bar chart with Plotly
+    fig = px.bar(
+        daily_counts,
+        x='date',
+        y='count',
+        title=f'Merged Pull Request Activity (Last {days} Days)',
+        labels={'date': 'Date', 'count': 'Number of Merged PRs'}
+    )
+    fig.update_layout(xaxis_title="Date", yaxis_title="Count")
+    chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    # Build the HTML table from the detailed activities
+    table_rows = ""
+    for act in activities:
+        # Make the ticket key a link to Jira
+        ticket_link = f"<a href='https://rndjira.sas.com/browse/{act['ticket']}' target='_blank'>{act['ticket']}</a>"
+        table_rows += f"""
+        <tr>
+            <td>{act['timestamp']}</td>
+            <td>{act['type']}</td>
+            <td>{ticket_link}</td>
+            <td>{act['summary']}</td>
+            <td>{act['author']}</td>
+            <td>{act['message']}</td>
+        </tr>
+        """
+
+    # Assemble the final HTML file
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Daily Push Report</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; }}
+            .container {{ padding: 20px; max-width: 1200px; margin: auto; }}
+            h1 {{ color: #333; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            th, td {{ padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }}
+            th {{ background-color: #007bff; color: white; }}
+            tr:nth-child(even) {{ background-color: #f2f2f2; }}
+            tr:hover {{ background-color: #ddd; }}
+            a {{ color: #007bff; text-decoration: none; }}
+            a:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Daily Push Report</h1>
+            <!-- Plotly chart will be rendered here -->
+            {chart_html}
+            
+            <h2>Detailed Activity</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Activity Type</th>
+                        <th>Ticket</th>
+                        <th>Summary</th>
+                        <th>Author</th>
+                        <th>Message/Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+
+    # Write the HTML content to a file
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    logger.info(f"✅ Successfully generated HTML report at: {report_path}")
+
 
 def get_daily_push_report(jira):
     """
     Finds all tickets with commits or merged pull requests in the last N days
-    and generates a CSV report.
+    and generates a report.
     """
     # Get configuration from environment variables
     projects = os.getenv('JIRA_PROJECTS', '')
@@ -92,7 +191,6 @@ def get_daily_push_report(jira):
             if not dev_summary_string:
                 continue
 
-            # --- NEW LOGIC: Use a robust function to extract the JSON ---
             match = re.search(r"devSummaryJson=(.*)", dev_summary_string)
             if not match:
                 continue
@@ -138,23 +236,13 @@ def get_daily_push_report(jira):
             logger.info(f"🎉 No recent merged PR activity found within the last {days_to_check} days based on summary data.")
             return
 
-        # Generate the CSV report
+        # Generate the HTML report
         today_str = datetime.now().strftime('%Y-%m-%d')
-        report_path = os.path.join(report_dir, f"daily_push_report_{today_str}.csv")
+        report_path = os.path.join(report_dir, f"daily_push_report_{today_str}.html")
         
         activities.sort(key=lambda x: x['timestamp'], reverse=True)
         
-        with open(report_path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(['Timestamp', 'Activity Type', 'Repository', 'Branch', 'Ticket', 'Summary', 'Author', 'Message/Title', 'URL'])
-            
-            for act in activities:
-                writer.writerow([
-                    act['timestamp'], act['type'], act['repo'], act['branch'],
-                    act['ticket'], act['summary'], act['author'], act['message'], act['url']
-                ])
-        
-        logger.info(f"✅ Successfully generated daily push report with {len(activities)} activities at: {report_path}")
+        generate_html_report(activities, report_path, days_to_check)
 
     except Exception as e:
         logger.error(f"❌ An error occurred while generating the report: {e}")
