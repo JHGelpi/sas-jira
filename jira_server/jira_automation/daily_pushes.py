@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timedelta
 import csv
 from collections import defaultdict
+import json
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,9 +26,37 @@ def connect_to_jira():
         logger.error(f"❌ Failed to connect to Jira: {e}")
         return None
 
+def _extract_json_from_string(text: str) -> dict | None:
+    """
+    Finds and extracts a JSON object from a complex string by matching curly braces.
+    """
+    try:
+        # Find the start of the JSON object within the larger string
+        start_brace_index = text.find('{')
+        if start_brace_index == -1:
+            return None
+
+        open_braces = 0
+        # Iterate through the string to find the matching closing brace
+        for i, char in enumerate(text[start_brace_index:]):
+            if char == '{':
+                open_braces += 1
+            elif char == '}':
+                open_braces -= 1
+            
+            if open_braces == 0:
+                # We've found the end of the JSON object
+                json_string = text[start_brace_index : start_brace_index + i + 1]
+                return json.loads(json_string)
+        return None
+    except (json.JSONDecodeError, IndexError):
+        return None
+
+
 def get_daily_push_report(jira):
     """
-    Finds all tickets with commits in the last 24 hours and generates a report.
+    Finds all tickets with commits or merged pull requests in the last N days
+    and generates a CSV report.
     """
     # Get configuration from environment variables
     projects = os.getenv('JIRA_PROJECTS', '')
@@ -34,77 +64,102 @@ def get_daily_push_report(jira):
         logger.error("❌ JIRA_PROJECTS environment variable is not set. Aborting.")
         return
 
+    days_to_check = os.getenv('JIRA_PUSH_REPORT_DAYS', '7')
     report_dir = os.getenv('JIRA_REPORT_DIR', './reports')
-    os.makedirs(report_dir, exist_ok=True) # Ensure the report directory exists
-    
-    # We look for issues updated in the last day. A commit will trigger an update.
-    jql_query = f"project in ({projects}) AND updated >= -1d"
+    os.makedirs(report_dir, exist_ok=True)
 
-    logger.info("🔍 Running JQL query to find tickets with recent activity...")
+    jql_query = f"project in ({projects}) AND type in (Story, Bug) AND updated >= -{days_to_check}d AND (Development[pullrequests].status IS NOT EMPTY)"
+
+
+    logger.info(f"🔍 Running JQL query to find tickets with recent development activity...")
     logger.info(f"   Query: {jql_query}")
 
     try:
-        # We need to expand the 'development' field to get commit data.
-        # This is a special, internal field and might require specific permissions.
-        issues = jira.search_issues(jql_query, maxResults=500, expand="development")
+        # We don't need to expand 'development' if the data is in a custom field
+        issues = jira.search_issues(jql_query, maxResults=1000)
         
         if not issues:
-            logger.info("🎉 No tickets with development activity found in the last 24 hours.")
+            logger.info(f"🎉 No tickets with PR activity found in the last {days_to_check} days.")
             return
 
-        logger.info(f"Found {len(issues)} tickets with recent activity. Analyzing for pushes...")
+        logger.info(f"Found {len(issues)} tickets with PR activity. Analyzing summary data...")
         
-        # Group commits by repository and branch
-        pushes = defaultdict(list)
-        
-        for issue in issues:
-            # The development information is often in a raw, non-standard field.
-            # We check for 'dev-status' which is a common internal API field name.
-            if hasattr(issue.raw['fields'], 'dev-status'):
-                dev_info = issue.raw['fields']['dev-status']
-                # The structure can vary, so we check for the 'detail' key
-                if 'detail' in dev_info and dev_info['detail']:
-                    for detail in dev_info['detail']:
-                        if 'commits' in detail:
-                            for commit in detail['commits']:
-                                # Filter commits to only include those from the last 24 hours
-                                commit_time = datetime.strptime(commit['authorTimestamp'], '%Y-%m-%dT%H:%M:%S.%f%z')
-                                if commit_time >= (datetime.now(commit_time.tzinfo) - timedelta(days=1)):
-                                    repo_name = detail.get('name', 'Unknown Repo')
-                                    branch_name = commit.get('branch', 'Unknown Branch')
-                                    
-                                    pushes[(repo_name, branch_name)].append({
-                                        'ticket': issue.key,
-                                        'summary': issue.fields.summary,
-                                        'author': commit['author']['name'],
-                                        'timestamp': commit['authorTimestamp'],
-                                        'message': commit['message'].strip(),
-                                        'commit_url': commit.get('url', 'N/A')
-                                    })
+        activities = []
+        time_window = datetime.now(datetime.now().astimezone().tzinfo) - timedelta(days=int(days_to_check))
 
-        if not pushes:
-            logger.info("🎉 No new pushes found within the last 24 hours.")
+        for issue in issues:
+            dev_summary_string = issue.raw['fields'].get('customfield_13100')
+            if not dev_summary_string:
+                continue
+
+            # --- NEW LOGIC: Use a robust function to extract the JSON ---
+            match = re.search(r"devSummaryJson=(.*)", dev_summary_string)
+            if not match:
+                continue
+            
+            json_substring = match.group(1)
+            dev_summary_json = _extract_json_from_string(json_substring)
+
+            if not dev_summary_json:
+                logger.warning(f"Could not parse development summary for {issue.key}. Skipping.")
+                continue
+
+            try:
+                pr_summary = dev_summary_json.get('cachedValue', {}).get('summary', {}).get('pullrequest', {}).get('overall', {})
+
+                if not pr_summary:
+                    continue
+
+                last_updated_str = pr_summary.get('lastUpdated')
+                merged_count = pr_summary.get('details', {}).get('mergedCount', 0)
+
+                if last_updated_str and merged_count > 0:
+                    pr_update_time = datetime.strptime(last_updated_str, '%Y-%m-%dT%H:%M:%S.%f%z')
+                    
+                    if pr_update_time >= time_window:
+                        logger.info(f"  -> Found recent merged PR activity for {issue.key}")
+                        activities.append({
+                            'type': 'Pull Request (Activity)',
+                            'repo': 'N/A (Summary)',
+                            'branch': 'N/A (Summary)',
+                            'ticket': issue.key,
+                            'summary': issue.fields.summary,
+                            'author': 'N/A (Summary)',
+                            'timestamp': last_updated_str,
+                            'message': f"{merged_count} merged PR(s) associated with this ticket.",
+                            'url': f"https://rndjira.sas.com/browse/{issue.key}"
+                        })
+
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Could not process parsed summary for {issue.key}. Skipping. Error: {e}")
+
+
+        if not activities:
+            logger.info(f"🎉 No recent merged PR activity found within the last {days_to_check} days based on summary data.")
             return
 
         # Generate the CSV report
         today_str = datetime.now().strftime('%Y-%m-%d')
         report_path = os.path.join(report_dir, f"daily_push_report_{today_str}.csv")
         
+        activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        
         with open(report_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow(['Repository', 'Branch', 'Ticket', 'Summary', 'Author', 'Timestamp', 'Commit Message', 'URL'])
+            writer.writerow(['Timestamp', 'Activity Type', 'Repository', 'Branch', 'Ticket', 'Summary', 'Author', 'Message/Title', 'URL'])
             
-            for (repo, branch), commits in sorted(pushes.items()):
-                for commit in sorted(commits, key=lambda x: x['timestamp']):
-                    writer.writerow([
-                        repo, branch, commit['ticket'], commit['summary'],
-                        commit['author'], commit['timestamp'], commit['message'], commit['commit_url']
-                    ])
+            for act in activities:
+                writer.writerow([
+                    act['timestamp'], act['type'], act['repo'], act['branch'],
+                    act['ticket'], act['summary'], act['author'], act['message'], act['url']
+                ])
         
-        logger.info(f"✅ Successfully generated daily push report at: {report_path}")
+        logger.info(f"✅ Successfully generated daily push report with {len(activities)} activities at: {report_path}")
 
     except Exception as e:
         logger.error(f"❌ An error occurred while generating the report: {e}")
+        if 'issue' in locals():
+            logger.debug(f"Raw data for potentially problematic issue {issue.key}: {json.dumps(issue.raw, indent=2)}")
 
 
 def main():
