@@ -4,6 +4,5 @@ fastapi-containerized-app/
 *.log
 fastapi-jira-forecast/
 venv/
-jira_server/__pycache__/
-jira_server/jira_data_analysis/__pycache__/
+**/__pycache__/
 jira_server/reports/
