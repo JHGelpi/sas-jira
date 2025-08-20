@@ -9,7 +9,8 @@ from tasks import (run_jira_export_task,
                     check_if_release_run_is_due,
                     run_jira_icebox_task,
                     run_daily_pushes_task,
-                    run_daily_pushes_task)
+                    run_daily_pushes_task,
+                    run_rca_subtask_creation_task)
 
 # Load environment variables from .env file
 load_dotenv()

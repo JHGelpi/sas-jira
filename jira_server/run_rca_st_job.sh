@@ -1,7 +1,7 @@
 #!/bin/bash
-# File: run_pushes_job.sh
+# File: run_rca_st_job.sh
 
-# This script is designed to be run by a cron job to trigger the daily push report.
+# This script is designed to be run by a cron job to trigger the daily RCA subtask update.
 
 # The absolute path to your project directory.
 PROJECT_DIR="/Users/wegelpi/github_repos/sas-jira/jira_server"
@@ -14,10 +14,10 @@ mkdir -p "$LOG_DIR"
 
 # --- Execution ---
 echo "---" >> "$LOG_FILE"
-echo "[$TIMESTAMP] Cron job started: Triggering /jobs/daily-pushes endpoint..." >> "$LOG_FILE"
+echo "[$TIMESTAMP] Cron job started: Triggering /jobs/create-rca-subtasks endpoint..." >> "$LOG_FILE"
 
 # Execute the curl command to trigger the API.
-/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/daily-pushes >> "$LOG_FILE" 2>&1
+/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/create-rca-subtasks >> "$LOG_FILE" 2>&1
 
 echo "" >> "$LOG_FILE"
 echo "[$TIMESTAMP] Cron job finished." >> "$LOG_FILE"
