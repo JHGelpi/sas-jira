@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, BackgroundTasks, HTTPException
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Import the task functions
 from tasks import (run_jira_export_task, 
@@ -8,10 +8,11 @@ from tasks import (run_jira_export_task,
                     run_investment_trends_task, 
                     check_if_release_run_is_due,
                     run_jira_icebox_task,
+                    run_daily_pushes_task,
                     run_daily_pushes_task)
-#from jira_automation import app
+
 # Load environment variables from .env file
-#load_dotenv()
+load_dotenv()
 
 app = FastAPI(
     title="Jira Data Processing API",
@@ -78,3 +79,13 @@ async def trigger_daily_pushes_job(background_tasks: BackgroundTasks):
     print("Daily push report job endpoint triggered. Scheduling background task.")
     background_tasks.add_task(run_daily_pushes_task)
     return {"message": "Daily push report job has been started in the background."}
+# --- Endpoint for the RCA sub-task creation ---
+@app.post("/jobs/create-rca-subtasks", status_code=202, summary="Create RCA Sub-tasks for Critical Bugs")
+async def trigger_rca_subtask_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to find critical bugs from CRP and create an RCA sub-task
+    if one does not already exist.
+    """
+    print("RCA sub-task job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_rca_subtask_creation_task)
+    return {"message": "RCA sub-task creation job has been started in the background."}

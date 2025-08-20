@@ -7,6 +7,7 @@ from jira_data_analysis import jira_processor
 from jira_data_analysis import initiative_children
 from jira_data_analysis import investment_trends
 from jira_data_analysis import db_utils
+from jira_automation import create_rca_subtasks
 
 # Use absolute imports from the project's root directory
 #from jira_data_analysis import jira_processor, initiative_children, investment_trends, db_utils
@@ -138,7 +139,7 @@ def run_jira_icebox_task():
         print("--------------")
         print(f"Jira icebox task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
         print("--------------")
-# --- NEW: Task function for the daily push report ---
+# --- Task function for the daily push report ---
 def run_daily_pushes_task():
     """
     Worker task to generate the daily push report.
@@ -159,3 +160,22 @@ def run_daily_pushes_task():
         end_time = datetime.now()
         print(f"Daily push report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
+def run_rca_subtask_creation_task():
+    """
+    Worker task to create RCA sub-tasks for critical bugs.
+    """
+    start_time = datetime.now()
+    print(f"Starting RCA sub-task creation task at {start_time.isoformat()}...")
+
+    if not create_rca_subtasks or not hasattr(create_rca_subtasks, 'main'):
+        print("ERROR: The 'jira_automation.create_rca_subtasks' module or its 'main' function is not available.")
+        return
+
+    try:
+        create_rca_subtasks.main()
+        print("RCA sub-task creation task completed successfully.")
+    except Exception as e:
+        print(f"An error occurred during the RCA sub-task creation task: {e}")
+    finally:
+        end_time = datetime.now()
+        print(f"RCA sub-task creation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
