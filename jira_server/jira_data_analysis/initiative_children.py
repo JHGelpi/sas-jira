@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from jira import JIRA
 import psycopg2.extras
+import traceback
 
 # Use absolute imports from the project's root directory
 from jira_data_analysis import db_utils
@@ -21,7 +22,6 @@ def get_jira_client():
     """Initializes and returns a JIRA client."""
     return JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_TOKEN'))
 
-# This function is now part of initiative_children.py as it was in a previous version
 def sync_initiatives_from_jql(jira, db_pool):
     """
     Fetches initiatives from a JQL query and inserts any new ones into the database.
@@ -163,12 +163,13 @@ def store_issues_bulk(db_pool, issues_to_store: dict):
 
             if rows_to_update:
                 logger.info(f"Updating {len(rows_to_update)} existing records in tbl_initiative_children...")
+                # --- FIX: Explicitly cast date/timestamp strings to the correct type ---
                 update_query = """
                     UPDATE tbl_initiative_children AS t SET
                         initiative_issue_key = v.initiative_issue_key, summary = v.summary,
                         issue_type = v.issue_type, status = v.status, assignee = v.assignee,
-                        created = v.created, updated = v.updated, story_points = v.story_points,
-                        effective_dttm = v.effective_dttm
+                        created = v.created::timestamp, updated = v.updated::timestamp, 
+                        story_points = v.story_points, effective_dttm = v.effective_dttm
                     FROM (VALUES %s) AS v(
                         initiative_issue_key, issue_key, summary, issue_type, status, assignee, 
                         created, updated, story_points, effective_dttm
@@ -204,47 +205,54 @@ def main():
     all_related_issues = {} 
     visited_keys = set()
     
-    # --- Change keys_to_fetch to a dictionary to track the root initiative ---
-    # The format will be {child_key: root_initiative_key}
     keys_to_fetch = {key: key for key in initial_keys}
     
     depth = 0
     while keys_to_fetch and depth <= MAX_RECURSION_DEPTH:
         logger.info(f"Recursion Depth: {depth}. Keys to fetch: {len(keys_to_fetch)}.")
         
-        # Fetch the keys from the dictionary
         fetched_issues_map = fetch_issues_in_batch(jira, set(keys_to_fetch.keys()))
         visited_keys.update(keys_to_fetch.keys())
         
         next_keys_to_fetch = {} 
 
         for key, issue in fetched_issues_map.items():
-            # --- Get the root initiative key from our tracking dictionary ---
-            root_initiative_key = keys_to_fetch[key]
-            
-            if not is_issue_valid(issue, allowed_projects):
-                continue
+            try:
+                # --- FIX: Safely check if the key exists before accessing it ---
+                if key not in keys_to_fetch:
+                    logger.warning(f"Skipping issue {key} as it was not in the expected fetch list for this level.")
+                    continue
+                
+                root_initiative_key = keys_to_fetch[key]
+                
+                if not is_issue_valid(issue, allowed_projects):
+                    continue
 
-            if key not in all_related_issues:
-                all_related_issues[key] = (root_initiative_key, issue)
+                if key not in all_related_issues:
+                    all_related_issues[key] = (root_initiative_key, issue)
 
-            # --- Pass the root initiative key down to the next level ---
-            for link in getattr(issue.fields, "issuelinks", []):
-                if getattr(link, 'type', None) and link.type.name in ALLOWED_LINK_TYPES:
-                    linked_issue_obj = getattr(link, "inwardIssue", None) or getattr(link, "outwardIssue", None)
-                    if linked_issue_obj and linked_issue_obj.key not in visited_keys:
-                        next_keys_to_fetch[linked_issue_obj.key] = root_initiative_key
+                for link in getattr(issue.fields, "issuelinks", []):
+                    if getattr(link, 'type', None) and link.type.name in ALLOWED_LINK_TYPES:
+                        linked_issue_obj = getattr(link, "inwardIssue", None) or getattr(link, "outwardIssue", None)
+                        if linked_issue_obj and linked_issue_obj.key not in visited_keys:
+                            next_keys_to_fetch[linked_issue_obj.key] = root_initiative_key
+                
+                if issue.fields.issuetype.name == "Epic":
+                    six_months_str = SIX_MONTHS_AGO.strftime("%Y-%m-%d")
+                    jql = f'"Epic Link" = "{issue.key}" AND updated >= "{six_months_str}"'
+                    try:
+                        epic_children = jira.search_issues(jql, fields="key")
+                        for child in epic_children:
+                            if child.key not in visited_keys:
+                                next_keys_to_fetch[child.key] = root_initiative_key
+                    except Exception as e:
+                        logger.error(f"Failed to fetch children for Epic {issue.key}: {e}")
             
-            if issue.fields.issuetype.name == "Epic":
-                six_months_str = SIX_MONTHS_AGO.strftime("%Y-%m-%d")
-                jql = f'"Epic Link" = "{issue.key}" AND updated >= "{six_months_str}"'
-                try:
-                    epic_children = jira.search_issues(jql, fields="key")
-                    for child in epic_children:
-                        if child.key not in visited_keys:
-                            next_keys_to_fetch[child.key] = root_initiative_key
-                except Exception as e:
-                    logger.error(f"Failed to fetch children for Epic {issue.key}: {e}")
+            except Exception as e:
+                logger.error(f"An unexpected error occurred while processing issue {key}. Skipping this issue.")
+                logger.error(f"Error details: {e}")
+                logger.error(traceback.format_exc()) # This will print the full traceback
+                continue # Move on to the next issue in the loop
 
         keys_to_fetch = next_keys_to_fetch
         depth += 1
