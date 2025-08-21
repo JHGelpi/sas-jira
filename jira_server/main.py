@@ -10,7 +10,8 @@ from tasks import (run_jira_export_task,
                     run_jira_icebox_task,
                     run_daily_pushes_task,
                     run_daily_pushes_task,
-                    run_rca_subtask_creation_task)
+                    run_rca_subtask_creation_task,
+                    run_data_quality_report_task)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -90,3 +91,14 @@ async def trigger_rca_subtask_job(background_tasks: BackgroundTasks):
     print("RCA sub-task job endpoint triggered. Scheduling background task.")
     background_tasks.add_task(run_rca_subtask_creation_task)
     return {"message": "RCA sub-task creation job has been started in the background."}
+
+# --- Endpoint for the data quality report ---
+@app.post("/jobs/data-quality-report", status_code=202, summary="Generate Data Quality Reports")
+async def trigger_data_quality_report_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to run multiple JQL queries and generate CSV reports
+    for tickets with missing data.
+    """
+    print("Data quality report job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_data_quality_report_task)
+    return {"message": "Data quality report job has been started in the background."}

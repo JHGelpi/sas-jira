@@ -8,7 +8,7 @@ from jira_data_analysis import initiative_children
 from jira_data_analysis import investment_trends
 from jira_data_analysis import db_utils
 from jira_automation import create_rca_subtasks
-
+from jira_automation import data_quality_report
 # Use absolute imports from the project's root directory
 #from jira_data_analysis import jira_processor, initiative_children, investment_trends, db_utils
 
@@ -179,3 +179,24 @@ def run_rca_subtask_creation_task():
     finally:
         end_time = datetime.now()
         print(f"RCA sub-task creation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
+# --- Task function for the data quality report job ---
+def run_data_quality_report_task():
+    """
+    Worker task to generate the daily data quality reports.
+    """
+    start_time = datetime.now()
+    print(f"Starting data quality report task at {start_time.isoformat()}...")
+
+    if not data_quality_report or not hasattr(data_quality_report, 'main'):
+        print("ERROR: The 'jira_automation.data_quality_report' module or its 'main' function is not available.")
+        return
+
+    try:
+        data_quality_report.main()
+        print("Data quality report task completed successfully.")
+    except Exception as e:
+        print(f"An error occurred during the data quality report task: {e}")
+    finally:
+        end_time = datetime.now()
+        print(f"Data quality report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
