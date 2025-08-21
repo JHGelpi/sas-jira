@@ -5,9 +5,8 @@ from dateutil.parser import parse as parse_date
 from jira import JIRA
 import psycopg2.extras
 
-# Use relative imports
+# Use absolute imports from the project's root directory
 from jira_data_analysis import db_utils
-#import db_utils
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,32 +21,13 @@ def get_jira_client():
     """Initializes and returns a JIRA client."""
     return JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_TOKEN'))
 
-def _fetch_all_jira_issues(jira, jql_query: str, fields: list) -> list:
-    """A helper to paginate through JIRA search results to fetch all issues."""
-    all_issues = []
-    start_at = 0
-    max_results = 100
-    
-    while True:
-        try:
-            issues = jira.search_issues(jql_query, startAt=start_at, maxResults=max_results, fields=fields)
-            if not issues:
-                break
-            all_issues.extend(issues)
-            start_at += len(issues)
-        except Exception as e:
-            logger.error(f"Error fetching issues from Jira with JQL '{jql_query}': {e}")
-            break
-            
-    return all_issues
-
+# This function is now part of initiative_children.py as it was in a previous version
 def sync_initiatives_from_jql(jira, db_pool):
     """
     Fetches initiatives from a JQL query and inserts any new ones into the database.
     """
     logger.info("Starting sync of initiatives from JIRA_INITIATIVE_JQL.")
     
-    # 1. Get JQL and labels from environment variables
     jql = os.getenv('JIRA_INITIATIVE_JQL')
     if not jql:
         logger.warning("JIRA_INITIATIVE_JQL environment variable not set. Skipping initiative sync.")
@@ -56,24 +36,19 @@ def sync_initiatives_from_jql(jira, db_pool):
     iris_labels_str = os.getenv('JIRA_IRIS_LABELS', '')
     iris_labels_set = {label.strip() for label in iris_labels_str.split(',') if label.strip()}
     
-    # 2. Fetch all initiatives from Jira using the JQL
     logger.info(f"Fetching initiatives from Jira with JQL: {jql}")
-    # We need the 'labels' field to determine the IRIS flag
-    jira_initiatives = _fetch_all_jira_issues(jira, jql, fields=["key", "labels"])
+    jira_initiatives = jira.search_issues(jql, fields=["key", "labels"], maxResults=False)
     logger.info(f"Found {len(jira_initiatives)} potential initiatives in Jira.")
 
-    # 3. Fetch all existing initiative keys from the database
     existing_db_keys = set(db_utils.fetch_initiative_keys(db_pool))
     logger.info(f"Found {len(existing_db_keys)} existing initiatives in the database.")
 
-    # 4. Determine which initiatives are new
     new_initiatives_to_insert = []
     today = datetime.now().date()
     far_future_date = '9999-12-31'
 
     for issue in jira_initiatives:
         if issue.key not in existing_db_keys:
-            # Check if any of the issue's labels are in our set of IRIS labels
             issue_labels = set(issue.fields.labels)
             is_iris = not iris_labels_set.isdisjoint(issue_labels)
             
@@ -82,7 +57,6 @@ def sync_initiatives_from_jql(jira, db_pool):
                 (issue.key, today, far_future_date, is_iris)
             )
 
-    # 5. Bulk insert the new initiatives into the database
     if not new_initiatives_to_insert:
         logger.info("No new initiatives to insert. Database is up-to-date.")
         return
@@ -91,7 +65,6 @@ def sync_initiatives_from_jql(jira, db_pool):
     try:
         with conn.cursor() as cursor:
             logger.info(f"Inserting {len(new_initiatives_to_insert)} new initiatives into tbl_initiative_issue_keys...")
-            # Note the double quotes around "IRIS" to handle the case-sensitive column name
             insert_query = """
                 INSERT INTO tbl_initiative_issue_keys (issue_key, eff_start_date, eff_end_date, "IRIS")
                 VALUES %s
@@ -217,10 +190,8 @@ def main():
     jira = get_jira_client()
     db_pool = db_utils.get_connection_pool()
     
-    # --- NEW: Run the initiative sync function first ---
     sync_initiatives_from_jql(jira, db_pool)
 
-    # The rest of the script continues as before
     logger.info("Proceeding to fetch child issues for all initiatives...")
     allowed_projects_str = os.getenv("JIRA_PROJECTS", "")
     allowed_projects = {proj.strip() for proj in allowed_projects_str.split(',') if proj.strip()}
@@ -232,32 +203,37 @@ def main():
         
     all_related_issues = {} 
     visited_keys = set()
-    keys_to_fetch = set(initial_keys)
+    
+    # --- Change keys_to_fetch to a dictionary to track the root initiative ---
+    # The format will be {child_key: root_initiative_key}
+    keys_to_fetch = {key: key for key in initial_keys}
     
     depth = 0
     while keys_to_fetch and depth <= MAX_RECURSION_DEPTH:
         logger.info(f"Recursion Depth: {depth}. Keys to fetch: {len(keys_to_fetch)}.")
         
-        fetched_issues_map = fetch_issues_in_batch(jira, keys_to_fetch)
-        visited_keys.update(keys_to_fetch)
+        # Fetch the keys from the dictionary
+        fetched_issues_map = fetch_issues_in_batch(jira, set(keys_to_fetch.keys()))
+        visited_keys.update(keys_to_fetch.keys())
         
-        next_keys = set() 
+        next_keys_to_fetch = {} 
 
         for key, issue in fetched_issues_map.items():
-            # Determine the root initiative for this issue
-            initiative_key = key if key in initial_keys else next((ik for ik, i_obj in all_related_issues.values() if i_obj.key == key), None)
+            # --- Get the root initiative key from our tracking dictionary ---
+            root_initiative_key = keys_to_fetch[key]
             
             if not is_issue_valid(issue, allowed_projects):
                 continue
 
             if key not in all_related_issues:
-                all_related_issues[key] = (initiative_key, issue)
+                all_related_issues[key] = (root_initiative_key, issue)
 
+            # --- Pass the root initiative key down to the next level ---
             for link in getattr(issue.fields, "issuelinks", []):
                 if getattr(link, 'type', None) and link.type.name in ALLOWED_LINK_TYPES:
                     linked_issue_obj = getattr(link, "inwardIssue", None) or getattr(link, "outwardIssue", None)
                     if linked_issue_obj and linked_issue_obj.key not in visited_keys:
-                        next_keys.add(linked_issue_obj.key)
+                        next_keys_to_fetch[linked_issue_obj.key] = root_initiative_key
             
             if issue.fields.issuetype.name == "Epic":
                 six_months_str = SIX_MONTHS_AGO.strftime("%Y-%m-%d")
@@ -266,11 +242,11 @@ def main():
                     epic_children = jira.search_issues(jql, fields="key")
                     for child in epic_children:
                         if child.key not in visited_keys:
-                            next_keys.add(child.key)
+                            next_keys_to_fetch[child.key] = root_initiative_key
                 except Exception as e:
                     logger.error(f"Failed to fetch children for Epic {issue.key}: {e}")
 
-        keys_to_fetch = next_keys
+        keys_to_fetch = next_keys_to_fetch
         depth += 1
         
     if depth > MAX_RECURSION_DEPTH:
