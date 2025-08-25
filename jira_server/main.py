@@ -11,7 +11,8 @@ from tasks import (run_jira_export_task,
                     run_daily_pushes_task,
                     run_daily_pushes_task,
                     run_rca_subtask_creation_task,
-                    run_data_quality_report_task)
+                    run_data_quality_report_task,
+                    run_customer_analysis_task)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -102,3 +103,14 @@ async def trigger_data_quality_report_job(background_tasks: BackgroundTasks):
     print("Data quality report job endpoint triggered. Scheduling background task.")
     background_tasks.add_task(run_data_quality_report_task)
     return {"message": "Data quality report job has been started in the background."}
+
+# --- Endpoint for the customer analysis report ---
+@app.post("/jobs/customer-analysis", status_code=202, summary="Analyze and Update Customer Bugs")
+async def trigger_customer_analysis_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to find open bugs with customer labels, update the
+    Origin field if necessary, and generate a CSV report.
+    """
+    print("Customer analysis job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_customer_analysis_task)
+    return {"message": "Customer analysis job has been started in the background."}

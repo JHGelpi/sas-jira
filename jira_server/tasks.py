@@ -9,6 +9,7 @@ from jira_data_analysis import investment_trends
 from jira_data_analysis import db_utils
 from jira_automation import create_rca_subtasks
 from jira_automation import data_quality_report
+from jira_automation import customer_analysis
 # Use absolute imports from the project's root directory
 #from jira_data_analysis import jira_processor, initiative_children, investment_trends, db_utils
 
@@ -200,3 +201,23 @@ def run_data_quality_report_task():
     finally:
         end_time = datetime.now()
         print(f"Data quality report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+# --- Task function for the customer analysis job ---
+def run_customer_analysis_task():
+    """
+    Worker task to find, update, and report on open customer bugs.
+    """
+    start_time = datetime.now()
+    print(f"Starting customer analysis task at {start_time.isoformat()}...")
+
+    if not customer_analysis or not hasattr(customer_analysis, 'main'):
+        print("ERROR: The 'jira_automation.customer_analysis' module or its 'main' function is not available.")
+        return
+
+    try:
+        customer_analysis.main()
+        print("Customer analysis task completed successfully.")
+    except Exception as e:
+        print(f"An error occurred during the customer analysis task: {e}")
+    finally:
+        end_time = datetime.now()
+        print(f"Customer analysis task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")

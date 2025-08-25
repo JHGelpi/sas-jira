@@ -1,0 +1,407 @@
+[
+  {
+    "industry": "Financial Services",
+    "customer_name": "Bank of America",
+    "jira_label": [
+      "BankOfAmerica",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Bank of Montreal",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Barclays",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "BNPP",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Citigroup",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Commerzbank",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Credit Agricole",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Deutsche Bank",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Generali",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "HSBC",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "ING",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Intesa",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Lloyds Banking Group",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Mizuho Financial Group",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "MUFG",
+    "jira_label": [
+      "MUFG",
+      "MUFGBank"
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Santander",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "SMFG",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Societe Generale",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Standard Chartered Bank",
+    "jira_label": [
+      "Standard_Charter",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "State Farm Mutual",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "TD Bank",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "The Bank of Nova Scotia",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Truist",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "UniCredit",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Financial Services",
+    "customer_name": "Wells Fargo",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "European Institutions",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "HMRC",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "State of Florida",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "State of North Carolina",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "State of South Carolina",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "US Dept. of Veteran Affairs",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Government & Healthcare",
+    "customer_name": "United Healthcare Group",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "AstraZeneca",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Bayer",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Bristol Myers Squibb",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Eli Lilly",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "GSK",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "IQVIA",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Johnson & Johnson",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Merck",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Novartis",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Novo Nordisk",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Pfizer",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Roche",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  },
+  {
+    "industry": "Life Sciences",
+    "customer_name": "Sanofi",
+    "jira_label": [
+      "",
+      ""
+    ],
+    "support_lvl": "platinum"
+  }
+]
