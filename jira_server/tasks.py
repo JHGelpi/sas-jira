@@ -10,8 +10,7 @@ from jira_data_analysis import db_utils
 from jira_automation import create_rca_subtasks
 from jira_automation import data_quality_report
 from jira_automation import customer_analysis
-# Use absolute imports from the project's root directory
-#from jira_data_analysis import jira_processor, initiative_children, investment_trends, db_utils
+from jira_automation import derive_platform_version
 
 # --- FIX: Use a more robust import structure for each module ---
 # This prevents one failed import from affecting the others.
@@ -180,6 +179,27 @@ def run_rca_subtask_creation_task():
     finally:
         end_time = datetime.now()
         print(f"RCA sub-task creation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
+# --- Task function for the platform version derivation job ---
+def run_derive_platform_version_task():
+    """
+    Worker task to derive and update the Platform Version field for applicable bugs.
+    """
+    start_time = datetime.now()
+    print(f"Starting platform version derivation task at {start_time.isoformat()}...")
+
+    if not derive_platform_version or not hasattr(derive_platform_version, 'main'):
+        print("ERROR: The 'jira_automation.derive_platform_version' module or its 'main' function is not available.")
+        return
+
+    try:
+        derive_platform_version.main()
+        print("Platform version derivation task completed successfully.")
+    except Exception as e:
+        print(f"An error occurred during the platform version derivation task: {e}")
+    finally:
+        end_time = datetime.now()
+        print(f"Platform version derivation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
 # --- Task function for the data quality report job ---
 def run_data_quality_report_task():

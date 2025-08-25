@@ -12,7 +12,8 @@ from tasks import (run_jira_export_task,
                     run_daily_pushes_task,
                     run_rca_subtask_creation_task,
                     run_data_quality_report_task,
-                    run_customer_analysis_task)
+                    run_customer_analysis_task,
+                    run_derive_platform_version_task)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -114,3 +115,14 @@ async def trigger_customer_analysis_job(background_tasks: BackgroundTasks):
     print("Customer analysis job endpoint triggered. Scheduling background task.")
     background_tasks.add_task(run_customer_analysis_task)
     return {"message": "Customer analysis job has been started in the background."}
+
+# --- Endpoint for the platform version derivation ---
+@app.post("/jobs/derive-platform-version", status_code=202, summary="Derive Platform Version for Bugs")
+async def trigger_derive_platform_version_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to find bugs where the Platform Version can be derived
+    from the Affects Version/s field and updates them.
+    """
+    print("Platform version derivation job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_derive_platform_version_task)
+    return {"message": "Platform version derivation job has been started in the background."}
