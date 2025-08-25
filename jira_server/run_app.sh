@@ -56,6 +56,6 @@ echo "Press CTRL+C to stop the server."
 
 # Run the Uvicorn server. Now that the venv is active, the 'uvicorn' command will be found.
 # --host 0.0.0.0 makes it accessible from outside a Docker container if you use one.
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-config log_config.yaml
 
 # The 'trap' command registered at the top will handle calling the 'cleanup' function upon exit.

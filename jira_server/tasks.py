@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from jira import JIRA
+import logging
 
 # This assumes the server is run from the 'jira_server' directory.
 from jira_data_analysis import jira_processor
@@ -12,7 +13,10 @@ from jira_automation import data_quality_report
 from jira_automation import customer_analysis
 from jira_automation import derive_platform_version
 
-# --- FIX: Use a more robust import structure for each module ---
+# --- Get a logger that inherits the root configuration ---
+logger = logging.getLogger(__name__)
+
+# --- Use a more robust import structure for each module ---
 # This prevents one failed import from affecting the others.
 try:
     from jira_automation import app as jira_automation_app
@@ -80,164 +84,143 @@ def run_jira_export_task(run_flag: str):
         print(f"Jira export task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
 
+# ... (Apply the same logger pattern to all other task functions) ...
 def run_initiative_analysis_task():
-    """Worker task to update initiative child issues."""
-    print("Starting initiative analysis task...")
+    logger.info("Starting initiative analysis task...")
     try:
         initiative_children.main()
-        print("Initiative analysis task completed successfully.")
+        logger.info("Initiative analysis task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during initiative analysis: {e}")
+        logger.error(f"An error occurred during initiative analysis: {e}")
 
 def run_investment_trends_task():
-    """Worker task to generate investment trend visualizations."""
-    print("Starting investment trends task...")
+    logger.info("Starting investment trends task...")
     try:
         investment_trends.main()
-        print("Investment trends task completed successfully.")
+        logger.info("Investment trends task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during investment trends generation: {e}")
+        logger.error(f"An error occurred during investment trends generation: {e}")
 
-def check_if_release_run_is_due() -> bool:
-    """
-    Checks the database to determine if a post-release data run should be triggered.
-    """
-    print("Checking if a release run is due...")
+def check_if_release_run_is_due():
+    logger.info("Checking if a release run is due...")
     db_conn_pool = None
     try:
         db_conn_pool = db_utils.get_connection_pool()
         is_due = db_utils.release_run_check(db_conn_pool)
         if is_due:
-            print("Check result: Release run is due.")
+            logger.info("Check result: Release run is due.")
         else:
-            print("Check result: Release run is not yet due.")
+            logger.info("Check result: Release run is not yet due.")
         return is_due
     except Exception as e:
-        print(f"Failed to check release run status: {e}")
+        logger.error(f"Failed to check release run status: {e}")
         return False
 
 def run_jira_icebox_task():
-    """
-    Worker task to run the Jira icebox automation script.
-    """
     start_time = datetime.now()
-    print(f"Starting Jira icebox task at {start_time.isoformat()}...")
-
-    # Check if the imported module and its main function are available
+    logger.info(f"Starting Jira icebox task at {start_time.isoformat()}...")
     if not jira_automation_app or not hasattr(jira_automation_app, 'main'):
-        print("ERROR: The 'jira_automation.app' module or its 'main' function is not available.")
+        logger.error("The 'jira_automation.app' module or its 'main' function is not available.")
         return
-
     try:
-        # Call the main function from your jira_automation/app.py script
         jira_automation_app.main()
-        print("Jira icebox task completed successfully.")
+        logger.info("Jira icebox task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the Jira icebox task: {e}")
+        logger.error(f"An error occurred during the Jira icebox task: {e}")
     finally:
         end_time = datetime.now()
-        print("--------------")
-        print(f"Jira icebox task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
-        print("--------------")
-# --- Task function for the daily push report ---
-def run_daily_pushes_task():
-    """
-    Worker task to generate the daily push report.
-    """
+        logger.info(f"Jira icebox task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
+def run_ticket_aging_task():
     start_time = datetime.now()
-    print(f"Starting daily push report task at {start_time.isoformat()}...")
-
-    if not daily_pushes or not hasattr(daily_pushes, 'main'):
-        print("ERROR: The 'jira_automation.daily_pushes' module or its 'main' function is not available.")
+    logger.info(f"Starting Jira ticket aging task at {start_time.isoformat()}...")
+    if not ticket_aging or not hasattr(ticket_aging, 'main'):
+        logger.error("The 'jira_automation.ticket_aging' module or its 'main' function is not available.")
         return
+    try:
+        ticket_aging.main()
+        logger.info("Jira ticket aging task completed successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during the Jira ticket aging task: {e}")
+    finally:
+        end_time = datetime.now()
+        logger.info(f"Jira ticket aging task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
+def run_daily_pushes_task():
+    start_time = datetime.now()
+    logger.info(f"Starting daily push report task at {start_time.isoformat()}...")
+    if not daily_pushes or not hasattr(daily_pushes, 'main'):
+        logger.error("The 'jira_automation.daily_pushes' module or its 'main' function is not available.")
+        return
     try:
         daily_pushes.main()
-        print("Daily push report task completed successfully.")
+        logger.info("Daily push report task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the daily push report task: {e}")
+        logger.error(f"An error occurred during the daily push report task: {e}")
     finally:
         end_time = datetime.now()
-        print(f"Daily push report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+        logger.info(f"Daily push report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
 def run_rca_subtask_creation_task():
-    """
-    Worker task to create RCA sub-tasks for critical bugs.
-    """
     start_time = datetime.now()
-    print(f"Starting RCA sub-task creation task at {start_time.isoformat()}...")
-
+    logger.info(f"Starting RCA sub-task creation task at {start_time.isoformat()}...")
     if not create_rca_subtasks or not hasattr(create_rca_subtasks, 'main'):
-        print("ERROR: The 'jira_automation.create_rca_subtasks' module or its 'main' function is not available.")
+        logger.error("The 'jira_automation.create_rca_subtasks' module or its 'main' function is not available.")
         return
-
     try:
         create_rca_subtasks.main()
-        print("RCA sub-task creation task completed successfully.")
+        logger.info("RCA sub-task creation task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the RCA sub-task creation task: {e}")
+        logger.error(f"An error occurred during the RCA sub-task creation task: {e}")
     finally:
         end_time = datetime.now()
-        print(f"RCA sub-task creation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+        logger.info(f"RCA sub-task creation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
-# --- Task function for the platform version derivation job ---
 def run_derive_platform_version_task():
-    """
-    Worker task to derive and update the Platform Version field for applicable bugs.
-    """
     start_time = datetime.now()
-    print(f"Starting platform version derivation task at {start_time.isoformat()}...")
-
+    logger.info(f"Starting platform version derivation task at {start_time.isoformat()}...")
     if not derive_platform_version or not hasattr(derive_platform_version, 'main'):
-        print("ERROR: The 'jira_automation.derive_platform_version' module or its 'main' function is not available.")
+        logger.error("The 'jira_automation.derive_platform_version' module or its 'main' function is not available.")
         return
-
     try:
         derive_platform_version.main()
-        print("Platform version derivation task completed successfully.")
+        logger.info("Platform version derivation task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the platform version derivation task: {e}")
+        logger.error(f"An error occurred during the platform version derivation task: {e}")
     finally:
         end_time = datetime.now()
-        print(f"Platform version derivation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+        logger.info(f"Platform version derivation task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
-# --- Task function for the data quality report job ---
 def run_data_quality_report_task():
-    """
-    Worker task to generate the daily data quality reports.
-    """
     start_time = datetime.now()
-    print(f"Starting data quality report task at {start_time.isoformat()}...")
-
+    logger.info(f"Starting data quality report task at {start_time.isoformat()}...")
+    logger.info("Step 1: Running platform version derivation...")
+    run_derive_platform_version_task()
+    logger.info("Step 1 complete.")
+    logger.info("Step 2: Generating data quality reports...")
     if not data_quality_report or not hasattr(data_quality_report, 'main'):
-        print("ERROR: The 'jira_automation.data_quality_report' module or its 'main' function is not available.")
+        logger.error("The 'jira_automation.data_quality_report' module or its 'main' function is not available.")
         return
-
     try:
         data_quality_report.main()
-        print("Data quality report task completed successfully.")
+        logger.info("Data quality report generation completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the data quality report task: {e}")
+        logger.error(f"An error occurred during the data quality report generation: {e}")
     finally:
         end_time = datetime.now()
-        print(f"Data quality report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
-# --- Task function for the customer analysis job ---
+        logger.info(f"Data quality report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
 def run_customer_analysis_task():
-    """
-    Worker task to find, update, and report on open customer bugs.
-    """
     start_time = datetime.now()
-    print(f"Starting customer analysis task at {start_time.isoformat()}...")
-
+    logger.info(f"Starting customer analysis task at {start_time.isoformat()}...")
     if not customer_analysis or not hasattr(customer_analysis, 'main'):
-        print("ERROR: The 'jira_automation.customer_analysis' module or its 'main' function is not available.")
+        logger.error("The 'jira_automation.customer_analysis' module or its 'main' function is not available.")
         return
-
     try:
         customer_analysis.main()
-        print("Customer analysis task completed successfully.")
+        logger.info("Customer analysis task completed successfully.")
     except Exception as e:
-        print(f"An error occurred during the customer analysis task: {e}")
+        logger.error(f"An error occurred during the customer analysis task: {e}")
     finally:
         end_time = datetime.now()
-        print(f"Customer analysis task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+        logger.info(f"Customer analysis task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
