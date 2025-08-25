@@ -16,3 +16,7 @@ psycopg2-binary
 
 # Date parsing utility
 python-dateutil
+
+
+# --- LDAP Integration ---
+ldap3

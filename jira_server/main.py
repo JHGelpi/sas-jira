@@ -17,7 +17,8 @@ from tasks import (run_jira_export_task,
                     run_rca_subtask_creation_task,
                     run_data_quality_report_task,
                     run_customer_analysis_task,
-                    run_derive_platform_version_task)
+                    run_derive_platform_version_task,
+                    run_ldap_report_task)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -130,3 +131,15 @@ async def trigger_derive_platform_version_job(background_tasks: BackgroundTasks)
     print("Platform version derivation job endpoint triggered. Scheduling background task.")
     background_tasks.add_task(run_derive_platform_version_task)
     return {"message": "Platform version derivation job has been started in the background."}
+
+# --- Endpoint for the LDAP manager report ---
+@app.post("/jobs/ldap-refresh", status_code=202, summary="Refresh LDAP Hierarchy in Database")
+async def trigger_ldap_report_job(background_tasks: BackgroundTasks):
+    """
+    Starts a job to connect to LDAP, find all direct and indirect reports
+    for a given list of managers, and sync the data to the database.
+    """
+    print("LDAP refresh job endpoint triggered. Scheduling background task.")
+    background_tasks.add_task(run_ldap_report_task)
+    return {"message": "LDAP hierarchy refresh job has been started in the background."}
+

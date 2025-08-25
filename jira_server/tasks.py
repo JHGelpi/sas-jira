@@ -12,6 +12,7 @@ from jira_automation import create_rca_subtasks
 from jira_automation import data_quality_report
 from jira_automation import customer_analysis
 from jira_automation import derive_platform_version
+from jira_automation import ldap_manager_report
 
 # --- Get a logger that inherits the root configuration ---
 logger = logging.getLogger(__name__)
@@ -224,3 +225,24 @@ def run_customer_analysis_task():
     finally:
         end_time = datetime.now()
         logger.info(f"Customer analysis task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
+# --- Task function for the LDAP report job ---
+def run_ldap_report_task():
+    """
+    Worker task to generate the LDAP manager report.
+    """
+    start_time = datetime.now()
+    logger.info(f"Starting LDAP manager report task at {start_time.isoformat()}...")
+
+    if not ldap_manager_report or not hasattr(ldap_manager_report, 'main'):
+        logger.error("The 'jira_automation.ldap_manager_report' module or its 'main' function is not available.")
+        return
+
+    try:
+        ldap_manager_report.main()
+        logger.info("LDAP manager report task completed successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during the LDAP manager report task: {e}")
+    finally:
+        end_time = datetime.now()
+        logger.info(f"LDAP manager report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
