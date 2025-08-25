@@ -46,15 +46,21 @@ def derive_and_update_platform_version(jira):
         return
 
     # Dynamically get the custom field ID for 'Platform Version'
-    platform_version_field_id = get_custom_field_id(jira, "Platform Version")
+    platform_version_field_name = "Platform Version"
+    platform_version_field_id = get_custom_field_id(jira, platform_version_field_name)
     if not platform_version_field_id:
-        logger.error("❌ Could not find the 'Platform Version' custom field. Aborting.")
+        logger.error(f"❌ Could not find the '{platform_version_field_name}' custom field. Aborting.")
         return
 
-    # JQL to find bugs where 'Platform Version' is empty but 'Affects Version/s' is not.
+    # --- UPDATED JQL: Includes open tickets OR recently updated tickets ---
+    # This query finds bugs that meet the criteria and are either:
+    # 1. Not in a 'Done' state.
+    # OR
+    # 2. Have been updated in the last 3 days (regardless of state).
     jql_query = (
-        f"project in ({projects}) AND type = Bug AND statusCategory != Done AND "
-        f"'{platform_version_field_id}' is EMPTY AND cf[17506] is EMPTY AND affectedVersion is not EMPTY"
+        f'project in ({projects}) AND type = Bug AND '
+        f'"{platform_version_field_name}" is EMPTY AND affectedVersion is not EMPTY AND '
+        f'(statusCategory != Done OR updated >= -3d)'
     )
 
     logger.info("🔍 Running JQL query to find bugs for platform version derivation...")
@@ -78,7 +84,7 @@ def derive_and_update_platform_version(jira):
                 # Get the name of the first 'Affects Version' entry
                 affects_version_name = issue.fields.versions[0].name.lower()
 
-                if 'w' in affects_version_name or 'viya 3' in affects_version_name:
+                if 'w' in affects_version_name or 'Viya 3' in affects_version_name:
                     platform_version_to_set = "Viya 3.5"
                 elif '94' in affects_version_name:
                     # Per logic, leave this NULL. We log and skip.
@@ -90,8 +96,9 @@ def derive_and_update_platform_version(jira):
             if platform_version_to_set:
                 logger.info(f"  -> Updating Platform Version for {issue.key} to '{platform_version_to_set}'...")
                 try:
-                    # Note: Platform Version is a text field, not a select list
-                    issue.update(fields={platform_version_field_id: platform_version_to_set})
+                    # --- FIX: Update the field using the correct object format for a select list ---
+                    update_data = {'value': platform_version_to_set}
+                    issue.update(fields={platform_version_field_id: update_data})
                     logger.info(f"✅ Successfully updated {issue.key}.")
                 except Exception as e:
                     logger.error(f"❌ Failed to update {issue.key}: {e}")
