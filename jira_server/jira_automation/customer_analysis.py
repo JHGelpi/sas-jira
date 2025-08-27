@@ -3,7 +3,8 @@ import json
 from jira import JIRA
 from dotenv import load_dotenv
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil.parser import parse as parse_date
 import csv
 import shutil
 
@@ -47,11 +48,16 @@ def generate_html_report(report_data: list, report_path: str):
     
     # Build the HTML table from the detailed activities
     table_rows = ""
+    # Sort data by age, oldest first
+    report_data.sort(key=lambda x: x.get('Age (Days)', 0), reverse=True)
+
     for row in report_data:
         ticket_link = f"<a href='{row['Issue URL']}' target='_blank'>{row['Issue Key']}</a>"
         table_rows += f"""
         <tr>
             <td>{ticket_link}</td>
+            <td>{row.get('Customer Name', 'N/A')}</td>
+            <td>{row.get('Age (Days)', 'N/A')}</td>
             <td>{row['Created Date']}</td>
             <td>{row['Updated Date']}</td>
             <td>{row['Assignee']}</td>
@@ -70,7 +76,7 @@ def generate_html_report(report_data: list, report_path: str):
         <title>Open Customer Bugs Report</title>
         <style>
             body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; }}
-            .container {{ padding: 20px; max-width: 1200px; margin: auto; }}
+            .container {{ padding: 20px; max-width: 1400px; margin: auto; }}
             h1 {{ color: #333; }}
             .subtitle {{ color: #666; font-size: 0.9em; margin-top: -15px; margin-bottom: 20px;}}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
@@ -89,7 +95,9 @@ def generate_html_report(report_data: list, report_path: str):
             <table>
                 <thead>
                     <tr>
+                        <th>Customer Name</th>
                         <th>Issue Key</th>
+                        <th>Age (Days)</th>
                         <th>Created Date</th>
                         <th>Updated Date</th>
                         <th>Assignee</th>
@@ -111,7 +119,7 @@ def generate_html_report(report_data: list, report_path: str):
         f.write(html_content)
     logger.info(f"✅ Successfully generated HTML report at: {report_path}")
 
-    # --- NEW: Copy the report to the homepage directory ---
+    # Copy the report to the homepage directory
     homepage_dir = os.getenv('HOMEPAGE_REPORTS_DIR')
     if homepage_dir:
         try:
@@ -129,11 +137,15 @@ def analyze_customer_bugs(jira):
     Finds open bugs with customer labels, updates the Origin field if needed,
     and generates an HTML report.
     """
-    # 1. Load the customer data from the JSON file
+    # 1. Load the customer data and create a label-to-customer mapping
     json_path = os.getenv('JIRA_CUSTOMER_JSON_PATH', 'helper_files/customer_support_lvls.json')
+    label_to_customer_map = {}
     try:
         with open(json_path, 'r') as f:
             customer_data = json.load(f)
+        for customer in customer_data:
+            for label in customer.get("jira_label", []):
+                label_to_customer_map[label] = customer.get("customer_name")
     except FileNotFoundError:
         logger.error(f"❌ Customer JSON file not found at '{json_path}'. Aborting.")
         return
@@ -141,13 +153,8 @@ def analyze_customer_bugs(jira):
         logger.error(f"❌ Could not parse JSON from '{json_path}'. Aborting.")
         return
 
-    # 2. Collect all unique labels from the JSON file
-    all_customer_labels = set()
-    for customer in customer_data:
-        labels = customer.get("jira_label", [])
-        if isinstance(labels, list):
-            all_customer_labels.update(labels)
-    
+    # 2. Collect all unique labels from the mapping
+    all_customer_labels = set(label_to_customer_map.keys())
     if not all_customer_labels:
         logger.warning("No Jira labels found in the customer JSON file. Exiting.")
         return
@@ -170,16 +177,17 @@ def analyze_customer_bugs(jira):
     logger.info(f"   Query: {jql_query}")
 
     try:
-        fields_to_fetch = ["summary", "assignee", "created", "updated", "priority", origin_field_id]
+        fields_to_fetch = ["summary", "assignee", "created", "updated", "priority", "labels", origin_field_id]
         issues = jira.search_issues(jql_query, fields=fields_to_fetch, maxResults=False)
 
         if not issues:
             logger.info("🎉 No open bugs found with customer labels.")
-            # Still generate an empty report
             report_data = []
         else:
             logger.info(f"Found {len(issues)} open customer bugs. Processing...")
             report_data = []
+            now = datetime.now(timezone.utc)
+
             for issue in issues:
                 # Action #2: Update the Origin field if it is empty
                 origin_value = getattr(issue.fields, origin_field_id, None)
@@ -195,15 +203,28 @@ def analyze_customer_bugs(jira):
                 else:
                     origin_value_str = origin_value.value if hasattr(origin_value, 'value') else str(origin_value)
 
+                # Find customer name from issue labels
+                customer_name = "Unknown"
+                for label in issue.fields.labels:
+                    if label in label_to_customer_map:
+                        customer_name = label_to_customer_map[label]
+                        break
+                
+                # Calculate ticket age
+                created_date = parse_date(issue.fields.created)
+                age_in_days = (now - created_date).days
+
                 # Prepare data for the report
                 assignee = issue.fields.assignee.displayName if issue.fields.assignee else "Unassigned"
                 priority = issue.fields.priority.name if issue.fields.priority else "N/A"
                 
                 report_data.append({
+                    "Customer Name": customer_name,
                     "Issue Key": issue.key,
                     "Issue URL": f"https://rndjira.sas.com/browse/{issue.key}",
-                    "Created Date": issue.fields.created,
-                    "Updated Date": issue.fields.updated,
+                    "Age (Days)": age_in_days,
+                    "Created Date": created_date.strftime('%d-%m-%Y'),
+                    "Updated Date": parse_date(issue.fields.updated).strftime('%d-%m-%Y'),
                     "Assignee": assignee,
                     "Origin": origin_value_str,
                     "Priority": priority
