@@ -399,9 +399,15 @@
     "industry": "Life Sciences",
     "customer_name": "Sanofi",
     "jira_label": [
-      "",
+      "SANOFI",
       ""
     ],
     "support_lvl": "platinum"
+  },
+  {
+    "industry": "Insurance",
+    "customer_name": "Markerstudy",
+    "jira_label": ["MarkerStudyGroup"],
+    "support_lvl": "exec_watchlist"
   }
 ]
