@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 # --- Use a more robust import structure for each module ---
 # This prevents one failed import from affecting the others.
 try:
-    from jira_automation import app as jira_automation_app
+    from jira_automation import jira_icebox as jira_automation_app
 except ImportError:
     jira_automation_app = None
-    print("WARNING: Could not import 'jira_automation.app'. The icebox job will be unavailable.")
+    logger.warning("Could not import jira_automation.jira_icebox. The icebox task will not be available.")
 
 try:
     from jira_automation import ticket_aging
