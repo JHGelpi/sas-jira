@@ -190,6 +190,7 @@ def analyze_customer_bugs(jira):
 
             for issue in issues:
                 # Action #2: Update the Origin field if it is empty
+                '''
                 origin_value = getattr(issue.fields, origin_field_id, None)
                 if not origin_value:
                     logger.info(f"  -> Updating Origin for {issue.key} to 'CRP PLAT'...")
@@ -202,7 +203,7 @@ def analyze_customer_bugs(jira):
                         origin_value_str = "Update Failed"
                 else:
                     origin_value_str = origin_value.value if hasattr(origin_value, 'value') else str(origin_value)
-
+                '''
                 # Find customer name from issue labels
                 customer_name = "Unknown"
                 for label in issue.fields.labels:
@@ -216,6 +217,7 @@ def analyze_customer_bugs(jira):
 
                 # Prepare data for the report
                 assignee = issue.fields.assignee.displayName if issue.fields.assignee else "Unassigned"
+                origin_value_str = issue.fields.origin.displayName if issue.fields.origin else "NULL"
                 priority = issue.fields.priority.name if issue.fields.priority else "N/A"
                 
                 report_data.append({
