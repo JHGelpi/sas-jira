@@ -5,11 +5,9 @@ from dotenv import load_dotenv
 import logging
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_date
-import csv
 import shutil
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Use the centralized logging system
 logger = logging.getLogger(__name__)
 
 def connect_to_jira():
@@ -52,11 +50,12 @@ def generate_html_report(report_data: list, report_path: str):
     report_data.sort(key=lambda x: x.get('Age (Days)', 0), reverse=True)
 
     for row in report_data:
+        # Correctly order the columns as per the header
         ticket_link = f"<a href='{row['Issue URL']}' target='_blank'>{row['Issue Key']}</a>"
         table_rows += f"""
         <tr>
-            <td>{ticket_link}</td>
             <td>{row.get('Customer Name', 'N/A')}</td>
+            <td>{ticket_link}</td>
             <td>{row.get('Age (Days)', 'N/A')}</td>
             <td>{row['Created Date']}</td>
             <td>{row['Updated Date']}</td>
@@ -141,16 +140,19 @@ def analyze_customer_bugs(jira):
     json_path = os.getenv('JIRA_CUSTOMER_JSON_PATH', 'helper_files/customer_support_lvls.json')
     label_to_customer_map = {}
     try:
-        with open(json_path, 'r') as f:
+        # Get the project root to build the absolute path to the JSON file
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        abs_json_path = os.path.join(project_root, json_path)
+        with open(abs_json_path, 'r') as f:
             customer_data = json.load(f)
         for customer in customer_data:
             for label in customer.get("jira_label", []):
                 label_to_customer_map[label] = customer.get("customer_name")
     except FileNotFoundError:
-        logger.error(f"❌ Customer JSON file not found at '{json_path}'. Aborting.")
+        logger.error(f"❌ Customer JSON file not found at '{abs_json_path}'. Aborting.")
         return
     except json.JSONDecodeError:
-        logger.error(f"❌ Could not parse JSON from '{json_path}'. Aborting.")
+        logger.error(f"❌ Could not parse JSON from '{abs_json_path}'. Aborting.")
         return
 
     # 2. Collect all unique labels from the mapping
@@ -189,6 +191,7 @@ def analyze_customer_bugs(jira):
             now = datetime.now(timezone.utc)
 
             for issue in issues:
+                # Intentionally commented out as per user request
                 # Action #2: Update the Origin field if it is empty
                 '''
                 origin_value = getattr(issue.fields, origin_field_id, None)
@@ -197,13 +200,10 @@ def analyze_customer_bugs(jira):
                     try:
                         issue.update(fields={origin_field_id: {'value': 'CRP PLAT'}})
                         logger.info(f"✅ Successfully updated {issue.key}.")
-                        origin_value_str = "CRP PLAT" 
                     except Exception as e:
                         logger.error(f"❌ Failed to update {issue.key}: {e}")
-                        origin_value_str = "Update Failed"
-                else:
-                    origin_value_str = origin_value.value if hasattr(origin_value, 'value') else str(origin_value)
                 '''
+                
                 # Find customer name from issue labels
                 customer_name = "Unknown"
                 for label in issue.fields.labels:
@@ -217,7 +217,14 @@ def analyze_customer_bugs(jira):
 
                 # Prepare data for the report
                 assignee = issue.fields.assignee.displayName if issue.fields.assignee else "Unassigned"
-                origin_value_str = issue.fields.origin.displayName if issue.fields.origin else "NULL"
+                
+                # Safely get the value from the custom field using its ID
+                origin_field_obj = getattr(issue.fields, origin_field_id, None)
+                if origin_field_obj and hasattr(origin_field_obj, 'value'):
+                    origin_value_str = origin_field_obj.value
+                else:
+                    origin_value_str = "Not Set"
+
                 priority = issue.fields.priority.name if issue.fields.priority else "N/A"
                 
                 report_data.append({
@@ -234,23 +241,33 @@ def analyze_customer_bugs(jira):
 
         # Action #1: Write all found bugs to an HTML file
         report_dir = os.getenv('JIRA_REPORT_DIR', './reports')
-        os.makedirs(report_dir, exist_ok=True)
+        # Ensure the report directory is absolute from the project root
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        abs_report_dir = os.path.join(project_root, report_dir)
+        os.makedirs(abs_report_dir, exist_ok=True)
+        
         timestamp = datetime.now().strftime('%Y-%m-%d')
-        report_path = os.path.join(report_dir, f"customer_open_bugs_{timestamp}.html")
+        report_path = os.path.join(abs_report_dir, f"customer_open_bugs_{timestamp}.html")
         
         generate_html_report(report_data, report_path)
 
     except Exception as e:
         logger.error(f"❌ An error occurred during the customer analysis process: {e}")
+        # Add traceback for better debugging
+        import traceback
+        logger.error(traceback.format_exc())
 
 def main():
     """Main function to execute the customer analysis."""
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_dotenv(dotenv_path=os.path.join(project_root, '.env'))
+    # Centralized logging is configured by the server, so we don't need basicConfig here.
+    # The .env file is also loaded by the server or cron script.
     
     jira_client = connect_to_jira()
     if jira_client:
         analyze_customer_bugs(jira_client)
 
 if __name__ == "__main__":
+    # This allows the script to be run directly for testing/debugging
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(dotenv_path=os.path.join(project_root, '.env'))
     main()
