@@ -1,58 +1,75 @@
 import os
-import logging
 from jira import JIRA
 from dotenv import load_dotenv
+import logging
+import sys
 
 # Use the centralized logging system
 logger = logging.getLogger(__name__)
 
-# --- Configuration Loading ---
-def load_config():
-    """Loads environment variables from the project root .env file."""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    dotenv_path = os.path.join(project_root, '.env')
-    if os.path.exists(dotenv_path):
-        load_dotenv(dotenv_path=dotenv_path)
-    else:
-        logger.warning(f".env file not found at {dotenv_path}. Script may fail if env vars are not set.")
-
-# --- Jira Client Setup ---
 def setup_jira_client():
     """Sets up and returns an authenticated Jira client."""
-    jira_server = os.getenv("JIRA_URL")
-    jira_api_token = os.getenv("JIRA_TOKEN")
-    if not all([jira_server, jira_api_token]):
-        logger.error("JIRA_URL or JIRA_TOKEN environment variables are not set.")
-        return None
-    
     try:
-        logger.info(f"Connecting to Jira server at {jira_server}...")
-        jira = JIRA(server=jira_server, token_auth=jira_api_token)
-        server_info = jira.server_info()
-        logger.info(f"Successfully connected to Jira version {server_info['version']}!")
-        return jira
+        jira_client = JIRA(
+            server=os.getenv("JIRA_URL"),
+            token_auth=os.getenv("JIRA_TOKEN")
+        )
+        # Verify connection by getting server info
+        server_info = jira_client.server_info()
+        logger.info(f"✅ Successfully connected to Jira version {server_info['version']}!")
+        return jira_client
     except Exception as e:
-        logger.error(f"Failed to connect to Jira: {e}")
+        logger.error(f"❌ Failed to connect to Jira: {e}")
         return None
 
-# --- Main Logic ---
+def _find_and_apply_done_transition(jira_client, issue, comment=None):
+    """
+    Helper function to find an appropriate "Done" transition and apply it.
+    Returns True on success, False on failure.
+    """
+    # --- FIX IS HERE ---
+    # First, check if the issue is already in a 'Done' state to avoid unnecessary work
+    # issue.fields.status.statusCategory is an object, so we use attribute access (.key)
+    if issue.fields.status.statusCategory.key == 'done':
+        logger.info(f"      -> Issue {issue.key} is already in a Done status category. Skipping.")
+        return True
+
+    transitions = jira_client.transitions(issue)
+    done_transition = None
+    for t in transitions:
+        # The transition data 't' is a dictionary, so we use key access here
+        if t['to']['statusCategory']['key'] == 'done':
+            done_transition = t
+            break  # Found a suitable transition
+
+    if done_transition:
+        transition_id = done_transition['id']
+        transition_name = done_transition['name']
+        logger.info(f"      ➡️  Found transition '{transition_name}' for {issue.key}. Applying...")
+        jira_client.transition_issue(issue, transition_id)
+        logger.info(f"      ✅ Transitioned issue {issue.key} successfully.")
+        if comment:
+            jira_client.add_comment(issue, comment)
+            logger.info("      💬 Added automated comment.")
+        return True
+    else:
+        logger.warning(f"      ⚠️ Could not find a valid transition to a 'Done' category for issue {issue.key} (Status: {issue.fields.status.name}).")
+        return False
+
 def update_stale_issues(jira_client):
-    """Finds and updates stale issues by adding a label and a comment."""
+    """Finds and updates issues that have become stale."""
+    logger.info("Running job to update stale issues...")
     jql_query = os.getenv("JQL_QUERY")
     label_to_add = os.getenv("LABEL_TO_ADD")
     comment_to_add = os.getenv("COMMENT_TO_ADD")
 
     if not jql_query:
-        logger.error("Missing JQL_QUERY environment variable for stale issues.")
+        logger.warning("No JQL_QUERY found in environment variables. Skipping stale issue update.")
         return
 
-    logger.info("Running job to update stale issues...")
     logger.info(f"   Query: {jql_query}")
-
     try:
         stale_issues = jira_client.search_issues(jql_query, maxResults=False)
-        
         if not stale_issues:
             logger.info("No stale issues found. Skipping.")
             return
@@ -61,84 +78,82 @@ def update_stale_issues(jira_client):
         for issue in stale_issues:
             try:
                 logger.info(f"   -> Processing issue {issue.key}: {issue.fields.summary}")
-                # Add the label if it doesn't already exist
                 if label_to_add and label_to_add not in issue.fields.labels:
-                    new_labels = issue.fields.labels + [label_to_add]
-                    issue.update(fields={"labels": new_labels})
+                    issue.add_field_value("labels", label_to_add)
                     logger.info(f"      🏷️  Added label: '{label_to_add}'")
-                elif label_to_add:
-                     logger.info(f"      🏷️  Label '{label_to_add}' already exists. Skipping.")
-
-                # Add the comment
                 if comment_to_add:
                     jira_client.add_comment(issue, comment_to_add)
-                    logger.info(f"      💬 Added automated comment.")
+                    logger.info("      💬 Added automated comment.")
             except Exception as e:
-                logger.error(f"   ❌ Failed to process issue {issue.key}: {e}")
-                continue # Move to the next issue
+                logger.error(f"      ❌ Failed to process issue {issue.key}: {e}")
 
-        logger.info("Stale issue update process complete.")
     except Exception as e:
-        logger.error(f"A critical error occurred while fetching stale issues: {e}")
+        logger.error(f"❌ An error occurred while fetching stale issues: {e}")
+
 
 def close_icebox_issues(jira_client):
-    """Finds and closes old issues on the icebox."""
+    """Finds and closes issues that are on the icebox, handling sub-tasks first."""
+    logger.info("Running job to close icebox issues...")
     jql_query_icebox = os.getenv("JQL_QUERY_ICEBOX")
     comment_to_add_icebox = os.getenv("COMMENT_TO_ADD_ICEBOX")
 
     if not jql_query_icebox:
-        logger.error("Missing JQL_QUERY_ICEBOX environment variable.")
+        logger.warning("No JQL_QUERY_ICEBOX found in environment variables. Skipping icebox closure.")
         return
 
-    logger.info("Running job to close icebox issues...")
     logger.info(f"   Query: {jql_query_icebox}")
-
     try:
-        icebox_issues = jira_client.search_issues(jql_query_icebox, maxResults=False)
-
+        # We must fetch the subtasks field to check for them
+        icebox_issues = jira_client.search_issues(jql_query_icebox, fields="summary,status,subtasks", maxResults=False)
         if not icebox_issues:
-            logger.info("No icebox issues to close. Skipping.")
+            logger.info("No icebox issues found to close.")
             return
 
         logger.info(f"Found {len(icebox_issues)} icebox issues to process.")
         for issue in icebox_issues:
             try:
-                logger.info(f"   -> Processing issue {issue.key}: {issue.fields.summary}")
+                logger.info(f"   -> Processing parent issue {issue.key}: {issue.fields.summary}")
 
-                # Find the 'Done' transition ID for this issue's workflow. This is more robust
-                # than assuming the transition is just named "Done".
-                transitions = jira_client.transitions(issue)
-                done_transition = next((t for t in transitions if t['name'].lower() == 'done'), None)
+                # 1. Handle Sub-tasks first
+                if issue.fields.subtasks:
+                    logger.info(f"      -> Found {len(issue.fields.subtasks)} sub-task(s). Closing them first...")
+                    all_subtasks_closed = True
+                    for subtask in issue.fields.subtasks:
+                        # The subtask object from the parent is partial, so we fetch the full object
+                        full_subtask = jira_client.issue(subtask.key, fields="status")
+                        if not _find_and_apply_done_transition(jira_client, full_subtask):
+                            all_subtasks_closed = False
+                            logger.error(f"      ❌ Failed to close sub-task {subtask.key}, cannot proceed with parent issue {issue.key}.")
+                            break  # Stop processing sub-tasks for this parent
 
-                if done_transition:
-                    # CORRECT: Use the jira_client to transition the issue using the found ID
-                    jira_client.transition_issue(issue, done_transition['id'])
-                    logger.info(f"      ✅ Transitioned issue {issue.key} to 'Done'")
+                    if not all_subtasks_closed:
+                        logger.warning(f"      -> Halting closure of parent {issue.key} because one or more sub-tasks could not be closed.")
+                        continue  # Move to the next parent issue in the main loop
 
-                    # Add the comment only after a successful transition
-                    if comment_to_add_icebox:
-                        jira_client.add_comment(issue, comment_to_add_icebox)
-                        logger.info(f"      💬 Added automated comment.")
-                else:
-                    logger.warning(f"      ⚠️ Could not find a 'Done' transition for issue {issue.key} (Status: {issue.fields.status.name}). Skipping transition.")
+                # 2. Close the parent issue if all sub-tasks are handled
+                logger.info(f"      -> All sub-tasks for {issue.key} are closed (or none existed). Proceeding to close parent.")
+                _find_and_apply_done_transition(jira_client, issue, comment_to_add_icebox)
 
             except Exception as e:
-                logger.error(f"   ❌ Failed to process issue {issue.key}: {e}")
-                continue # IMPORTANT: Move to the next issue instead of crashing
+                logger.error(f"      ❌ An unexpected error occurred while processing parent issue {issue.key}: {e}")
 
-        logger.info("Icebox closure process complete.")
     except Exception as e:
-        logger.error(f"A critical error occurred while fetching icebox issues: {e}")
+        logger.error(f"❌ An error occurred while fetching icebox issues: {e}")
 
 def main():
-    """Main entry point for the script."""
-    load_config()
+    """Main function to run both stale issue updates and icebox closures."""
     jira_client = setup_jira_client()
-    if jira_client:
-        update_stale_issues(jira_client)
-        close_icebox_issues(jira_client)
-    else:
-        logger.error("Could not initialize Jira client. Aborting.")
+    if not jira_client:
+        return
+
+    update_stale_issues(jira_client)
+    close_icebox_issues(jira_client)
+    logger.info("Icebox process complete.")
+
 
 if __name__ == "__main__":
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    dotenv_path = os.path.join(project_root, '.env')
+    load_dotenv(dotenv_path=dotenv_path)
     main()
+
