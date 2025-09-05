@@ -1,6 +1,7 @@
 # FastAPI and Server
 fastapi
 uvicorn[standard]
+#db_utils
 
 # Jira Integration
 jira

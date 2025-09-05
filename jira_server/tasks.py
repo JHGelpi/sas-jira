@@ -4,15 +4,17 @@ from jira import JIRA
 import logging
 
 # This assumes the server is run from the 'jira_server' directory.
-from jira_data_analysis import jira_processor
-from jira_data_analysis import initiative_children
-from jira_data_analysis import investment_trends
-from jira_data_analysis import db_utils
-from jira_automation import create_rca_subtasks
-from jira_automation import data_quality_report
-from jira_automation import customer_analysis
-from jira_automation import derive_platform_version
-from jira_automation import ldap_manager_report
+from jira_data_analysis import (jira_processor,
+    initiative_children,
+    investment_trends,
+    db_utils)
+from jira_automation import (create_rca_subtasks,
+    data_quality_report,
+    customer_analysis,
+    derive_platform_version,
+    ldap_manager_report,
+    collect_bug_snapshots,
+    generate_bug_charts)
 
 # --- Get a logger that inherits the root configuration ---
 logger = logging.getLogger(__name__)
@@ -246,3 +248,27 @@ def run_ldap_report_task():
     finally:
         end_time = datetime.now()
         logger.info(f"LDAP manager report task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
+
+def run_bug_snapshot_collection_task():
+    """Worker task to collect daily bug snapshot data."""
+    logger.info("Starting bug snapshot collection task...")
+    try:
+        collect_bug_snapshots.main()
+        logger.info("Bug snapshot collection task completed successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during snapshot collection: {e}")
+
+def run_bug_chart_generation_task():
+    """Worker task to generate the bug trend charts."""
+    logger.info("Starting bug chart generation task...")
+    try:
+        # Before generating charts, it's a good practice to ensure
+        # the data is up-to-date.
+        logger.info("Running snapshot collection first to ensure data is fresh...")
+        collect_bug_snapshots.main()
+        
+        logger.info("Now generating charts...")
+        generate_bug_charts.main()
+        logger.info("Bug chart generation task completed successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during chart generation: {e}")

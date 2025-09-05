@@ -18,7 +18,9 @@ from tasks import (run_jira_export_task,
                     run_data_quality_report_task,
                     run_customer_analysis_task,
                     run_derive_platform_version_task,
-                    run_ldap_report_task)
+                    run_ldap_report_task,
+                    run_bug_snapshot_collection_task,
+                    run_bug_chart_generation_task)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -143,3 +145,19 @@ async def trigger_ldap_report_job(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_ldap_report_task)
     return {"message": "LDAP hierarchy refresh job has been started in the background."}
 
+@app.post("/jobs/collect-bug-snapshots", status_code=202, summary="Trigger Daily Bug Snapshot Collection")
+def trigger_bug_snapshot_collection(background_tasks: BackgroundTasks):
+    """
+    Starts the daily job to collect a snapshot of all Jira bugs.
+    This should be run daily to build time-series data.
+    """
+    background_tasks.add_task(run_bug_snapshot_collection_task)
+    return {"message": "Bug snapshot collection job started in the background."}
+
+@app.post("/jobs/generate-bug-charts", status_code=202, summary="Generate Bug Trend Charts")
+def trigger_bug_chart_generation(background_tasks: BackgroundTasks):
+    """
+    Generates the bug trend HTML report from the collected snapshot data.
+    """
+    background_tasks.add_task(run_bug_chart_generation_task)
+    return {"message": "Bug trend chart generation job started in the background."}
