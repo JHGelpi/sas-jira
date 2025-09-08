@@ -77,7 +77,7 @@ def main():
     if not df_latest.empty:
         df_latest['is_crp'] = df_latest['origin'].str.contains('CRP', na=False)
         df_latest['state'] = df_latest['status_category'].apply(lambda x: 'Open' if x != 'Done' else 'Closed')
-        df_latest['release'] = df_latest['fix_version'].str.split(',').str[0].str.strip()
+        df_latest['release'] = df_latest['affects_version'].str.split(',').str[0].str.strip()
         
         bugs_by_release_detailed = df_latest.groupby(['release', 'project_key', 'is_crp', 'state']).size().reset_index(name='count')
 

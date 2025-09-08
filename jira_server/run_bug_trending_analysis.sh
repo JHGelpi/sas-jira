@@ -14,15 +14,15 @@ mkdir -p "$LOG_DIR"
 
 # --- Execution ---
 echo "---" >> "$LOG_FILE"
-#echo "[$TIMESTAMP] Cron job started: Triggering /jobs/collect-bug-snapshots endpoint..." >> "$LOG_FILE"
+echo "[$TIMESTAMP] Cron job started: Triggering /jobs/collect-bug-snapshots endpoint..." >> "$LOG_FILE"
 
 # Execute the curl command to trigger the API.
-#/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/collect-bug-snapshots >> "$LOG_FILE" 2>&1
+/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/collect-bug-snapshots >> "$LOG_FILE" 2>&1
 
-echo "[$TIMESTAMP] Cron job started: Triggering /jobs/generate-bug-charts endpoint..." >> "$LOG_FILE"
+#echo "[$TIMESTAMP] Cron job started: Triggering /jobs/generate-bug-charts endpoint..." >> "$LOG_FILE"
 
 # Execute the curl command to trigger the API.
-/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/generate-bug-charts >> "$LOG_FILE" 2>&1
+#/usr/bin/curl -s -X POST http://127.0.0.1:8000/jobs/generate-bug-charts >> "$LOG_FILE" 2>&1
 
 echo "" >> "$LOG_FILE"
 echo "[$TIMESTAMP] Cron job finished." >> "$LOG_FILE"
