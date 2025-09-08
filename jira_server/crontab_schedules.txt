@@ -1,0 +1,9 @@
+29 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_ldap_refresh.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_ldap_refresh.log 2>&1
+31 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_customer_analysis.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_customer_analysis.log 2>&1
+32 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_pushes_job.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_pushes_job.log 2>&1
+33 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_derive_data.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_derive_data.log 2>&1
+34 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_data_quality.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_data_quality.log 2>&1
+35 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_rca_st_job.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_rca_subtask_job.log 2>&1
+36 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_bug_trending_analysis.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_bug_trending_analysis.log 2>&1
+37 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_daily_job.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/jira_data_analysis.log 2>&1
+38 8 * * 1-5 /Users/wegelpi/github_repos/sas-jira/jira_server/run_icebox_job.sh >> /Users/wegelpi/github_repos/sas-jira/jira_server/logs/jira_icebox.log 2>&1
