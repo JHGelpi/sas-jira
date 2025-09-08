@@ -409,5 +409,11 @@
     "customer_name": "Markerstudy",
     "jira_label": ["MarkerStudyGroup"],
     "support_lvl": "exec_watchlist"
+  },
+  {
+    "industry:": "Financial Services",
+    "customer_name": "Citizens Bank",
+    "jira_label": ["CitizensBank"],
+    "support_lvl": "exec_watchlist"
   }
 ]
