@@ -415,5 +415,11 @@
     "customer_name": "Citizens Bank",
     "jira_label": ["CitizensBank"],
     "support_lvl": "exec_watchlist"
+  },
+  {
+    "industry:": "",
+    "customer_name": "Posten",
+    "jira_label": ["Posten"],
+    "support_lvl": "exec_watchlist"
   }
 ]
