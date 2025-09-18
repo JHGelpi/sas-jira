@@ -31,11 +31,14 @@ SELECT
     normalized_sprint,
     COUNT(issue_key) AS num_jiras,
     SUM(sum_story_points) AS story_points,
-    -- This window function calculates the percentage of the sprint total efficiently
-    -- without needing another join or subquery.
+    -- This window function calculates the percentage of the sprint total efficiently.
+    -- FIX: Added COALESCE and NULLIF to prevent division by zero errors if a sprint has 0 total points.
     ROUND(
-        SUM(sum_story_points) * 100.0 /
-        SUM(SUM(sum_story_points)) OVER (PARTITION BY normalized_sprint)
+        COALESCE(
+            SUM(sum_story_points) * 100.0 /
+            NULLIF(SUM(SUM(sum_story_points)) OVER (PARTITION BY normalized_sprint), 0),
+            0
+        )
     ) AS pct_of_sprint_total
 FROM
     filtered_data

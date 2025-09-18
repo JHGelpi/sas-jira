@@ -48,14 +48,14 @@ def _get_custom_field_id(jira_client, field_name):
     return None
 
 
-def _find_and_apply_done_transition(jira_client, issue):
+def _find_and_apply_done_transition(jira_client, issue, comment=None):
     """
     Finds an appropriate transition to a 'Done' status category for an issue,
-    sets all required fields (like Resolution and Doc Needed), and applies it.
+    sets all required fields by inspecting the transition's requirements, and applies it.
+    All actions (transition, fields, comment) are performed in a single API call.
     Returns True if successful, False otherwise.
     """
     try:
-        # First, check if the issue is already in a 'Done' state
         if issue.fields.status.statusCategory.key == 'done':
             logger.info(f"      -> Issue {issue.key} is already in a Done status category. Skipping.")
             return True
@@ -63,52 +63,42 @@ def _find_and_apply_done_transition(jira_client, issue):
         transitions = jira_client.transitions(issue)
         done_transition = None
         for t in transitions:
-            status_category = t.get('to', {}).get('statusCategory', {})
+            # The destination status is in the 'to' object
+            destination_status = t.get('to', {})
+            status_category = destination_status.get('statusCategory', {})
+            # Check if the destination status is in the 'Done' category
             if status_category.get('key') == 'done':
-                done_transition = t
-                break
+                # ADDITION: Confirm the destination status is 'Closed'
+                if destination_status.get('name', '').lower() == 'closed':
+                    done_transition = t
+                    break
         
         if done_transition:
             transition_id = done_transition['id']
             transition_name = done_transition['name']
-            logger.info(f"      ➡️  Found transition '{transition_name}' for {issue.key}. Applying...")
+            logger.info(f"      ➡️  Found transition '{transition_name}' to a Closed state for {issue.key}. Applying...")
 
-            # --- Build the fields payload for the transition ---
             fields_payload = {}
             
-            # 1. Set the Resolution
-            resolution_name = "Won't Do" # Prioritize for icebox items
-            try:
-                allowed_resolutions = [res.name for res in jira_client.resolutions()]
-                if resolution_name not in allowed_resolutions:
-                    resolution_name = "Won't Fix" # Fallback
-                
-                if resolution_name in allowed_resolutions:
-                    fields_payload['resolution'] = {'name': resolution_name}
-                else:
-                    logger.warning(f"     ⚠️ Could not find a suitable resolution ('Won't Do' or 'Won't Fix'). Skipping transition for {issue.key}")
-                    return False
-            except Exception as res_error:
-                logger.error(f"      ❌ Could not fetch available resolutions: {res_error}")
-                return False
-
-            # 2. Set the 'Doc Needed' field (if found and configured)
+            # Set the 'Doc Needed' field (if found and configured)
             doc_needed_field_name = "Doc Needed"
             doc_needed_field_id = _get_custom_field_id(jira_client, doc_needed_field_name)
             
             if doc_needed_field_id:
-                # Get the value from an env var, defaulting to "No"
                 doc_needed_value = os.getenv("JIRA_ICEBOX_DOC_NEEDED_VALUE", "No")
-                # Assuming 'Doc Needed' is a select list, it needs the {'value': ...} format
+                # The format for a select list is {'value': ...}
                 fields_payload[doc_needed_field_id] = {'value': doc_needed_value}
                 logger.info(f"      -> Will set '{doc_needed_field_name}' to '{doc_needed_value}'")
 
-            # Perform the transition, including all required fields
-            jira_client.transition_issue(issue, transition_id, fields=fields_payload)
+            # Perform the transition, including the required fields and the comment in one atomic call
+            jira_client.transition_issue(issue, transition_id, fields=fields_payload, comment=comment)
             logger.info(f"      ✅ Transitioned issue {issue.key} successfully.")
+            if comment:
+                logger.info("      💬 Added automated comment during transition.")
+
             return True
         else:
-            logger.warning(f"      ⚠️ Could not find a valid transition to a 'Done' category for issue {issue.key} (Status: {issue.fields.status.name}). Skipping transition.")
+            logger.warning(f"      ⚠️ Could not find a valid transition to a 'Closed' state for issue {issue.key} (Status: {issue.fields.status.name}). Skipping transition.")
             return False
             
     except Exception as e:
@@ -169,22 +159,19 @@ def close_icebox_issues(jira_client):
         try:
             logger.info(f"   -> Processing parent issue {issue.key}: {issue.fields.summary}")
             
-            # Close all sub-tasks first
             all_subtasks_closed = True
             if issue.fields.subtasks:
                 logger.info(f"      -> Found {len(issue.fields.subtasks)} sub-task(s). Closing them first...")
+                # Pass the comment to the sub-task transition as well
                 for subtask in issue.fields.subtasks:
-                    if not _find_and_apply_done_transition(jira_client, subtask):
+                    if not _find_and_apply_done_transition(jira_client, subtask, comment=comment_to_add):
                         all_subtasks_closed = False
                         logger.error(f"      ❌ Could not close sub-task {subtask.key}. Aborting closure for parent {issue.key}.")
-                        break # Stop processing this parent if a sub-task fails
+                        break 
             
             if all_subtasks_closed:
                 logger.info(f"      -> All sub-tasks for {issue.key} are closed (or none existed). Proceeding to close parent.")
-                if _find_and_apply_done_transition(jira_client, issue):
-                    if comment_to_add:
-                        jira_client.add_comment(issue, comment_to_add)
-                        logger.info("      💬 Added automated comment.")
+                _find_and_apply_done_transition(jira_client, issue, comment=comment_to_add)
 
         except Exception as e:
             logger.error(f"      ❌ An unexpected error occurred while processing parent issue {issue.key}: {e}")
