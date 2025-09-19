@@ -1,0 +1,66 @@
+select 
+snapshot_date,
+affects_version,
+CASE WHEN origin like '%CRP%' THEN 'CRP' 
+	WHEN origin like '%BRP%' THEN 'CRP'
+	ELSE origin 
+END as origin,
+count(issue_key)
+from public.tbl_bug_snapshots
+where project_key != 'COMPTRIAGE'
+and (affects_version like '%2025.08%'
+or affects_version like '%2025.07%'
+or affects_version like '%2025.06%'
+or affects_version like '%2025.05%'
+or affects_version like '%2025.04%'
+or affects_version like '%2025.03%')
+group by snapshot_date,
+affects_version,
+CASE WHEN origin like '%CRP%' THEN 'CRP' 
+	WHEN origin like '%BRP%' THEN 'CRP'
+	ELSE origin 
+END;
+
+--CRP Bugs for most recent snapshot date
+select a.snapshot_date,
+a.project_key,
+a.issue_key,
+a.status_category,
+a.affects_version,
+a.assignee,
+a.pipeline_discovery_stage,
+a.origin
+from public.tbl_bug_snapshots a
+--join (select max(snapshot_date) maxdt from public.tbl_bug_snapshots) b on b.maxdt = a.snapshot_date
+where a.project_key != 'COMPTRIAGE'
+--and (a.origin like '%CRP%' or a.origin like '%BRP%' or a.origin is null)
+and (a.affects_version like '%2025.09%'
+or a.affects_version like '%2025.08%'
+or a.affects_version like '%2025.07%'
+or a.affects_version like '%2025.06%'
+or a.affects_version like '%2025.05%'
+or a.affects_version like '%2025.04%'
+or a.affects_version like '%2025.03%')
+and a.status_category != 'Done';
+
+--LTS Bugs for most recent snapshot date
+select a.snapshot_date,
+a.project_key,
+a.issue_key,
+a.status_category,
+a.affects_version,
+a.assignee,
+a.pipeline_discovery_stage,
+a.origin,
+case when a.origin like '%CRP%' then 'CRP' when a.origin like '%BRP%' then 'CRP' else null end crp_flag
+from public.tbl_bug_snapshots a
+--join (select max(snapshot_date) maxdt from public.tbl_bug_snapshots) b on b.maxdt = a.snapshot_date
+where a.project_key != 'COMPTRIAGE'
+and (a.origin like '%CRP%' or a.origin like '%BRP%' or a.origin is null)
+--and 
+--(
+--a.affects_version like '%2025.09%'
+--or a.affects_version like '%2025.03%'
+--or a.affects_version is null
+--)
+and a.status_category != 'Done';
