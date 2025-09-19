@@ -63,12 +63,9 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
         transitions = jira_client.transitions(issue)
         done_transition = None
         for t in transitions:
-            # The destination status is in the 'to' object
             destination_status = t.get('to', {})
             status_category = destination_status.get('statusCategory', {})
-            # Check if the destination status is in the 'Done' category
             if status_category.get('key') == 'done':
-                # ADDITION: Confirm the destination status is 'Closed'
                 if destination_status.get('name', '').lower() == 'closed':
                     done_transition = t
                     break
@@ -80,17 +77,37 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
 
             fields_payload = {}
             
+            # --- FIX: Assume resolution is required, as the API error indicates it is. ---
+            # The transition metadata can sometimes be incomplete. We will trust the API error.
+            try:
+                all_resolutions = jira_client.resolutions()
+                allowed_names = {res.name for res in all_resolutions}
+                
+                resolution_name = None
+                # --- CHANGE: Prioritize "Won't Fix" as requested ---
+                if "Won't Fix" in allowed_names:
+                    resolution_name = "Won't Fix"
+                
+                if resolution_name:
+                    fields_payload['resolution'] = {'name': resolution_name}
+                    logger.info(f"      -> Will attempt to set 'Resolution' to '{resolution_name}'")
+                else:
+                    logger.warning(f"     ⚠️ Could not find a suitable global resolution ('Won't Fix'). This may fail.")
+
+            except Exception as e:
+                logger.error(f"      -> Could not fetch global resolutions: {e}. Proceeding without setting resolution.")
+
+
             # Set the 'Doc Needed' field (if found and configured)
             doc_needed_field_name = "Doc Needed"
             doc_needed_field_id = _get_custom_field_id(jira_client, doc_needed_field_name)
             
             if doc_needed_field_id:
                 doc_needed_value = os.getenv("JIRA_ICEBOX_DOC_NEEDED_VALUE", "No")
-                # The format for a select list is {'value': ...}
                 fields_payload[doc_needed_field_id] = {'value': doc_needed_value}
                 logger.info(f"      -> Will set '{doc_needed_field_name}' to '{doc_needed_value}'")
 
-            # Perform the transition, including the required fields and the comment in one atomic call
+            # Perform the transition, including all required fields and the comment in one atomic call
             jira_client.transition_issue(issue, transition_id, fields=fields_payload, comment=comment)
             logger.info(f"      ✅ Transitioned issue {issue.key} successfully.")
             if comment:
