@@ -2,6 +2,32 @@ import re
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 
+# --- NEW: Cache for custom field IDs to avoid repeated API calls ---
+_field_id_cache = {}
+
+def get_custom_field_id(jira_client, field_name: str) -> str | None:
+    """
+    Dynamically finds and caches the custom field ID for a given field name.
+    This makes the scripts resilient to changes in Jira configuration.
+    """
+    if field_name in _field_id_cache:
+        return _field_id_cache[field_name]
+
+    try:
+        all_fields = jira_client.fields()
+        for field in all_fields:
+            if field['name'].lower() == field_name.lower():
+                field_id = field['id']
+                # Cache the found ID for future use in this run
+                _field_id_cache[field_name] = field_id
+                return field_id
+    except Exception as e:
+        print(f"Error retrieving custom fields: {e}")
+
+    print(f"WARNING: Could not find a custom field named '{field_name}'.")
+    _field_id_cache[field_name] = None # Cache the failure to avoid re-checking
+    return None
+
 def format_date(date_str: str) -> str | None:
     """
     Parses various date string formats from Jira and returns a 'YYYY-MM-DD' string.
