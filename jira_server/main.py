@@ -1,10 +1,13 @@
 import os
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from dotenv import load_dotenv
+import logging
 
 # --- Import and call the logging setup function ---
 from logging_config import setup_logging
 setup_logging()
+
+logger = logging.getLogger(__name__)
 
 # Import the task functions
 from tasks import (run_jira_export_task, 
@@ -20,7 +23,8 @@ from tasks import (run_jira_export_task,
                     run_derive_platform_version_task,
                     run_ldap_report_task,
                     run_bug_snapshot_collection_task,
-                    run_bug_chart_generation_task)
+                    run_bug_chart_generation_task,
+                    run_new_release_export_task)
 
 # Load environment variables from .env file
 load_dotenv()

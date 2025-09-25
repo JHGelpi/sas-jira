@@ -7,7 +7,7 @@ import logging
 from jira_data_analysis import (jira_processor,
     initiative_children,
     investment_trends,
-    investment_charts as new_investment_trends,
+    # investment_charts as new_investment_trends,
     db_utils)
 from jira_automation import (create_rca_subtasks,
     data_quality_report,
@@ -116,9 +116,9 @@ def run_initiative_analysis_task():
         logger.error(f"An error occurred during initiative analysis: {e}")
 
 def run_investment_trends_task():
-    logger.info("Starting NEW investment trends task...")
+    logger.info("Starting investment trends task...")
     try:
-        new_investment_trends.generate_investment_chart()
+        investment_trends.main()
     except Exception as e:
         logger.error(f"An error occurred during investment trends generation: {e}")
 
