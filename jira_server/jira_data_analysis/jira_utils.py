@@ -44,48 +44,38 @@ def format_date(date_str: str) -> str | None:
 
 def parse_sprint_data(sprint_data, sprint_managers: dict) -> dict:
     """
-    Parses the complex sprint data from Jira's custom field into a structured dictionary.
-    This function is now robust and handles both the old string format and the new
-    list-of-objects format from the Jira API.
+    Parses sprint data, handling both the legacy string format and the new
+    list-of-strings format from the Jira API.
     """
     sprint_details = {
-        'state': '',
-        'start_date': None,
-        'end_date': None,
-        'complete_date': None,
-        'name': '',
-        'owner': 'No Manager'
+        'state': '', 'start_date': None, 'end_date': None,
+        'complete_date': None, 'name': '', 'owner': 'No Manager'
     }
 
     if not sprint_data:
         return sprint_details
 
-    # --- NEW: Handle the modern list-of-objects format ---
+    string_to_parse = None
+    # --- FIX: Correctly handle the list-of-strings format ---
     if isinstance(sprint_data, list) and sprint_data:
-        # The last sprint in the list is typically the most recent one
-        latest_sprint_obj = sprint_data[-1]
-        
-        # The object has attributes we can access directly
-        sprint_details['name'] = getattr(latest_sprint_obj, 'name', '')
-        sprint_details['state'] = getattr(latest_sprint_obj, 'state', '')
-        sprint_details['start_date'] = format_date(getattr(latest_sprint_obj, 'startDate', None))
-        sprint_details['end_date'] = format_date(getattr(latest_sprint_obj, 'endDate', None))
-        sprint_details['complete_date'] = format_date(getattr(latest_sprint_obj, 'completeDate', None))
-
-    # --- FALLBACK: Handle the legacy string format ---
+        # The API is returning a list containing a single string.
+        # We extract that string to be parsed.
+        string_to_parse = sprint_data[-1]
     elif isinstance(sprint_data, str):
-        # Use regex to find key=value pairs for robustness
+        # Handle the case where it might just be a string
+        string_to_parse = sprint_data
+
+    # Proceed with parsing only if we have a valid string
+    if string_to_parse and isinstance(string_to_parse, str):
         found_details = {
-            key: value for key, value in re.findall(r'(\w+)=([^,\]]+)', sprint_data)
+            key: value for key, value in re.findall(r'(\w+)=([^,\]]+)', string_to_parse)
         }
         sprint_details.update(found_details)
-        
-        # Format dates from the string
         sprint_details['start_date'] = format_date(sprint_details.get('startDate'))
         sprint_details['end_date'] = format_date(sprint_details.get('endDate'))
         sprint_details['complete_date'] = format_date(sprint_details.get('completeDate'))
 
-    # Determine sprint owner (this logic remains the same)
+    # Determine sprint owner
     sprint_name = sprint_details.get('name', '')
     for team, manager in sprint_managers.items():
         if sprint_name.startswith(team):
