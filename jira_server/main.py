@@ -40,16 +40,17 @@ async def read_root():
 async def trigger_daily_job(background_tasks: BackgroundTasks):
     """
     Starts the daily job to sync Jira issues updated since the last run.
-    This job runs in the background.
+    This also checks if a post-release analysis is due and triggers it.
     """
-    print("Daily job endpoint triggered. Scheduling background tasks.")
+    logger.info("Daily job endpoint triggered. Scheduling background tasks.")
     background_tasks.add_task(run_jira_export_task, 'daily')
 
-    # The daily job will check if a post-release analysis is needed
     if check_if_release_run_is_due():
-        print("Release run is due. Scheduling post-release analysis tasks.")
-        background_tasks.add_task(run_jira_export_task, 'release')
-        # Chain subsequent tasks to run after the release data is processed
+        logger.info("Release run is due. Scheduling new post-release analysis tasks.")
+        # --- FIX: Call the new, targeted release task ---
+        background_tasks.add_task(run_new_release_export_task)
+        
+        # Chain subsequent tasks that depend on the release data
         background_tasks.add_task(run_initiative_analysis_task)
         background_tasks.add_task(run_investment_trends_task)
         return {"message": "Daily sync job started. Post-release analysis has also been triggered."}
@@ -60,12 +61,11 @@ async def trigger_daily_job(background_tasks: BackgroundTasks):
 @app.post("/jobs/release", status_code=202, summary="Manually Trigger a Full Release Analysis")
 async def trigger_release_job(background_tasks: BackgroundTasks):
     """
-    Manually starts a full post-release analysis. This includes fetching
-    release-specific Jira issues, updating initiative data, and generating
-    investment trend charts. This job runs in the background.
+    Manually starts a full post-release analysis using the new logic.
     """
-    print("Manual release job endpoint triggered. Scheduling background tasks.")
-    background_tasks.add_task(run_jira_export_task, 'release')
+    logger.info("Manual release job endpoint triggered. Scheduling background tasks.")
+    # --- FIX: Call the new, targeted release task ---
+    background_tasks.add_task(run_new_release_export_task)
     background_tasks.add_task(run_initiative_analysis_task)
     background_tasks.add_task(run_investment_trends_task)
     return {"message": "Release analysis job has been started in the background."}

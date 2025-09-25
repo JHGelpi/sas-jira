@@ -7,6 +7,7 @@ import logging
 from jira_data_analysis import (jira_processor,
     initiative_children,
     investment_trends,
+    investment_charts as new_investment_trends,
     db_utils)
 from jira_automation import (create_rca_subtasks,
     data_quality_report,
@@ -86,6 +87,24 @@ def run_jira_export_task(run_flag: str):
             
         print(f"Jira export task finished at {end_time.isoformat()}. Duration: {end_time - start_time}")
 
+# --- NEW: Dedicated task for the new release logic ---
+def run_new_release_export_task():
+    """Worker task for the new, targeted 'release' data sync."""
+    start_time = datetime.now()
+    logger.info(f"Starting NEW targeted release export task at {start_time.isoformat()}")
+    db_conn_pool = db_utils.get_connection_pool()
+    try:
+        jira = get_jira_client()
+        # This single function now orchestrates the entire new release logic
+        jira_processor.process_release_data(jira, db_conn_pool)
+    except Exception as e:
+        logger.error(f"An error occurred during the new release export task: {e}")
+    finally:
+        end_time = datetime.now()
+        # Log this run with the 'RELEASE' type for the next run's time check
+        db_utils.update_run_log(db_conn_pool, start_time, end_time, 'RELEASE')
+        logger.info(f"NEW targeted release export task finished. Duration: {end_time - start_time}")
+
 
 # ... (Apply the same logger pattern to all other task functions) ...
 def run_initiative_analysis_task():
@@ -97,27 +116,16 @@ def run_initiative_analysis_task():
         logger.error(f"An error occurred during initiative analysis: {e}")
 
 def run_investment_trends_task():
-    logger.info("Starting investment trends task...")
+    logger.info("Starting NEW investment trends task...")
     try:
-        investment_trends.main()
-        logger.info("Investment trends task completed successfully.")
+        new_investment_trends.generate_investment_chart()
     except Exception as e:
         logger.error(f"An error occurred during investment trends generation: {e}")
 
 def check_if_release_run_is_due():
     logger.info("Checking if a release run is due...")
-    db_conn_pool = None
-    try:
-        db_conn_pool = db_utils.get_connection_pool()
-        is_due = db_utils.release_run_check(db_conn_pool)
-        if is_due:
-            logger.info("Check result: Release run is due.")
-        else:
-            logger.info("Check result: Release run is not yet due.")
-        return is_due
-    except Exception as e:
-        logger.error(f"Failed to check release run status: {e}")
-        return False
+    db_conn_pool = db_utils.get_connection_pool()
+    return db_utils.release_run_check(db_conn_pool)
 
 def run_jira_icebox_task():
     start_time = datetime.now()
