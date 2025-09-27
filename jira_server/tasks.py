@@ -14,7 +14,8 @@ from jira_automation import (create_rca_subtasks,
     derive_platform_version,
     ldap_manager_report,
     collect_bug_snapshots,
-    generate_bug_charts)
+    generate_bug_charts,
+    run_for_all_compdiv_epics)
 
 # --- Get a logger that inherits the root configuration ---
 logger = logging.getLogger(__name__)
@@ -219,3 +220,8 @@ def run_bug_chart_generation_task():
     except Exception as e:
         logger.error(f"An error occurred during chart generation: {e}")
 
+def task_compdiv_burndown_all():
+    # Optional: advisory lock to avoid overlaps
+    # from util.locks import advisory_lock
+    # with advisory_lock(3001):
+    return run_for_all_compdiv_epics(run_dt=date.today())

@@ -24,7 +24,10 @@ from tasks import (run_jira_export_task,
                     run_ldap_report_task,
                     run_bug_snapshot_collection_task,
                     run_bug_chart_generation_task,
-                    run_new_release_export_task)
+                    run_new_release_export_task,
+                    task_compdiv_burndown_all)
+
+from jira_automation.compdiv_burndown import build_plot_html
 
 # Load environment variables from .env file
 load_dotenv()
@@ -165,3 +168,14 @@ def trigger_bug_chart_generation(background_tasks: BackgroundTasks):
     """
     background_tasks.add_task(run_bug_chart_generation_task)
     return {"message": "Bug trend chart generation job started in the background."}
+
+
+@app.post("/jobs/compdiv-burndown", status_code=202)
+def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
+    background_tasks.add_task(task_compdiv_burndown_all)
+    return {"message": "Enqueued COMPDIV burndown for all epics"}
+
+@app.get("/reports/compdiv-burndown/{epic_key}", response_class=HTMLResponse)
+def report_compdiv_burndown(epic_key: str):
+    html = build_plot_html(epic_key)
+    return HTMLResponse(content=html, status_code=200)
