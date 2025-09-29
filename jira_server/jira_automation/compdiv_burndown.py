@@ -90,6 +90,48 @@ def get_field_id(jira: JIRA, name: str) -> str | None:
     return _FIELD_CACHE.get(name.lower())
 
 
+def get_epic_display_name(epic_key: str) -> str:
+    """Return the Epic's display name using the Jira 'Epic Name' field if available,
+    otherwise fall back to the issue Summary. Never returns an empty string.
+    """
+    jira = get_client()
+    epic_name_id = get_field_id(jira, "Epic Name")
+    fields_req = "summary" + (("," + epic_name_id) if epic_name_id else "")
+    try:
+        issue = jira.issue(epic_key, fields=fields_req)
+    except Exception:
+        logger.exception("Failed to fetch epic for name: %s", epic_key)
+        return epic_key
+    # Prefer 'Epic Name' if present
+    if epic_name_id:
+        val = getattr(issue.fields, epic_name_id, None)
+        if val:
+            return str(val)
+    # Fallback to summary
+    return str(getattr(issue.fields, "summary", epic_key))
+
+
+def get_epic_status_info(epic_key: str) -> tuple[bool, str]:
+    """Return (is_closed, status_name) for the COMPDIV epic.
+    Uses Jira statusCategory when available; falls back to name hints.
+    """
+    jira = get_client()
+    issue = jira.issue(epic_key, fields="status")
+    fields = issue.fields
+    name = str(getattr(getattr(fields, "status", None), "name", "") or "")
+    return _is_done_status(fields), name
+
+
+def get_epic_status_text(epic_key: str) -> str:
+    """Return the epic's status name as display text (empty string if unknown)."""
+    try:
+        _, name = get_epic_status_info(epic_key)
+        return name
+    except Exception:
+        logger.exception("Failed to fetch epic status for %s", epic_key)
+        return ""
+
+
 # ---- Utils ----
 
 def _numeric_cf_id(cf_id: str | None) -> str | None:
@@ -349,8 +391,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
     for epic in epic_keys:
         try:
             logger.info("COMPDIV burndown start: %s", epic)
+            is_closed, epic_status_name = get_epic_status_info(epic)
+            if is_closed:
+                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
+                continue
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
-            logger.info("Seeds for %s: in_epic=%d, child_links=%d", epic, len([i for i in issues if True]), 0)  # legacy msg shape
             logger.info("Collected %d issues for %s", len(issues), epic)
 
             bug, story, total = compute_point_totals(issues, sp_cf)
@@ -358,6 +403,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
             results[epic] = (bug, story, total)
             successes += 1
             logger.info("COMPDIV burndown done: %s (bug=%.2f story=%.2f total=%.2f)", epic, bug, story, total)
+
+            # Write/overwrite the HTML chart file for this epic
+            try:
+                path = write_plot_html(epic)
+                logger.info("Wrote burndown HTML: %s", path)
+            except Exception:
+                logger.exception("Failed to write HTML chart for %s", epic)
         except Exception:
             failures += 1
             logger.exception("Failed burndown for %s", epic)
@@ -445,6 +497,9 @@ def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[
 
 def build_plot_html(epic_key: str) -> str:
     dates, bug, story, total = fetch_burndown_series(epic_key)
+    epic_title = get_epic_display_name(epic_key)
+    status_name = get_epic_status_text(epic_key)
+
     fig = go.Figure()
     if dates:
         fig.add_trace(go.Scatter(x=dates, y=total, mode="lines+markers", name="Total points"))
@@ -459,7 +514,7 @@ def build_plot_html(epic_key: str) -> str:
                               annotation_text="80% CI", annotation_position="top left")
 
     fig.update_layout(
-        title=f"COMPDIV Burndown: {epic_key}",
+        title=f"{epic_title} ({epic_key})<br><sup>[{status_name}]</sup>",
         xaxis_title="Run Date",
         yaxis_title="Points",
         hovermode="x unified",
@@ -470,10 +525,28 @@ def build_plot_html(epic_key: str) -> str:
     return pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
 
 
+def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
+    """Write/overwrite a single HTML file for an epic in COMPDIV_BURNDOWN_DIR (or default dir).
+    File name: COMPDIV123_burndown.html
+    Returns the path written.
+    """
+    # Allow .env override
+    load_dotenv()
+    base_dir = out_dir or os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+    os.makedirs(base_dir, exist_ok=True)
+    html = build_plot_html(epic_key)
+    path = os.path.join(base_dir, f"{epic_key}_burndown.html")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(html)
+    return path
+
+
 __all__ = [
     "collect_issue_keys_for_epic",
     "compute_point_totals",
     "run_for_all_compdiv_epics",
     "fetch_burndown_series",
     "build_plot_html",
+    "get_epic_display_name",
+    "write_plot_html",
 ]
