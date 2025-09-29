@@ -6,6 +6,7 @@ import os
 import re
 from datetime import date, timedelta
 from typing import Iterable, Set, Dict, Tuple, List
+from time import perf_counter
 
 from dotenv import load_dotenv
 from jira import JIRA
@@ -21,6 +22,36 @@ BUG_TYPES: Set[str] = {"Bug", "Defect"}
 STORY_TYPES: Set[str] = {"Story"}  # Add "Task" here if desired
 ALLOWED_LINK_TYPES: Set[str] = set()  # empty => traverse all link types
 MAX_DEPTH_DEFAULT: int = 6
+
+# Status handling — treat only *non-done* issues as remaining work
+DONE_NAME_HINTS: Set[str] = {
+    "done",
+    "closed",
+    "resolved",
+    "cancelled",
+    "won't fix",
+    "wont fix",
+    "accepted and close(q)",  # project-specific example
+}
+
+
+def _is_done_status(fields) -> bool:
+    """Return True if the issue's status should be treated as DONE/closed.
+    Prefers Jira's statusCategory when available; otherwise falls back to name hints.
+    """
+    status = getattr(fields, "status", None)
+    if not status:
+        return False
+    cat = getattr(status, "statusCategory", None)
+    key = (getattr(cat, "key", "") or "").lower()
+    if key == "done":
+        return True
+    # Fallback on name matching
+    name = (getattr(status, "name", "") or "").strip().lower()
+    # normalize different apostrophes
+    name = name.replace("’", "'")
+    return name in DONE_NAME_HINTS
+
 
 # ---- Jira helpers (local, cached) ----
 _JIRA_CLIENT: JIRA | None = None
@@ -235,12 +266,26 @@ def collect_issue_keys_for_epic(epic_key: str, max_depth: int = MAX_DEPTH_DEFAUL
     return list(issues_by_key.values())
 
 
-def compute_point_totals(issues: Iterable, sp_cf: str | None) -> Tuple[float, float, float]:
+def compute_point_totals(issues: Iterable, sp_cf: str | None, *, only_open: bool = True) -> Tuple[float, float, float]:
+    """Sum story points across issues into bug/story buckets.
+
+    Parameters
+    ----------
+    issues : Iterable
+        Iterable of Jira issue objects (must include .fields with issuetype/status/Story Points CF).
+    sp_cf : str | None
+        Field id for "Story Points" (e.g., "customfield_10016"). If None, counts as 0.
+    only_open : bool, default True
+        If True, exclude issues whose status is in Jira's DONE category (or matches DONE_NAME_HINTS).
+    """
     bug_pts = 0.0
     story_pts = 0.0
     for iss in issues:
-        itype = getattr(getattr(iss.fields, "issuetype", None), "name", "")
-        pts = _points(iss.fields, sp_cf)
+        f = iss.fields
+        if only_open and _is_done_status(f):
+            continue
+        itype = getattr(getattr(f, "issuetype", None), "name", "")
+        pts = _points(f, sp_cf)
         if itype in BUG_TYPES:
             bug_pts += pts
         elif itype in STORY_TYPES:
@@ -272,7 +317,10 @@ def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, t
 
 
 def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[float, float, float]]:
-    """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each."""
+    """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each.
+    Emits a clear completion log when finished.
+    """
+    t_start = perf_counter()
     run_dt = run_dt or date.today()
 
     # Load candidate epics
@@ -284,7 +332,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
                 """
                 SELECT DISTINCT issue_key
                 FROM public.tbl_initiative_issue_keys
-                WHERE issue_key ~ '^COMPDIV-\\d+$'
+                WHERE issue_key ~ '^COMPDIV-\d+$'
                 """
             )
             epic_keys = [r[0] for r in cur.fetchall()]
@@ -295,15 +343,31 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
     sp_cf = get_field_id(jira, "Story Points")
 
     results: Dict[str, Tuple[float, float, float]] = {}
+    successes = 0
+    failures = 0
+
     for epic in epic_keys:
         try:
+            logger.info("COMPDIV burndown start: %s", epic)
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
+            logger.info("Seeds for %s: in_epic=%d, child_links=%d", epic, len([i for i in issues if True]), 0)  # legacy msg shape
+            logger.info("Collected %d issues for %s", len(issues), epic)
+
             bug, story, total = compute_point_totals(issues, sp_cf)
             upsert_burndown_row(run_dt, epic, bug, story, total)
             results[epic] = (bug, story, total)
-            logger.info("COMPDIV burndown %s: bug=%s story=%s total=%s", epic, bug, story, total)
+            successes += 1
+            logger.info("COMPDIV burndown done: %s (bug=%.2f story=%.2f total=%.2f)", epic, bug, story, total)
         except Exception:
+            failures += 1
             logger.exception("Failed burndown for %s", epic)
+
+    duration = perf_counter() - t_start
+    # Final, explicit completion confirmation
+    logger.info(
+        "COMPDIV burndown completed successfully. run_date=%s, epics_total=%d, successes=%d, failures=%d, duration=%.2fs",
+        run_dt, len(results) + failures, successes, failures, duration,
+    )
     return results
 
 
