@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 import logging
 
@@ -27,7 +28,7 @@ from tasks import (run_jira_export_task,
                     run_new_release_export_task,
                     task_compdiv_burndown_all)
 
-from jira_automation.compdiv_burndown import build_plot_html
+from jira_automation.compdiv_burndown import (build_plot_html)
 
 # Load environment variables from .env file
 load_dotenv()
