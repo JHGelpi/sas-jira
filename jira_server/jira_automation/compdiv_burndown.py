@@ -19,9 +19,14 @@ logger = logging.getLogger(__name__)
 
 # ---- Configuration ----
 BUG_TYPES: Set[str] = {"Bug", "Defect"}
-STORY_TYPES: Set[str] = {"Story"}  # Add "Task" here if desired
+STORY_TYPES: Set[str] = {"Story"}
+TASK_RESEARCH_TYPES: Set[str] = {"Task", "Research"}
 ALLOWED_LINK_TYPES: Set[str] = set()  # empty => traverse all link types
 MAX_DEPTH_DEFAULT: int = 6
+# Safety: cap total nodes visited during BFS to avoid pathological graphs
+MAX_BFS_NODES: int = 5000
+# HTTP timeout for Jira API calls (seconds)
+JIRA_TIMEOUT_SECONDS: int = int(os.getenv("JIRA_TIMEOUT") or 30)
 
 # Status handling — treat only *non-done* issues as remaining work
 DONE_NAME_HINTS: Set[str] = {
@@ -56,6 +61,8 @@ def _is_done_status(fields) -> bool:
 # ---- Jira helpers (local, cached) ----
 _JIRA_CLIENT: JIRA | None = None
 _FIELD_CACHE: Dict[str, str] | None = None  # name.lower() -> id (e.g., customfield_10016)
+# Cache for Epic -> issues in that epic (objects), to avoid repeated JQL calls per epic during BFS
+_EPIC_IN_EPIC_CACHE: Dict[str, List[object]] = {}
 
 
 def get_client() -> JIRA:
@@ -71,7 +78,7 @@ def get_client() -> JIRA:
     if not url or not token:
         raise RuntimeError("Jira credentials missing: set JIRA_URL and JIRA_TOKEN in environment or .env")
 
-    _JIRA_CLIENT = JIRA(server=url, token_auth=token)
+    _JIRA_CLIENT = JIRA(server=url, token_auth=token, options={"timeout": JIRA_TIMEOUT_SECONDS})
     try:
         info = _JIRA_CLIENT.server_info()
         logger.info("Connected to Jira: %s", info.get("version"))
@@ -159,10 +166,12 @@ def _fetch_batch_by_keys(jira, keys: List[str], fields_csv: str):
     BATCH = 200
     for i in range(0, len(keys), BATCH):
         batch = keys[i : i + BATCH]
-        # Quote keys to be safe in JQL
         quoted = ",".join(f'"{k}"' for k in batch)
         jql = f"key in ({quoted})"
+        t0 = perf_counter()
         issues = jira.search_issues(jql, fields=fields_csv, maxResults=1000)
+        dt = perf_counter() - t0
+        logger.debug("JQL fetch batch %d..%d (%d keys) -> %d issues (%.2fs)", i, i+len(batch)-1, len(batch), len(issues), dt)
         out.extend(issues)
     return out
 
@@ -192,7 +201,7 @@ def _expand_neighbors(issue) -> List[str]:
 
 
 def _initial_children_for_epic(jira, epic_key: str, epic_link_cf: str | None, fields_csv: str):
-    """Stories/bugs/tasks directly in the Epic via Epic Link."""
+    """Stories/bugs/tasks directly in the Epic via Epic Link. Not cached; use wrapper below."""
     if not epic_link_cf:
         logger.warning("Epic Link custom field not found; initial JQL limited")
         return []
@@ -201,52 +210,90 @@ def _initial_children_for_epic(jira, epic_key: str, epic_link_cf: str | None, fi
         logger.warning("Epic Link id not numeric; initial JQL limited")
         return []
     jql = f'cf[{num}] = "{epic_key}"'
-    return jira.search_issues(jql, fields=fields_csv, maxResults=1000)
+    t0 = perf_counter()
+    issues = jira.search_issues(jql, fields=fields_csv, maxResults=1000)
+    logger.debug("JQL in-epic %s -> %d issues (%.2fs)", epic_key, len(issues), perf_counter()-t0)
+    return issues
 
 
 # ---- Collection / Aggregation ----
 
+def _get_issues_in_epic_cached(jira, epic_key: str, epic_link_cf: str | None, fields_csv: str) -> List[object]:
+    """Cached wrapper around _initial_children_for_epic to prevent repeated JQL for the same epic."""
+    if epic_key in _EPIC_IN_EPIC_CACHE:
+        return _EPIC_IN_EPIC_CACHE[epic_key]
+    issues = _initial_children_for_epic(jira, epic_key, epic_link_cf, fields_csv)
+    _EPIC_IN_EPIC_CACHE[epic_key] = issues
+    return issues
+
 def _child_linked_keys_from_issue(issue) -> List[str]:
-    """Return keys of *children* for a given issue via Parent/Child-style links
-    (and include Jira subtasks as children). Direction rules:
-      - If link.outward label contains 'parent' ⇒ outwardIssue is a child
-      - If link.inward  label contains 'child'  ⇒ inwardIssue  is a child
-      - Fallback: if the link type name mentions parent/child, take the other side
+    """Return *children* of the current issue by following only *downward* Parent/Child links
+    and including subtasks. We *ignore* all other link types (relates/blocks/etc.) and we do
+    not traverse to parents.
+
+    Rules (direction-sensitive using the link labels):
+      • If link has an **outwardIssue** and the **outward** label implies *this issue is parent of the other* or
+        *this issue has child*, then the outwardIssue is a **child** (include it).
+      • If link has an **inwardIssue** and the **inward** label implies *this issue is parent of the other*,
+        then the inwardIssue is a **child** (include it).
+      • Labels like **"is child of"/"child of"** indicate the *other* is a **parent** — do **not** include.
+      • Subtasks are always treated as children.
     """
+    def _other_is_child(label: str, direction: str) -> bool:
+        s = (label or "").strip().lower().replace("’", "'")
+        if not s:
+            return False
+        # Strong, explicit patterns first
+        if "is parent of" in s or "parent of" in s:
+            return True
+        if "has child" in s or "has children" in s:
+            # Normally appears on the **outward** side, but if encountered on inward
+            # we still treat the *other* as child conservatively.
+            return True
+        if "is child of" in s or "child of" in s:
+            return False
+        # Heuristic fallbacks
+        if direction == "outward" and "child" in s:
+            # e.g. outward label contains "child" but not "child of": assume other is child
+            return True
+        # Default: do not treat as child
+        return False
+
     keys: Set[str] = set()
     f = issue.fields
 
     # Subtasks count as children
     for st in getattr(f, "subtasks", None) or []:
-        if getattr(st, "key", None):
-            keys.add(st.key)
+        k = getattr(st, "key", None)
+        if k:
+            keys.add(k)
+            logger.debug("Child link via subtask: %s -> %s", getattr(issue, "key", "?"), k)
 
     for link in getattr(f, "issuelinks", []) or []:
         ltype = getattr(link, "type", None)
         if not ltype:
             continue
-        inward = (getattr(ltype, "inward", "") or "").lower()
-        outward = (getattr(ltype, "outward", "") or "").lower()
-        name = (getattr(ltype, "name", "") or "").lower()
 
-        # Current issue "is parent of" ⇒ outwardIssue is the child
-        if "parent" in outward and getattr(link, "outwardIssue", None):
-            k = getattr(link.outwardIssue, "key", None)
-            if k:
-                keys.add(k)
-            continue
-        # Current issue "has child" ⇒ inwardIssue is the child
-        if "child" in inward and getattr(link, "inwardIssue", None):
-            k = getattr(link.inwardIssue, "key", None)
-            if k:
-                keys.add(k)
-            continue
-        # Fallback on imprecise names (e.g., type name contains 'Parent/Child')
-        if ("parent" in name) or ("child" in name):
-            tgt = getattr(link, "outwardIssue", None) or getattr(link, "inwardIssue", None)
-            if tgt and getattr(tgt, "key", None):
-                keys.add(tgt.key)
+        # Outward side
+        if getattr(link, "outwardIssue", None):
+            label = getattr(ltype, "outward", "")
+            if _other_is_child(label, "outward"):
+                k = getattr(link.outwardIssue, "key", None)
+                if k:
+                    keys.add(k)
+                    logger.debug("Child link (outward): %s --[%s]--> %s", getattr(issue, "key", "?"), label, k)
+
+        # Inward side
+        if getattr(link, "inwardIssue", None):
+            label = getattr(ltype, "inward", "")
+            if _other_is_child(label, "inward"):
+                k = getattr(link.inwardIssue, "key", None)
+                if k:
+                    keys.add(k)
+                    logger.debug("Child link (inward): %s --[%s]--> %s", getattr(issue, "key", "?"), label, k)
+
     return list(keys)
+
 
 
 
@@ -255,7 +302,9 @@ def collect_issue_keys_for_epic(epic_key: str, max_depth: int = MAX_DEPTH_DEFAUL
     Return the set of issues to count toward COMPDIV burndown for a given epic, defined as:
       • Issues IN the epic (via Epic Link), and
       • All descendants reached by recursively following *child* relationships
-        (Parent/Child-style links and Jira subtasks) up to `max_depth` levels.
+        (Parent/Child-style links and Jira subtasks) up to `max_depth` levels,
+      • PLUS: whenever a node in the graph is an **Epic**, also include issues IN that epic
+        (via Epic Link) in the recursion.
     """
     jira = get_client()
     sp_cf = get_field_id(jira, "Story Points")
@@ -268,13 +317,13 @@ def collect_issue_keys_for_epic(epic_key: str, max_depth: int = MAX_DEPTH_DEFAUL
 
     # (0) Fetch the epic itself for link expansion
     try:
-        epic_issue = jira.issue(epic_key, fields="issuelinks,subtasks")
+        epic_issue = jira.issue(epic_key, fields="issuetype,issuelinks,subtasks")
     except Exception:
         logger.exception("Failed to fetch epic %s", epic_key)
         return []
 
     # (1) Direct children via Epic Link
-    in_epic = _initial_children_for_epic(jira, epic_key, epic_link_cf, fields_csv)
+    in_epic = _get_issues_in_epic_cached(jira, epic_key, epic_link_cf, fields_csv)
 
     # (2) Direct children via Parent/Child links on the epic
     child_keys_lvl0 = _child_linked_keys_from_issue(epic_issue)
@@ -289,27 +338,65 @@ def collect_issue_keys_for_epic(epic_key: str, max_depth: int = MAX_DEPTH_DEFAUL
     frontier: List[object] = list(issues_by_key.values())
 
     depth = 0
-    while frontier and depth < max_depth:
+    seen_epics: Set[str] = set([epic_key])
+    nodes_budget = MAX_BFS_NODES
+    while frontier and depth < max_depth and nodes_budget > 0:
+        logger.debug("BFS depth=%d frontier=%d visited=%d budget=%d", depth, len(frontier), len(visited), nodes_budget)
         next_keys: Set[str] = set()
+        extra_epic_issues: List[object] = []
+
         for iss in frontier:
+            # follow Parent/Child links
             next_keys.update(_child_linked_keys_from_issue(iss))
+
+            # If this node is an Epic, also pull its in-epic issues
+            try:
+                itype = (getattr(getattr(iss.fields, "issuetype", None), "name", "") or "").lower()
+            except Exception:
+                itype = ""
+            if itype == "epic" and epic_link_cf and iss.key not in seen_epics:
+                seen_epics.add(iss.key)
+                for ex in _get_issues_in_epic_cached(jira, iss.key, epic_link_cf, fields_csv) or []:
+                    if ex.key not in visited:
+                        extra_epic_issues.append(ex)
+                        visited.add(ex.key)
+                        issues_by_key.setdefault(ex.key, ex)
+
+        # Remove already-visited before fetching by keys
         next_keys -= visited
-        if not next_keys:
+        if not next_keys and not extra_epic_issues:
             break
-        next_issues = _fetch_batch_by_keys(jira, list(next_keys), fields_csv)
-        frontier = []
-        for iss in next_issues:
-            if iss.key not in issues_by_key:
-                issues_by_key[iss.key] = iss
-            visited.add(iss.key)
-            frontier.append(iss)
+
+        # fetch by keys gathered from child links
+        fetched_by_keys = _fetch_batch_by_keys(jira, list(next_keys), fields_csv) if next_keys else []
+
+        # Build next frontier (dedup by key)
+        frontier_map: Dict[str, object] = {}
+        for obj in fetched_by_keys + extra_epic_issues:
+            if obj.key not in visited:
+                visited.add(obj.key)
+            frontier_map[obj.key] = obj
+            issues_by_key.setdefault(obj.key, obj)
+
+        frontier = list(frontier_map.values())
+        nodes_budget -= len(frontier)
         depth += 1
+
+    if nodes_budget <= 0:
+        logger.warning("BFS node budget exceeded for %s; results truncated (visited=%d)", epic_key, len(visited))
 
     return list(issues_by_key.values())
 
 
-def compute_point_totals(issues: Iterable, sp_cf: str | None, *, only_open: bool = True) -> Tuple[float, float, float]:
-    """Sum story points across issues into bug/story buckets.
+def compute_point_totals(
+    issues: Iterable,
+    sp_cf: str | None,
+    *,
+    only_open: bool = True,
+    trace: bool = False,
+    epic_key: str | None = None,
+) -> Tuple[float, float, float, float]:
+    """Sum story points across issues into bug/story/task_research buckets.
 
     Parameters
     ----------
@@ -319,46 +406,85 @@ def compute_point_totals(issues: Iterable, sp_cf: str | None, *, only_open: bool
         Field id for "Story Points" (e.g., "customfield_10016"). If None, counts as 0.
     only_open : bool, default True
         If True, exclude issues whose status is in Jira's DONE category (or matches DONE_NAME_HINTS).
+    trace : bool, default False
+        If True, emit a per-issue trace line for *Story/Bug/Task/Research* items showing whether points were counted.
+    epic_key : str | None
+        Epic key used in trace logs.
     """
     bug_pts = 0.0
     story_pts = 0.0
+    task_research_pts = 0.0
+
     for iss in issues:
-        f = iss.fields
-        if only_open and _is_done_status(f):
+        f = getattr(iss, "fields", None)
+        if not f:
             continue
-        itype = getattr(getattr(f, "issuetype", None), "name", "")
+        itype = str(getattr(getattr(f, "issuetype", None), "name", "") or "")
+        if itype not in BUG_TYPES and itype not in STORY_TYPES and itype not in TASK_RESEARCH_TYPES:
+            # Only trace the three categories we count
+            continue
+
+        status_name = str(getattr(getattr(f, "status", None), "name", "") or "")
         pts = _points(f, sp_cf)
-        if itype in BUG_TYPES:
-            bug_pts += pts
-        elif itype in STORY_TYPES:
-            story_pts += pts
-        # else: ignore for now
-    total = bug_pts + story_pts
-    return round(bug_pts, 2), round(story_pts, 2), round(total, 2)
+        is_done = _is_done_status(f)
+        counted = (not only_open) or (not is_done)
+
+        if counted:
+            if itype in BUG_TYPES:
+                bug_pts += pts
+            elif itype in STORY_TYPES:
+                story_pts += pts
+            elif itype in TASK_RESEARCH_TYPES:
+                task_research_pts += pts
+
+        if trace:
+            action = "COUNT" if counted else "SKIP_DONE"
+            logger.info(
+                "[%s] %s type=%s status=%s points=%.2f -> %s",
+                epic_key or "?",
+                getattr(iss, "key", "?"),
+                itype,
+                status_name,
+                pts,
+                action,
+            )
+
+    total = bug_pts + story_pts + task_research_pts
+    if trace:
+        logger.info(
+            "%s: TRACE TOTALS -> bug=%.2f story=%.2f task_research=%.2f total=%.2f",
+            epic_key or "?",
+            bug_pts,
+            story_pts,
+            task_research_pts,
+            total,
+        )
+    return round(bug_pts, 2), round(story_pts, 2), round(task_research_pts, 2), round(total, 2)
 
 
-def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, total: float) -> None:
+def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, task_research: float, total: float) -> None:
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO public.tbl_compdiv_burndown (run_date, epic_key, bug_points, story_points, total_points)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO public.tbl_compdiv_burndown (run_date, epic_key, bug_points, story_points, task_research_points, total_points)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (run_date, epic_key)
                 DO UPDATE SET bug_points=EXCLUDED.bug_points,
                               story_points=EXCLUDED.story_points,
+                              task_research_points=EXCLUDED.task_research_points,
                               total_points=EXCLUDED.total_points;
                 """,
-                (run_dt, epic_key, bug, story, total),
+                (run_dt, epic_key, bug, story, task_research, total),
             )
         conn.commit()
     finally:
         pool.putconn(conn)
 
 
-def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[float, float, float]]:
+def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[float, float, float, float]]:
     """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each.
     Emits a clear completion log when finished.
     """
@@ -384,7 +510,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
     jira = get_client()
     sp_cf = get_field_id(jira, "Story Points")
 
-    results: Dict[str, Tuple[float, float, float]] = {}
+    results: Dict[str, Tuple[float, float, float, float]] = {}
     successes = 0
     failures = 0
 
@@ -398,11 +524,21 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
             logger.info("Collected %d issues for %s", len(issues), epic)
 
-            bug, story, total = compute_point_totals(issues, sp_cf)
-            upsert_burndown_row(run_dt, epic, bug, story, total)
-            results[epic] = (bug, story, total)
+            trace_flag = _should_trace(epic)
+            bug, story, task_research, total = compute_point_totals(
+                issues, sp_cf, only_open=True, trace=trace_flag, epic_key=epic
+            )
+            upsert_burndown_row(run_dt, epic, bug, story, task_research, total)
+            results[epic] = (bug, story, task_research, total)
             successes += 1
-            logger.info("COMPDIV burndown done: %s (bug=%.2f story=%.2f total=%.2f)", epic, bug, story, total)
+            logger.info(
+                "COMPDIV burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
+                epic,
+                bug,
+                story,
+                task_research,
+                total,
+            )
 
             # Write/overwrite the HTML chart file for this epic
             try:
@@ -421,6 +557,23 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
         run_dt, len(results) + failures, successes, failures, duration,
     )
     return results
+
+
+def _should_trace(epic_key: str) -> bool:
+    """Return True if the current epic should emit per-issue trace logs.
+    Controlled via env var COMPDIV_TRACE. Examples:
+      COMPDIV_TRACE="*"                  -> trace all epics
+      COMPDIV_TRACE="COMPDIV-72"         -> trace just 72
+      COMPDIV_TRACE="COMPDIV-72,COMPDIV-45" -> trace a list
+    """
+    load_dotenv()
+    spec = os.getenv("COMPDIV_TRACE", "").strip()
+    if not spec:
+        return False
+    if spec == "*":
+        return True
+    targets = {s.strip() for s in spec.split(",") if s.strip()}
+    return epic_key in targets
 
 
 # ---- Prediction + chart ----
@@ -470,14 +623,14 @@ def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float
     return (clamp_to_dates(t_zero), clamp_to_dates(lo), clamp_to_dates(hi))
 
 
-def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[float], List[float]]:
+def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[float], List[float], List[float]]:
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT run_date, bug_points, story_points, total_points
+                SELECT run_date, bug_points, story_points, task_research_points, total_points
                 FROM public.tbl_compdiv_burndown
                 WHERE epic_key = %s
                 ORDER BY run_date ASC
@@ -491,12 +644,13 @@ def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[
     dates = [r[0] for r in rows]
     bug = [float(r[1]) for r in rows]
     story = [float(r[2]) for r in rows]
-    total = [float(r[3]) for r in rows]
-    return dates, bug, story, total
+    task_research = [float(r[3]) for r in rows]
+    total = [float(r[4]) for r in rows]
+    return dates, bug, story, task_research, total
 
 
 def build_plot_html(epic_key: str) -> str:
-    dates, bug, story, total = fetch_burndown_series(epic_key)
+    dates, bug, story, task_research, total = fetch_burndown_series(epic_key)
     epic_title = get_epic_display_name(epic_key)
     status_name = get_epic_status_text(epic_key)
 
@@ -505,6 +659,7 @@ def build_plot_html(epic_key: str) -> str:
         fig.add_trace(go.Scatter(x=dates, y=total, mode="lines+markers", name="Total points"))
         fig.add_trace(go.Scatter(x=dates, y=bug, mode="lines+markers", name="Bug points"))
         fig.add_trace(go.Scatter(x=dates, y=story, mode="lines+markers", name="Story points"))
+        fig.add_trace(go.Scatter(x=dates, y=task_research, mode="lines+markers", name="Task/Research points"))
 
         zdt, lo, hi = _linear_zero_day_with_ci(dates, total, conf=0.80)
         if zdt:

@@ -209,7 +209,8 @@ def write_consolidated_report(all_issues_data: list):
                     "facts": [
                         {"title": "Issue:", "value": issue_link},
                         {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
-                        {"title": "Reason:", "value": issue.get('Reason', 'N/A')}
+                        {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
+                        {"title": "OLA:", "value": "Please refer to OLA confluence for more information: https://rndconfluence.sas.com/x/2j7EHg"}
                     ],
                     "separator": True
                 })
