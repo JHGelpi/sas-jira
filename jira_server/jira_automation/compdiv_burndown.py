@@ -516,13 +516,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
 
     for epic in epic_keys:
         try:
-            logger.info("COMPDIV burndown start: %s", epic)
+            #logger.info("COMPDIV burndown start: %s", epic)
             is_closed, epic_status_name = get_epic_status_info(epic)
             if is_closed:
-                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
+                #logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
                 continue
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
-            logger.info("Collected %d issues for %s", len(issues), epic)
+            #logger.info("Collected %d issues for %s", len(issues), epic)
 
             trace_flag = _should_trace(epic)
             bug, story, task_research, total = compute_point_totals(
@@ -531,6 +531,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
             upsert_burndown_row(run_dt, epic, bug, story, task_research, total)
             results[epic] = (bug, story, task_research, total)
             successes += 1
+            '''
             logger.info(
                 "COMPDIV burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
                 epic,
@@ -539,11 +540,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
                 task_research,
                 total,
             )
-
+            '''
             # Write/overwrite the HTML chart file for this epic
             try:
                 path = write_plot_html(epic)
-                logger.info("Wrote burndown HTML: %s", path)
+                #logger.info("Wrote burndown HTML: %s", path)
             except Exception:
                 logger.exception("Failed to write HTML chart for %s", epic)
         except Exception:
