@@ -484,25 +484,53 @@ def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, t
         pool.putconn(conn)
 
 
-def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[float, float, float, float]]:
+def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | None = None) -> Dict[str, Tuple[float, float, float, float]]:
     """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each.
+    Optionally filter which COMPDIV epics to run via the new `filter_flag` column.
+
+    Filtering behavior
+    ------------------
+    • If `filter_flag` param is provided (non-empty), only rows where tbl_initiative_issue_keys.filter_flag = filter_flag are used.
+    • If the param is None/empty, we will read COMPDIV_FILTER_FLAG from the environment; if unset, all epics are used.
+    • The column is CHAR(7) and optional; equality works fine even with CHAR padding in Postgres.
+
     Emits a clear completion log when finished.
     """
     t_start = perf_counter()
     run_dt = run_dt or date.today()
 
-    # Load candidate epics
+    # Resolve filter flag from param or environment
+    if not filter_flag:
+        load_dotenv()
+        ff = os.getenv("COMPDIV_FILTER_FLAG", "").strip()
+        filter_flag = ff or None
+
+    # Load candidate epics (optionally filtered)
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT DISTINCT issue_key
-                FROM public.tbl_initiative_issue_keys
-                WHERE issue_key ~ '^COMPDIV-\d+$'
-                """
-            )
+            
+            params: List[object] = []
+            if filter_flag:
+                base_sql = (
+                    """
+                    SELECT DISTINCT issue_key
+                    FROM public.tbl_initiative_issue_keys
+                    WHERE 
+                    """
+                )
+                base_sql += " filter_flag = %s"
+                params.append(filter_flag)
+            else:
+                base_sql = (
+                    """
+                    SELECT DISTINCT issue_key
+                    FROM public.tbl_initiative_issue_keys
+                    WHERE issue_key ~ '^COMPDIV-\d+$'
+                    """
+                )
+            cur.execute(base_sql, params)
             epic_keys = [r[0] for r in cur.fetchall()]
     finally:
         pool.putconn(conn)
@@ -516,13 +544,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
 
     for epic in epic_keys:
         try:
-            #logger.info("COMPDIV burndown start: %s", epic)
+            logger.info("COMPDIV burndown start: %s", epic)
             is_closed, epic_status_name = get_epic_status_info(epic)
             if is_closed:
-                #logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
+                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
                 continue
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
-            #logger.info("Collected %d issues for %s", len(issues), epic)
+            logger.info("Collected %d issues for %s", len(issues), epic)
 
             trace_flag = _should_trace(epic)
             bug, story, task_research, total = compute_point_totals(
@@ -531,7 +559,6 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
             upsert_burndown_row(run_dt, epic, bug, story, task_research, total)
             results[epic] = (bug, story, task_research, total)
             successes += 1
-            '''
             logger.info(
                 "COMPDIV burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
                 epic,
@@ -540,11 +567,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None) -> Dict[str, Tuple[flo
                 task_research,
                 total,
             )
-            '''
+
             # Write/overwrite the HTML chart file for this epic
             try:
                 path = write_plot_html(epic)
-                #logger.info("Wrote burndown HTML: %s", path)
+                logger.info("Wrote burndown HTML: %s", path)
             except Exception:
                 logger.exception("Failed to write HTML chart for %s", epic)
         except Exception:
