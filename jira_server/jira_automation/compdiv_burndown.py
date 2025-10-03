@@ -544,13 +544,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
     for epic in epic_keys:
         try:
-            logger.info("COMPDIV burndown start: %s", epic)
+            # logger.info("COMPDIV burndown start: %s", epic)
             is_closed, epic_status_name = get_epic_status_info(epic)
             if is_closed:
-                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
+                # logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
                 continue
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
-            logger.info("Collected %d issues for %s", len(issues), epic)
+            # logger.info("Collected %d issues for %s", len(issues), epic)
 
             trace_flag = _should_trace(epic)
             bug, story, task_research, total = compute_point_totals(
@@ -559,6 +559,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
             upsert_burndown_row(run_dt, epic, bug, story, task_research, total)
             results[epic] = (bug, story, task_research, total)
             successes += 1
+            '''
             logger.info(
                 "COMPDIV burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
                 epic,
@@ -567,11 +568,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                 task_research,
                 total,
             )
-
+            '''
             # Write/overwrite the HTML chart file for this epic
             try:
                 path = write_plot_html(epic)
-                logger.info("Wrote burndown HTML: %s", path)
+                # logger.info("Wrote burndown HTML: %s", path)
             except Exception:
                 logger.exception("Failed to write HTML chart for %s", epic)
         except Exception:
@@ -691,10 +692,35 @@ def build_plot_html(epic_key: str) -> str:
 
         zdt, lo, hi = _linear_zero_day_with_ci(dates, total, conf=0.80)
         if zdt:
-            fig.add_vline(x=zdt, line_dash="dash", annotation_text=f"Zero @ {zdt:%Y-%m-%d}", annotation_position="top right")
+            # Vertical line as a shape (no annotation_text here)
+            fig.add_shape(
+                type="line",
+                x0=zdt, x1=zdt, xref="x",
+                y0=0, y1=1, yref="paper",
+                line=dict(dash="dash")
+            )
+            # Add separate annotation (safe with date axes)
+            fig.add_annotation(
+                x=zdt, y=1.02, xref="x", yref="paper",
+                text=f"Zero @ {zdt:%Y-%m-%d}",
+                showarrow=False, xanchor="left", align="right"
+            )
+
             if lo and hi:
-                fig.add_vrect(x0=lo, x1=hi, line_width=0, fillcolor="LightSalmon", opacity=0.2,
-                              annotation_text="80% CI", annotation_position="top left")
+                # Confidence interval rectangle (no annotation_text here)
+                fig.add_shape(
+                    type="rect",
+                    x0=lo, x1=hi, xref="x",
+                    y0=0, y1=1, yref="paper",
+                    line=dict(width=0),
+                    fillcolor="LightSalmon", opacity=0.2
+                )
+                mid = lo + (hi - lo) / 2
+                fig.add_annotation(
+                    x=mid, y=1.02, xref="x", yref="paper",
+                    text="80% CI",
+                    showarrow=False
+                )
 
     fig.update_layout(
         title=f"{epic_title} ({epic_key})<br><sup>[{status_name}]</sup>",
@@ -706,6 +732,7 @@ def build_plot_html(epic_key: str) -> str:
 
     import plotly.io as pio
     return pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
+
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
