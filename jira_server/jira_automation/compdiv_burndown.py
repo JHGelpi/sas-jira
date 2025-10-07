@@ -27,6 +27,8 @@ MAX_DEPTH_DEFAULT: int = 6
 MAX_BFS_NODES: int = 5000
 # HTTP timeout for Jira API calls (seconds)
 JIRA_TIMEOUT_SECONDS: int = int(os.getenv("JIRA_TIMEOUT") or 30)
+# Cap how far into the future we’ll ever draw a zero-day marker (default 3 years)
+MAX_LOOKAHEAD_DAYS: int = int(os.getenv("COMPDIV_MAX_LOOKAHEAD_DAYS") or 1095)
 
 # Status handling — treat only *non-done* issues as remaining work
 DONE_NAME_HINTS: Set[str] = {
@@ -608,48 +610,93 @@ def _should_trace(epic_key: str) -> bool:
 # ---- Prediction + chart ----
 
 def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float = 0.80):
-    """Fit y = a + b t ; return t0 date and [lo, hi] (80% CI) when y=0 via delta method."""
+    """Fit y = a + b t ; return (t_zero_date, lo_date, hi_date) when y=0.
+    Returns (None, None, None) when the fit is not meaningful (too few points,
+    non-decreasing trend, ill-conditioned, or out-of-range predictions).
+    """
     if len(dates) < 3:
         return (None, None, None)
+
+    # Anchor time at first date
     t0 = min(dates)
+    # Build arrays and drop non-finite totals to avoid NaN propagation
     t = np.array([(d - t0).days for d in dates], dtype=float)
     y = np.array(totals, dtype=float)
+    mask = np.isfinite(t) & np.isfinite(y)
+    t, y = t[mask], y[mask]
+    if t.size < 3:
+        return (None, None, None)
 
+    # Design matrix and OLS
     X = np.column_stack([np.ones_like(t), t])
     XtX = X.T @ X
     try:
-        beta = np.linalg.inv(XtX) @ (X.T @ y)
+        XtX_inv = np.linalg.inv(XtX)
+        beta = XtX_inv @ (X.T @ y)
     except np.linalg.LinAlgError:
         return (None, None, None)
 
     a, b = float(beta[0]), float(beta[1])
+
+    # If we aren't burning down (slope >= ~0), don't show a zero-day
+    EPS_SLOPE = 1e-6
+    if not np.isfinite(b) or b >= -EPS_SLOPE:
+        return (None, None, None)
+
+    # Residual variance & covariance of beta
     yhat = X @ beta
     resid = y - yhat
     dof = max(1, len(y) - 2)
     sigma2 = float((resid @ resid) / dof)
-    cov_beta = sigma2 * np.linalg.inv(XtX)
+    cov_beta = sigma2 * XtX_inv
 
-    if b >= 0:
-        return (None, None, None)  # not burning down
-
+    # Predicted day (in "days from t0") when y=0
     t_zero = -a / b
+    if not np.isfinite(t_zero):
+        return (None, None, None)
 
-    # Delta method for Var(t_zero)
+    # Delta method for CI on t_zero
     da = -1.0 / b
     db = a / (b * b)
     var_t0 = (da * da) * cov_beta[0, 0] + (db * db) * cov_beta[1, 1] + 2 * da * db * cov_beta[0, 1]
-    se_t0 = math.sqrt(max(0.0, var_t0))
+    se_t0 = math.sqrt(max(0.0, var_t0)) if np.isfinite(var_t0) else float("nan")
 
     # z for central 80%
     z = 1.2815515655446004
     lo = t_zero - z * se_t0
     hi = t_zero + z * se_t0
 
-    def clamp_to_dates(x):
-        x = max(float(x), 0.0)
-        return t0 + timedelta(days=x)
+    # Don’t allow negative (already zeroed-out earlier than t0); clamp to 0 for display
+    t_zero = max(0.0, float(t_zero))
+    lo = max(0.0, float(lo)) if np.isfinite(lo) else float("nan")
+    hi = max(0.0, float(hi)) if np.isfinite(hi) else float("nan")
 
-    return (clamp_to_dates(t_zero), clamp_to_dates(lo), clamp_to_dates(hi))
+    # Refuse absurdly distant predictions to avoid timedelta overflow and nonsense visuals
+    max_days_seen = float(np.max(t)) if t.size else 0.0
+    horizon = max_days_seen + float(MAX_LOOKAHEAD_DAYS)
+
+    def to_date_or_none(days_float: float) -> date | None:
+        if not np.isfinite(days_float):
+            return None
+        if days_float > horizon:
+            return None
+        # safe conversion
+        return t0 + timedelta(days=float(days_float))
+
+    zdt = to_date_or_none(t_zero)
+    lod = to_date_or_none(lo)
+    hid = to_date_or_none(hi)
+
+    # If the point estimate is out-of-range, drop the marker entirely
+    if zdt is None:
+        return (None, None, None)
+
+    # If CI is out-of-range/invalid, just omit the band
+    if lod is None or hid is None or hid < lod:
+        return (zdt, None, None)
+
+    return (zdt, lod, hid)
+
 
 
 def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[float], List[float], List[float]]:
