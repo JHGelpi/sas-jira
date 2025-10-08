@@ -4,7 +4,7 @@ import logging
 import math
 import os
 import re
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Iterable, Set, Dict, Tuple, List
 from time import perf_counter
 
@@ -27,8 +27,6 @@ MAX_DEPTH_DEFAULT: int = 6
 MAX_BFS_NODES: int = 5000
 # HTTP timeout for Jira API calls (seconds)
 JIRA_TIMEOUT_SECONDS: int = int(os.getenv("JIRA_TIMEOUT") or 30)
-# Cap how far into the future we’ll ever draw a zero-day marker (default 3 years)
-MAX_LOOKAHEAD_DAYS: int = int(os.getenv("COMPDIV_MAX_LOOKAHEAD_DAYS") or 1095)
 
 # Status handling — treat only *non-done* issues as remaining work
 DONE_NAME_HINTS: Set[str] = {
@@ -173,7 +171,7 @@ def _fetch_batch_by_keys(jira, keys: List[str], fields_csv: str):
         t0 = perf_counter()
         issues = jira.search_issues(jql, fields=fields_csv, maxResults=1000)
         dt = perf_counter() - t0
-        logger.debug("JQL fetch batch %d..%d (%d keys) -> %d issues (%.2fs)", i, i+len(batch)-1, len(batch), len(issues), dt)
+        #logger.debug("JQL fetch batch %d..%d (%d keys) -> %d issues (%.2fs)", i, i+len(batch)-1, len(batch), len(issues), dt)
         out.extend(issues)
     return out
 
@@ -214,7 +212,7 @@ def _initial_children_for_epic(jira, epic_key: str, epic_link_cf: str | None, fi
     jql = f'cf[{num}] = "{epic_key}"'
     t0 = perf_counter()
     issues = jira.search_issues(jql, fields=fields_csv, maxResults=1000)
-    logger.debug("JQL in-epic %s -> %d issues (%.2fs)", epic_key, len(issues), perf_counter()-t0)
+    #logger.debug("JQL in-epic %s -> %d issues (%.2fs)", epic_key, len(issues), perf_counter()-t0)
     return issues
 
 
@@ -512,7 +510,6 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
     conn = pool.getconn()
     try:
         with conn.cursor() as cur:
-            
             params: List[object] = []
             if filter_flag:
                 base_sql = (
@@ -546,13 +543,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
     for epic in epic_keys:
         try:
-            # logger.info("COMPDIV burndown start: %s", epic)
+            logger.info("COMPDIV burndown start: %s", epic)
             is_closed, epic_status_name = get_epic_status_info(epic)
             if is_closed:
-                # logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
+                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
                 continue
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
-            # logger.info("Collected %d issues for %s", len(issues), epic)
+            #logger.info("Collected %d issues for %s", len(issues), epic)
 
             trace_flag = _should_trace(epic)
             bug, story, task_research, total = compute_point_totals(
@@ -571,10 +568,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                 total,
             )
             '''
-            # Write/overwrite the HTML chart file for this epic
+            # Write/overwrite the HTML chart file for this epic (unless COMPDIV_SKIP_HTML is set)
             try:
-                path = write_plot_html(epic)
-                # logger.info("Wrote burndown HTML: %s", path)
+                load_dotenv()
+                skip_html = os.getenv("COMPDIV_SKIP_HTML", "").strip().lower() in {"1","true","yes","y"}
+                if not skip_html:
+                    path = write_plot_html(epic)
+                    #logger.info("Wrote burndown HTML: %s", path)
             except Exception:
                 logger.exception("Failed to write HTML chart for %s", epic)
         except Exception:
@@ -610,37 +610,34 @@ def _should_trace(epic_key: str) -> bool:
 # ---- Prediction + chart ----
 
 def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float = 0.80):
-    """Fit y = a + b t ; return (t_zero_date, lo_date, hi_date) when y=0.
-    Returns (None, None, None) when the fit is not meaningful (too few points,
-    non-decreasing trend, ill-conditioned, or out-of-range predictions).
+    """Fit y = a + b t; return (t_zero_date, lo_date, hi_date) for when y=0.
+
+    Safety/robustness:
+      • If the slope b is non-negative or ~0, return (None, None, None) — not burning down.
+      • Respect env var COMPDIV_MAX_LOOKAHEAD_DAYS. If the predicted zero or its CI bounds
+        are farther than this many days from the first sample, return None for them so we
+        skip drawing lines/rects. This prevents OverflowError from enormous timedeltas.
     """
     if len(dates) < 3:
         return (None, None, None)
 
-    # Anchor time at first date
+    # Normalize to the earliest date as t0
     t0 = min(dates)
-    # Build arrays and drop non-finite totals to avoid NaN propagation
     t = np.array([(d - t0).days for d in dates], dtype=float)
     y = np.array(totals, dtype=float)
-    mask = np.isfinite(t) & np.isfinite(y)
-    t, y = t[mask], y[mask]
-    if t.size < 3:
-        return (None, None, None)
 
-    # Design matrix and OLS
+    # OLS fit for y = a + b t
     X = np.column_stack([np.ones_like(t), t])
     XtX = X.T @ X
     try:
-        XtX_inv = np.linalg.inv(XtX)
-        beta = XtX_inv @ (X.T @ y)
+        beta = np.linalg.inv(XtX) @ (X.T @ y)
     except np.linalg.LinAlgError:
         return (None, None, None)
 
     a, b = float(beta[0]), float(beta[1])
 
-    # If we aren't burning down (slope >= ~0), don't show a zero-day
-    EPS_SLOPE = 1e-6
-    if not np.isfinite(b) or b >= -EPS_SLOPE:
+    # If not burning down or essentially flat, don't attempt a forecast
+    if b >= 0 or abs(b) < 1e-6:
         return (None, None, None)
 
     # Residual variance & covariance of beta
@@ -648,55 +645,51 @@ def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float
     resid = y - yhat
     dof = max(1, len(y) - 2)
     sigma2 = float((resid @ resid) / dof)
-    cov_beta = sigma2 * XtX_inv
+    cov_beta = sigma2 * np.linalg.inv(XtX)
 
-    # Predicted day (in "days from t0") when y=0
+    # Predicted zero-crossing (in days from t0)
     t_zero = -a / b
-    if not np.isfinite(t_zero):
-        return (None, None, None)
 
-    # Delta method for CI on t_zero
+    # Delta method for Var(t_zero)
     da = -1.0 / b
     db = a / (b * b)
     var_t0 = (da * da) * cov_beta[0, 0] + (db * db) * cov_beta[1, 1] + 2 * da * db * cov_beta[0, 1]
-    se_t0 = math.sqrt(max(0.0, var_t0)) if np.isfinite(var_t0) else float("nan")
+    se_t0 = math.sqrt(max(0.0, var_t0))
 
-    # z for central 80%
-    z = 1.2815515655446004
+    # z for central CI (e.g., 80%)
+    z = 1.2815515655446004  # ~N(0,1) 80% two-sided
     lo = t_zero - z * se_t0
     hi = t_zero + z * se_t0
 
-    # Don’t allow negative (already zeroed-out earlier than t0); clamp to 0 for display
-    t_zero = max(0.0, float(t_zero))
-    lo = max(0.0, float(lo)) if np.isfinite(lo) else float("nan")
-    hi = max(0.0, float(hi)) if np.isfinite(hi) else float("nan")
+    # Respect max lookahead horizon
+    load_dotenv()
+    try:
+        max_look = int(os.getenv("COMPDIV_MAX_LOOKAHEAD_DAYS") or 0)
+    except Exception:
+        max_look = 0
 
-    # Refuse absurdly distant predictions to avoid timedelta overflow and nonsense visuals
-    max_days_seen = float(np.max(t)) if t.size else 0.0
-    horizon = max_days_seen + float(MAX_LOOKAHEAD_DAYS)
-
-    def to_date_or_none(days_float: float) -> date | None:
-        if not np.isfinite(days_float):
+    def clamp_to_date_or_none(x: float | int | None):
+        if x is None:
             return None
-        if days_float > horizon:
+        try:
+            xf = float(x)
+        except Exception:
             return None
-        # safe conversion
-        return t0 + timedelta(days=float(days_float))
+        # Negative or non-finite -> no forecast
+        if not math.isfinite(xf) or xf < 0:
+            return None
+        # Enforce horizon if configured (>0 means enabled)
+        if max_look > 0 and xf > max_look:
+            return None
+        try:
+            return t0 + timedelta(days=xf)
+        except OverflowError:
+            return None
 
-    zdt = to_date_or_none(t_zero)
-    lod = to_date_or_none(lo)
-    hid = to_date_or_none(hi)
-
-    # If the point estimate is out-of-range, drop the marker entirely
-    if zdt is None:
-        return (None, None, None)
-
-    # If CI is out-of-range/invalid, just omit the band
-    if lod is None or hid is None or hid < lod:
-        return (zdt, None, None)
-
-    return (zdt, lod, hid)
-
+    zdt = clamp_to_date_or_none(t_zero)
+    lodt = clamp_to_date_or_none(lo)
+    hidt = clamp_to_date_or_none(hi)
+    return (zdt, lodt, hidt)
 
 
 def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[float], List[float], List[float]]:
@@ -730,43 +723,46 @@ def build_plot_html(epic_key: str) -> str:
     epic_title = get_epic_display_name(epic_key)
     status_name = get_epic_status_text(epic_key)
 
+    # Normalize all x-values to datetime for Plotly shapes/annotations
+    def _to_dt(d):
+        if isinstance(d, datetime):
+            return d
+        if isinstance(d, date):
+            return datetime(d.year, d.month, d.day)
+        return d
+
+    dt_dates = [_to_dt(d) for d in dates]
+
     fig = go.Figure()
-    if dates:
-        fig.add_trace(go.Scatter(x=dates, y=total, mode="lines+markers", name="Total points"))
-        fig.add_trace(go.Scatter(x=dates, y=bug, mode="lines+markers", name="Bug points"))
-        fig.add_trace(go.Scatter(x=dates, y=story, mode="lines+markers", name="Story points"))
-        fig.add_trace(go.Scatter(x=dates, y=task_research, mode="lines+markers", name="Task/Research points"))
+    if dt_dates:
+        fig.add_trace(go.Scatter(x=dt_dates, y=total, mode="lines+markers", name="Total points"))
+        fig.add_trace(go.Scatter(x=dt_dates, y=bug, mode="lines+markers", name="Bug points"))
+        fig.add_trace(go.Scatter(x=dt_dates, y=story, mode="lines+markers", name="Story points"))
+        fig.add_trace(go.Scatter(x=dt_dates, y=task_research, mode="lines+markers", name="Task/Research points"))
 
         zdt, lo, hi = _linear_zero_day_with_ci(dates, total, conf=0.80)
         if zdt:
-            # Vertical line as a shape (no annotation_text here)
-            fig.add_shape(
-                type="line",
-                x0=zdt, x1=zdt, xref="x",
-                y0=0, y1=1, yref="paper",
-                line=dict(dash="dash")
-            )
-            # Add separate annotation (safe with date axes)
+            zdt_dt = _to_dt(zdt)
+            fig.add_vline(x=zdt_dt, line_dash="dash")  # avoid built-in annotation bug with date + int
+            # Add a separate annotation at the top of the plot area
             fig.add_annotation(
-                x=zdt, y=1.02, xref="x", yref="paper",
-                text=f"Zero @ {zdt:%Y-%m-%d}",
-                showarrow=False, xanchor="left", align="right"
+                x=zdt_dt,
+                y=1,
+                xref="x",
+                yref="paper",
+                text=f"Zero @ {zdt_dt:%Y-%m-%d}",
+                showarrow=False,
+                xanchor="left",
+                yanchor="bottom",
             )
-
             if lo and hi:
-                # Confidence interval rectangle (no annotation_text here)
-                fig.add_shape(
-                    type="rect",
-                    x0=lo, x1=hi, xref="x",
-                    y0=0, y1=1, yref="paper",
-                    line=dict(width=0),
-                    fillcolor="LightSalmon", opacity=0.2
-                )
-                mid = lo + (hi - lo) / 2
+                lo_dt, hi_dt = _to_dt(lo), _to_dt(hi)
+                fig.add_vrect(x0=lo_dt, x1=hi_dt, line_width=0, fillcolor="LightSalmon", opacity=0.2)
+                # Optional: annotate CI midpoint
+                mid_dt = lo_dt + (hi_dt - lo_dt) / 2
                 fig.add_annotation(
-                    x=mid, y=1.02, xref="x", yref="paper",
-                    text="80% CI",
-                    showarrow=False
+                    x=mid_dt, y=1, xref="x", yref="paper", text="80% CI", showarrow=False,
+                    xanchor="center", yanchor="top", yshift=-2
                 )
 
     fig.update_layout(
@@ -779,7 +775,6 @@ def build_plot_html(epic_key: str) -> str:
 
     import plotly.io as pio
     return pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
-
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
