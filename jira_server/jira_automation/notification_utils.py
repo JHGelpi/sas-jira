@@ -1,9 +1,11 @@
 import os
 import requests
-import logging
+#import logging
 
 # Use the centralized logging system
-logger = logging.getLogger(__name__)
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def send_teams_notification(title: str, body_elements: list, mentions: list = None):
     """

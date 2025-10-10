@@ -1,47 +1,61 @@
+# jira_data_analysis/initiative_children.py
+"""
+Initiative hierarchy analysis.
+
+This module fetches initiatives from JQL, recursively discovers all related issues
+(via links and epic relationships), and stores them in the database.
+"""
+
 import os
-import logging
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 from jira import JIRA
 import psycopg2.extras
 import traceback
 
-# Use absolute imports from the project's root directory
 from jira_data_analysis import db_utils
+from logging_utils import get_logger, log_section_header
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Constants
 MAX_RECURSION_DEPTH = 10
 SIX_MONTHS_AGO = datetime.now().utcnow().replace(tzinfo=None) - timedelta(days=180)
 ALLOWED_LINK_TYPES = {"Is Child", "Is Parent", "Relates", "Is Related To", "Related", "Has Parent", "Hierarchy"}
 
+
 def get_jira_client():
     """Initializes and returns a JIRA client."""
-    return JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_TOKEN'))
+    logger.connecting("Connecting to Jira")
+    try:
+        jira = JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_TOKEN'))
+        logger.success("Connected to Jira")
+        return jira
+    except Exception as e:
+        logger.error(f"Failed to connect to Jira: {e}")
+        return None
+
 
 def sync_initiatives_from_jql(jira, db_pool):
-    """
-    Fetches initiatives from a JQL query and inserts any new ones into the database.
-    """
-    logger.info("Starting sync of initiatives from JIRA_INITIATIVE_JQL.")
+    """Fetches initiatives from a JQL query and inserts any new ones into the database."""
+    log_section_header(logger, "INITIATIVE SYNC FROM JQL")
     
     jql = os.getenv('JIRA_INITIATIVE_JQL')
     if not jql:
-        logger.warning("JIRA_INITIATIVE_JQL environment variable not set. Skipping initiative sync.")
+        logger.warning("JIRA_INITIATIVE_JQL environment variable not set. Skipping initiative sync")
         return
 
     iris_labels_str = os.getenv('JIRA_IRIS_LABELS', '')
     iris_labels_set = {label.strip() for label in iris_labels_str.split(',') if label.strip()}
     
-    logger.info(f"Fetching initiatives from Jira with JQL: {jql}")
+    logger.searching(f"Fetching initiatives from Jira with JQL")
+    logger.debug(f"Query: {jql}")
+    
     jira_initiatives = jira.search_issues(jql, fields=["key", "labels"], maxResults=False)
-    logger.info(f"Found {len(jira_initiatives)} potential initiatives in Jira.")
+    logger.info(f"Found {len(jira_initiatives)} potential initiatives in Jira")
 
     existing_db_keys = set(db_utils.fetch_initiative_keys(db_pool))
-    logger.info(f"Found {len(existing_db_keys)} existing initiatives in the database.")
+    logger.info(f"Found {len(existing_db_keys)} existing initiatives in the database")
 
     new_initiatives_to_insert = []
     today = datetime.now().date()
@@ -58,20 +72,20 @@ def sync_initiatives_from_jql(jira, db_pool):
             )
 
     if not new_initiatives_to_insert:
-        logger.info("No new initiatives to insert. Database is up-to-date.")
+        logger.info("No new initiatives to insert. Database is up-to-date")
         return
 
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cursor:
-            logger.info(f"Inserting {len(new_initiatives_to_insert)} new initiatives into tbl_initiative_issue_keys...")
+            logger.database(f"Inserting {len(new_initiatives_to_insert)} new initiatives into tbl_initiative_issue_keys")
             insert_query = """
                 INSERT INTO tbl_initiative_issue_keys (issue_key, eff_start_date, eff_end_date, "IRIS")
                 VALUES %s
             """
             psycopg2.extras.execute_values(cursor, insert_query, new_initiatives_to_insert)
             conn.commit()
-            logger.info("Successfully inserted new initiatives.")
+            logger.success("Successfully inserted new initiatives")
     except Exception as e:
         conn.rollback()
         logger.error(f"Failed to insert new initiatives into database: {e}")
@@ -91,6 +105,7 @@ def is_issue_valid(issue, allowed_projects_set: set) -> bool:
         return False
     return True
 
+
 def fetch_issues_in_batch(jira, keys: set, chunk_size: int = 100) -> dict:
     """Fetches a set of issues from Jira using batched JQL queries."""
     if not keys:
@@ -98,7 +113,7 @@ def fetch_issues_in_batch(jira, keys: set, chunk_size: int = 100) -> dict:
     
     all_results = {}
     key_list = list(keys)
-    logger.info(f"Batch fetching {len(key_list)} issues in chunks of {chunk_size}...")
+    logger.processing(f"Batch fetching {len(key_list)} issues in chunks of {chunk_size}")
 
     for i in range(0, len(key_list), chunk_size):
         chunk = key_list[i:i + chunk_size]
@@ -111,26 +126,30 @@ def fetch_issues_in_batch(jira, keys: set, chunk_size: int = 100) -> dict:
             )
             for issue in results:
                 all_results[issue.key] = issue
-            logger.info(f"-> Fetched chunk {i//chunk_size + 1}, found {len(results)} issues.")
+            logger.debug(f"Fetched chunk {i//chunk_size + 1}, found {len(results)} issues")
         except Exception as e:
             logger.error(f"Failed to fetch a chunk of issues with JQL: {jql}. Error: {e}")
             continue
             
+    logger.info(f"Total issues fetched: {len(all_results)}")
     return all_results
+
 
 def store_issues_bulk(db_pool, issues_to_store: dict):
     """Stores a dictionary of issues in the database by separating inserts and updates."""
     if not issues_to_store:
-        logger.info("No new issues to store in tbl_initiative_children.")
+        logger.info("No new issues to store in tbl_initiative_children")
         return
 
+    logger.database("Starting bulk store operation")
+    
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cursor:
-            logger.info("Fetching existing issue keys from tbl_initiative_children...")
+            logger.info("Fetching existing issue keys from tbl_initiative_children")
             cursor.execute("SELECT issue_key FROM tbl_initiative_children")
             existing_keys = {row[0] for row in cursor.fetchall()}
-            logger.info(f"Found {len(existing_keys)} existing child keys.")
+            logger.info(f"Found {len(existing_keys)} existing child keys")
 
             rows_to_insert = []
             rows_to_update = []
@@ -151,7 +170,7 @@ def store_issues_bulk(db_pool, issues_to_store: dict):
                     rows_to_insert.append(data_tuple)
             
             if rows_to_insert:
-                logger.info(f"Inserting {len(rows_to_insert)} new records into tbl_initiative_children...")
+                logger.database(f"Inserting {len(rows_to_insert)} new records into tbl_initiative_children")
                 insert_query = """
                     INSERT INTO tbl_initiative_children (
                         initiative_issue_key, issue_key, summary, issue_type, status, assignee, 
@@ -159,11 +178,10 @@ def store_issues_bulk(db_pool, issues_to_store: dict):
                     ) VALUES %s
                 """
                 psycopg2.extras.execute_values(cursor, insert_query, rows_to_insert)
-                logger.info("Bulk insert complete.")
+                logger.success("Bulk insert complete")
 
             if rows_to_update:
-                logger.info(f"Updating {len(rows_to_update)} existing records in tbl_initiative_children...")
-                # --- FIX: Explicitly cast date/timestamp strings to the correct type ---
+                logger.database(f"Updating {len(rows_to_update)} existing records in tbl_initiative_children")
                 update_query = """
                     UPDATE tbl_initiative_children AS t SET
                         initiative_issue_key = v.initiative_issue_key, summary = v.summary,
@@ -176,31 +194,39 @@ def store_issues_bulk(db_pool, issues_to_store: dict):
                     ) WHERE t.issue_key = v.issue_key;
                 """
                 psycopg2.extras.execute_values(cursor, update_query, rows_to_update)
-                logger.info("Bulk update complete.")
+                logger.success("Bulk update complete")
 
             conn.commit()
             
     except Exception as e:
         conn.rollback()
-        logger.error(f"Database bulk operation for tbl_initiative_children failed: {e}")
+        logger.exception(f"Database bulk operation for tbl_initiative_children failed: {e}")
     finally:
         db_pool.putconn(conn)
 
+
 def main():
     """Main function to fetch and store initiative-related issues."""
+    log_section_header(logger, "INITIATIVE CHILDREN ANALYSIS")
+    
     jira = get_jira_client()
+    if not jira:
+        return
+        
     db_pool = db_utils.get_connection_pool()
     
     sync_initiatives_from_jql(jira, db_pool)
 
-    logger.info("Proceeding to fetch child issues for all initiatives...")
+    logger.start("Proceeding to fetch child issues for all initiatives")
     allowed_projects_str = os.getenv("JIRA_PROJECTS", "")
     allowed_projects = {proj.strip() for proj in allowed_projects_str.split(',') if proj.strip()}
     
     initial_keys = db_utils.fetch_initiative_keys(db_pool)
     if not initial_keys:
-        logger.warning("No initiative keys found in the database after sync. Aborting child issue fetch.")
+        logger.warning("No initiative keys found in the database after sync")
         return
+    
+    logger.info(f"Starting with {len(initial_keys)} initiative keys")
         
     all_related_issues = {} 
     visited_keys = set()
@@ -209,7 +235,7 @@ def main():
     
     depth = 0
     while keys_to_fetch and depth <= MAX_RECURSION_DEPTH:
-        logger.info(f"Recursion Depth: {depth}. Keys to fetch: {len(keys_to_fetch)}.")
+        logger.info(f"Recursion Depth: {depth}. Keys to fetch: {len(keys_to_fetch)}")
         
         fetched_issues_map = fetch_issues_in_batch(jira, set(keys_to_fetch.keys()))
         visited_keys.update(keys_to_fetch.keys())
@@ -218,9 +244,8 @@ def main():
 
         for key, issue in fetched_issues_map.items():
             try:
-                # --- FIX: Safely check if the key exists before accessing it ---
                 if key not in keys_to_fetch:
-                    logger.warning(f"Skipping issue {key} as it was not in the expected fetch list for this level.")
+                    logger.warning(f"Skipping issue {key} as it was not in the expected fetch list")
                     continue
                 
                 root_initiative_key = keys_to_fetch[key]
@@ -249,18 +274,25 @@ def main():
                         logger.error(f"Failed to fetch children for Epic {issue.key}: {e}")
             
             except Exception as e:
-                logger.error(f"An unexpected error occurred while processing issue {key}. Skipping this issue.")
-                logger.error(f"Error details: {e}")
-                logger.error(traceback.format_exc()) # This will print the full traceback
-                continue # Move on to the next issue in the loop
+                logger.exception(f"An unexpected error occurred while processing issue {key}")
+                continue
 
         keys_to_fetch = next_keys_to_fetch
         depth += 1
         
     if depth > MAX_RECURSION_DEPTH:
-        logger.warning(f"Reached max recursion depth of {MAX_RECURSION_DEPTH}.")
-        
+        logger.warning(f"Reached max recursion depth of {MAX_RECURSION_DEPTH}")
+    
+    logger.info(f"Found {len(all_related_issues)} total related issues")
     store_issues_bulk(db_pool, all_related_issues)
+    logger.complete("Initiative children analysis completed successfully")
+
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    from logging_config import setup_logging
+    setup_logging()
+    
     main()

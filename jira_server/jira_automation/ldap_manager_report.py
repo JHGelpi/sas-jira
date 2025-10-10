@@ -1,5 +1,5 @@
 import os
-import logging
+#import logging
 from dotenv import load_dotenv
 from ldap3 import Server, Connection, Tls, ALL, SUBTREE
 import ssl
@@ -7,7 +7,9 @@ from datetime import datetime
 import psycopg2.extras
 
 # Get a logger that inherits the root configuration
-logger = logging.getLogger(__name__)
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # --- Import the db_utils module to use the connection pool ---
 from jira_data_analysis import db_utils

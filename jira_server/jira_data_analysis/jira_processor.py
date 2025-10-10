@@ -1,3 +1,11 @@
+# jira_data_analysis/jira_processor.py
+"""
+Jira data extraction and processing.
+
+This module handles fetching issues from Jira, transforming them,
+and bulk-loading them into PostgreSQL.
+"""
+
 import os
 import csv
 from datetime import datetime, timedelta
@@ -9,12 +17,15 @@ from .jira_utils import (
     parse_component_data, escaped_bug_flag, triage_parser, oper_parser, 
     format_date, get_custom_field_id
 )
-import logging
+from logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 def build_daily_jql(db_pool) -> str:
     """Builds the JQL query for the standard daily delta run."""
+    logger.processing("Building JQL for daily run")
+    
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cursor:
@@ -25,30 +36,39 @@ def build_daily_jql(db_pool) -> str:
             
             if last_run_time is None:
                 last_run_time_str = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M')
+                logger.info("No previous daily run found. Using 24 hours ago as baseline")
             else:
                 last_run_time_str = last_run_time.strftime('%Y-%m-%d %H:%M')
+                logger.info(f"Last daily run: {last_run_time_str}")
             
             jql = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{last_run_time_str}'"
     finally:
         db_pool.putconn(conn)
         
-    logger.info(f"Constructed JQL for 'daily': {jql}")
+    logger.debug(f"Constructed JQL for 'daily': {jql}")
     return jql
+
 
 def get_sprint_names_from_db(db_pool):
     """Fetches all sprint names from the sprint dates table."""
+    logger.database("Fetching sprint names from tbl_sprint_dates")
+    
     conn = db_pool.getconn()
     sprint_names = []
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT sprint_name FROM public.tbl_sprint_dates")
             sprint_names = [row[0] for row in cursor.fetchall()]
+        logger.info(f"Found {len(sprint_names)} sprint names")
     finally:
         db_pool.putconn(conn)
     return sprint_names
 
+
 def get_last_release_run_time(db_pool):
     """Gets the end time of the last successful release run."""
+    logger.database("Checking for last release run time")
+    
     conn = db_pool.getconn()
     last_run_time = None
     try:
@@ -61,43 +81,47 @@ def get_last_release_run_time(db_pool):
         db_pool.putconn(conn)
     
     if last_run_time is None:
-        return (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d %H:%M')
+        result = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d %H:%M')
+        logger.info("No previous release run found. Using 365 days ago as baseline")
     else:
-        return last_run_time.strftime('%Y-%m-%d %H:%M')
+        result = last_run_time.strftime('%Y-%m-%d %H:%M')
+        logger.info(f"Last release run: {result}")
+    
+    return result
+
 
 def process_release_data(jira, db_pool):
     """Orchestrates the new release data processing logic."""
-    logger.info("Starting new, targeted release data processing logic...")
+    logger.start("Starting targeted release data processing")
     
     sprint_names_to_match = get_sprint_names_from_db(db_pool)
     if not sprint_names_to_match:
-        logger.warning("No sprint names found in tbl_sprint_dates. Aborting release run.")
+        logger.warning("No sprint names found in tbl_sprint_dates")
         return
 
     last_run_time_str = get_last_release_run_time(db_pool)
     jql_query = f"project in ({os.getenv('JIRA_PROJECTS')}) AND updated >= '{last_run_time_str}'"
-    logger.info(f"Fetching all potentially relevant issues with JQL: {jql_query}")
+    logger.searching(f"Fetching all potentially relevant issues")
+    logger.debug(f"JQL: {jql_query}")
 
     fields_to_fetch = get_required_field_list(jira)
     all_fetched_issues = fetch_all_issues(jira, jql_query, fields_to_fetch)
 
     if not all_fetched_issues:
-        logger.info("No recently updated issues found in Jira. Aborting release run.")
+        logger.info("No recently updated issues found in Jira")
         return
 
-    logger.info("Filtering issues based on sprint name criteria...")
+    logger.processing("Filtering issues based on sprint name criteria")
     issues_to_load = []
     sprint_field_id = get_custom_field_id(jira, "Sprint") 
 
-    # --- NEW: Add a counter for diagnostic logging ---
     debug_counter = 0
     for issue in all_fetched_issues:
         sprint_data = getattr(issue.fields, sprint_field_id, None)
         
-        # --- NEW: Diagnostic Logging ---
-        # This will log the raw sprint data for the first 5 issues processed.
+        # Diagnostic logging for first few issues
         if debug_counter < 5:
-            logger.info(f"DIAGNOSTIC [{issue.key}]: Raw sprint data from Jira API: {sprint_data}")
+            logger.debug(f"DIAGNOSTIC [{issue.key}]: Raw sprint data: {sprint_data}")
             debug_counter += 1
 
         parsed_sprint = parse_sprint_data(sprint_data, {})
@@ -106,13 +130,18 @@ def process_release_data(jira, db_pool):
         if issue_sprint_name and any(target in issue_sprint_name for target in sprint_names_to_match):
             issues_to_load.append(issue)
 
-    logger.info(f"Found {len(issues_to_load)} issues matching the release criteria to load.")
+    logger.info(f"Found {len(issues_to_load)} issues matching the release criteria")
+    
     if issues_to_load:
         process_and_load_issues(db_pool, issues_to_load, 'release', jira)
+    else:
+        logger.info("No issues to load for this release run")
 
 
 def get_required_field_list(jira):
     """Helper function to build the list of all fields needed for processing."""
+    logger.debug("Building required field list")
+    
     base_fields = ["summary", "issuetype", "status", "assignee", "created", "updated",
                    "issuelinks", "parent", "subtasks", "project", "labels", "fixVersions", "components"]
     
@@ -130,8 +159,10 @@ def get_required_field_list(jira):
 
 def fetch_all_issues(jira, jql_query: str, fields: list) -> list:
     """Paginates through JIRA search results to fetch all issues for a given query."""
+    logger.searching(f"Fetching all issues with JQL")
+    logger.debug(f"Query: {jql_query}")
+    
     all_issues = []
-    logger.info(f"Fetching all issues with JQL: {jql_query}")
     try:
         all_issues = jira.search_issues(jql_query, fields=fields, maxResults=False, expand="changelog")
         logger.info(f"Total issues fetched from Jira: {len(all_issues)}")
@@ -139,9 +170,10 @@ def fetch_all_issues(jira, jql_query: str, fields: list) -> list:
         logger.error(f"Error fetching issues from Jira: {e}")
     return all_issues
 
+
 def process_and_load_issues(db_pool, all_issues: list, run_flag: str, jira_client):
     """Transforms Jira issue data and bulk-loads it into PostgreSQL."""
-    logger.info(f"Processing {len(all_issues)} issues...")
+    logger.processing(f"Processing {len(all_issues)} issues")
     
     sprint_managers = db_utils.load_sprint_managers(db_pool)
     operational_epics = db_utils.load_operational_epics(db_pool)
@@ -170,18 +202,21 @@ def process_and_load_issues(db_pool, all_issues: list, run_flag: str, jira_clien
         
     string_buffer.seek(0)
     
+    logger.database(f"Loading {len(all_issues)} records into database using COPY")
+    
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cursor:
             sql_copy = f"COPY tbl_jira_sprint_data ({','.join(headers)}) FROM STDIN WITH (FORMAT CSV, HEADER TRUE, DELIMITER ',')"
             cursor.copy_expert(sql=sql_copy, file=string_buffer)
             conn.commit()
-            logger.info(f"Successfully loaded {len(all_issues)} records into the database.")
+            logger.success(f"Successfully loaded {len(all_issues)} records into the database")
     except Exception as e:
         conn.rollback()
         logger.error(f"Database load failed: {e}")
     finally:
         db_pool.putconn(conn)
+
 
 def build_row(issue, sprint_managers: dict, oper_epics: dict, run_flag: str, field_ids: dict) -> list:
     """Builds a single data row from a Jira issue object."""
@@ -216,4 +251,3 @@ def build_row(issue, sprint_managers: dict, oper_epics: dict, run_flag: str, fie
         parsed_sprint['owner'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         story_points, run_flag, format_date(fields.created), format_date(fields.updated)
     ]
-

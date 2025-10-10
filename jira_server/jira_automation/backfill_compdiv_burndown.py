@@ -13,7 +13,7 @@ from __future__ import annotations
 
 # --- BEGIN backfill_compdiv_burndown.py ---
 
-import logging
+#import logging
 import os
 from datetime import date, timedelta, datetime
 
@@ -21,6 +21,9 @@ from dotenv import load_dotenv
 
 from jira_automation.compdiv_burndown import run_for_all_compdiv_epics
 
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def business_days(start: date, end: date):
     d = start

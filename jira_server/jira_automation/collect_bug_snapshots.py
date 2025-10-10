@@ -1,24 +1,39 @@
+# jira_automation/collect_bug_snapshots.py
+"""
+Daily bug snapshot collection.
+
+This module collects a point-in-time snapshot of all bugs in specified projects
+and stores them in the database for historical trending analysis.
+"""
+
 import os
-import logging
 from jira import JIRA
 from datetime import date
 from jira_data_analysis import db_utils
+from logging_utils import get_logger, log_section_header
 
-# Use the centralized logging system
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 def setup_jira_client():
     """Sets up and returns an authenticated Jira client."""
     try:
+        jira_url = os.getenv("JIRA_URL")
+        logger.connecting(f"Connecting to Jira server at {jira_url}")
+        
         jira_client = JIRA(
-            server=os.getenv("JIRA_URL"),
+            server=jira_url,
             token_auth=os.getenv("JIRA_TOKEN")
         )
-        logger.info(f"✅ Successfully connected to Jira version {jira_client.server_info()['version']}!")
+        
+        version = jira_client.server_info()['version']
+        logger.success(f"Connected to Jira version {version}")
         return jira_client
+        
     except Exception as e:
-        logger.error(f"❌ Failed to connect to Jira: {e}")
+        logger.error(f"Failed to connect to Jira: {e}")
         return None
+
 
 def get_custom_field_ids(jira, field_names):
     """Gets a dictionary of custom field IDs for a list of field names."""
@@ -28,22 +43,26 @@ def get_custom_field_ids(jira, field_names):
         for field in all_fields:
             if field['name'] in field_names:
                 ids[field['name']] = field['id']
+                logger.debug(f"Found custom field '{field['name']}': {field['id']}")
     except Exception as e:
         logger.error(f"Failed to retrieve custom fields: {e}")
     return ids
 
+
 def main():
     """Fetches all issues from specified projects and logs a daily snapshot."""
+    log_section_header(logger, "BUG SNAPSHOT COLLECTION")
+    
     jira_client = setup_jira_client()
     if not jira_client:
         return
 
     projects = os.getenv('JIRA_PROJECTS', '')
     if not projects:
-        logger.error("JIRA_PROJECTS environment variable is not set. Aborting.")
+        logger.error("JIRA_PROJECTS environment variable is not set")
         return
 
-    logger.info("Starting daily bug snapshot collection...")
+    logger.start("Starting daily bug snapshot collection")
     
     # Dynamically find custom field IDs
     custom_field_names = ["Origin", "Pipeline Discovery Stage"]
@@ -61,11 +80,11 @@ def main():
         fields_to_fetch.append(pipeline_id)
 
     jql_query = f"project in ({projects}) AND issuetype = Bug AND updated >= -180d"
-    logger.info(f"Fetching all issues with JQL: {jql_query}")
+    logger.searching(f"Fetching all issues with JQL: {jql_query}")
 
     try:
         issues = jira_client.search_issues(jql_query, fields=fields_to_fetch, maxResults=False)
-        logger.info(f"Found {len(issues)} issues to process for snapshot.")
+        logger.info(f"Found {len(issues)} issues to process for snapshot")
     except Exception as e:
         logger.error(f"Failed to fetch issues from Jira: {e}")
         return
@@ -73,6 +92,8 @@ def main():
     snapshot_date = date.today()
     snapshot_data = []
 
+    logger.processing(f"Processing {len(issues)} issues")
+    
     for issue in issues:
         fields = issue.fields
         
@@ -101,14 +122,17 @@ def main():
         ))
         
     if not snapshot_data:
-        logger.info("No data to save. Snapshot complete.")
+        logger.info("No data to save. Snapshot complete")
         return
 
     # Bulk insert/update into the database
     db_pool = db_utils.get_connection_pool()
     conn = db_pool.getconn()
+    
     try:
         with conn.cursor() as cursor:
+            logger.database(f"Inserting/updating {len(snapshot_data)} records in tbl_bug_snapshots")
+            
             # Use ON CONFLICT to update if a snapshot for that issue on that day already exists
             sql = """
                 INSERT INTO tbl_bug_snapshots (
@@ -128,13 +152,17 @@ def main():
             from psycopg2.extras import execute_values
             execute_values(cursor, sql, snapshot_data)
             conn.commit()
-            logger.info(f"Successfully inserted/updated {len(snapshot_data)} records in tbl_bug_snapshots.")
+            
+            logger.success(f"Successfully inserted/updated {len(snapshot_data)} records in tbl_bug_snapshots")
             
     except Exception as e:
         conn.rollback()
-        logger.error(f"Database operation failed: {e}")
+        logger.exception(f"Database operation failed: {e}")
     finally:
         db_pool.putconn(conn)
+    
+    logger.complete("Bug snapshot collection completed successfully")
+
 
 if __name__ == "__main__":
     # This allows direct execution for testing
@@ -142,4 +170,8 @@ if __name__ == "__main__":
     dotenv_path = os.path.join(project_root, '.env')
     from dotenv import load_dotenv
     load_dotenv(dotenv_path=dotenv_path)
+    
+    from logging_config import setup_logging
+    setup_logging()
+    
     main()

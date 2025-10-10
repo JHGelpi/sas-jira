@@ -4,7 +4,9 @@ import psycopg2
 from psycopg2 import pool
 from datetime import datetime
 from dotenv import load_dotenv
+from logging_utils import get_logger
 
+logger = get_logger(__name__)
 # Load environment variables from a .env file
 #load_dotenv()
 # 1. Get the absolute path of the directory where the current script is located.

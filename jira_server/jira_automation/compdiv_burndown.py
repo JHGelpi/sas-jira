@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+#import logging
 import math
 import os
 import re
@@ -15,7 +15,9 @@ import plotly.graph_objects as go
 
 from jira_data_analysis import db_utils
 
-logger = logging.getLogger(__name__)
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # ---- Configuration ----
 BUG_TYPES: Set[str] = {"Bug", "Defect"}

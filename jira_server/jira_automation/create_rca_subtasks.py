@@ -1,11 +1,13 @@
 import os
 from jira import JIRA
 from dotenv import load_dotenv
-import logging
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+'''logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)'''
 
 def connect_to_jira():
     """Connects to Jira using credentials from environment variables."""

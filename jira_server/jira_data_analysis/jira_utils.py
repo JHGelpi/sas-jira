@@ -1,7 +1,9 @@
 import re
 from datetime import datetime
 from dateutil.parser import parse as parse_date
+from logging_utils import get_logger
 
+logger = get_logger(__name__)
 # --- NEW: Cache for custom field IDs to avoid repeated API calls ---
 _field_id_cache = {}
 

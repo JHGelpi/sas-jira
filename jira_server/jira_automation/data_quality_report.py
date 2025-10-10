@@ -1,45 +1,54 @@
+# jira_automation/data_quality_report.py
+"""
+Data quality reporting and enforcement.
+
+This module runs multiple JQL queries to find tickets with missing or incorrect data,
+generates consolidated reports, and sends granular notifications by manager.
+"""
+
 import os
-import logging
 import csv
-import shutil
 from datetime import datetime
 from collections import defaultdict
 from jira import JIRA
-
-# Use absolute imports from the project's root directory
 from jira_data_analysis import db_utils
 from jira_automation import notification_utils
 from dotenv import load_dotenv
+from logging_utils import get_logger, log_section_header, log_subsection_header
 
+logger = get_logger(__name__)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# --- Configuration: Field names to look up ---
+# Field names to look up
 FIELD_NAMES_TO_FIND = {
     "origin": "Origin",
     "pipeline_discovery": "Pipeline Discovery Stage",
     "platform_version": "Platform Version",
 }
 
+
 def connect_to_jira():
     """Connects to Jira using credentials from environment variables."""
     try:
-        logger.info(f"⚙️ Connecting to Jira server at {os.getenv('JIRA_URL')}...")
+        jira_url = os.getenv('JIRA_URL')
+        logger.connecting(f"Connecting to Jira server at {jira_url}")
+        
         jira_client = JIRA(
-            server=os.getenv('JIRA_URL'),
+            server=jira_url,
             token_auth=os.getenv('JIRA_TOKEN')
         )
-        logger.info(f"✅ Successfully connected to Jira version {jira_client.server_info()['version']}!")
+        
+        version = jira_client.server_info()['version']
+        logger.success(f"Connected to Jira version {version}")
         return jira_client
+        
     except Exception as e:
-        logger.error(f"❌ Failed to connect to Jira: {e}")
+        logger.error(f"Failed to connect to Jira: {e}")
         return None
+
 
 def get_custom_field_ids(jira) -> dict:
     """Dynamically finds the custom field IDs for a given set of field names."""
-    logger.info("Fetching custom field IDs from Jira...")
+    logger.info("Fetching custom field IDs from Jira")
     custom_field_ids = {}
     try:
         all_fields = jira.fields()
@@ -49,48 +58,51 @@ def get_custom_field_ids(jira) -> dict:
             field_id = field_map.get(name.lower())
             if field_id:
                 custom_field_ids[key] = field_id
-                logger.info(f"  -> Found ID for '{name}': {field_id}")
+                logger.debug(f"Found ID for '{name}': {field_id}")
             else:
-                logger.warning(f"  -> Could not find custom field named '{name}'.")
+                logger.warning(f"Could not find custom field named '{name}'")
     except Exception as e:
         logger.error(f"Failed to retrieve custom fields: {e}")
     
     return custom_field_ids
 
+
 def get_ldap_data_from_db(db_pool) -> dict:
     """
     Fetches user data from the LDAP hierarchy table and returns a dictionary
-    mapping employee emails to a dict containing their manager's name and email.
+    mapping employee emails to their manager info.
     """
-    logger.info("Fetching LDAP hierarchy data from PostgreSQL...")
+    logger.database("Fetching LDAP hierarchy data from PostgreSQL")
     ldap_map = {}
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cursor:
-            # Fetch manager_email as well for @mentions
             cursor.execute("SELECT email, manager_name, manager_email FROM tbl_ldap_hierarchy")
             for row in cursor.fetchall():
-                if row[0]:  # Ensure email is not null
+                if row[0]:
                     ldap_map[row[0].lower()] = {
                         'manager_name': row[1],
                         'manager_email': row[2]
                     }
-        logger.info(f"Successfully loaded {len(ldap_map)} user records for manager lookup.")
+        logger.info(f"Loaded {len(ldap_map)} user records for manager lookup")
     except Exception as e:
         logger.error(f"Failed to fetch LDAP data from database: {e}")
     finally:
         db_pool.putconn(conn)
     return ldap_map
 
-def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: str, custom_field_ids: dict, ldap_map: dict) -> list:
+
+def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: str, 
+                            custom_field_ids: dict, ldap_map: dict) -> list:
     """Runs a JQL query and returns a list of processed issue data, enriched with manager info."""
     jql_query = os.getenv(jql_env_var)
     if not jql_query:
-        logger.warning(f"SKIPPING: Environment variable '{jql_env_var}' not set.")
+        logger.skip(f"Environment variable '{jql_env_var}' not set")
         return []
 
-    logger.info(f"--- Running query for: {report_name} ---")
-    logger.info(f"  Query: {jql_query}")
+    log_subsection_header(logger, report_name)
+    logger.searching("Running query")
+    logger.debug(f"Query: {jql_query}")
 
     processed_issues = []
     try:
@@ -103,10 +115,10 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
         issues = jira.search_issues(jql_query, fields=fields_to_fetch, maxResults=500)
 
         if not issues:
-            logger.info("  -> No issues found matching the criteria.")
+            logger.info("No issues found matching the criteria")
             return []
 
-        logger.info(f"  -> Found {len(issues)} issues.")
+        logger.info(f"Found {len(issues)} issues")
         
         for issue in issues:
             assignee = issue.fields.assignee.displayName if issue.fields.assignee else "Unassigned"
@@ -145,39 +157,42 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
             })
             
     except Exception as e:
-        logger.error(f"❌ An error occurred while fetching data for report '{report_name}': {e}")
+        logger.exception(f"An error occurred while fetching data for report '{report_name}': {e}")
     
     return processed_issues
+
 
 def write_consolidated_report(all_issues_data: list):
     """Writes the consolidated list of issues to a CSV and sends notifications by manager."""
     if not all_issues_data:
-        logger.info("No issues found across all queries. No actions will be taken.")
+        logger.info("No issues found across all queries")
         return
 
-    # --- CSV Generation (unchanged) ---
+    # CSV Generation
     report_dir = os.getenv('JIRA_REPORT_DIR', './reports')
     os.makedirs(report_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y-%m-%d')
     report_path = os.path.join(report_dir, f"data_quality_report_{timestamp}.csv")
+    
     header = [
         "Reason", "Issue Key", "Issue URL", "Assignee", "Assignee Email", 
         "Assignee Manager", "Assignee Manager Email", "Fix Version", "Origin", 
         "Pipeline Discovery Stage", "Platform Version", "Affects Version"
     ]
+    
     try:
+        logger.database(f"Writing consolidated report to {report_path}")
         with open(report_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=header)
             writer.writeheader()
             writer.writerows(all_issues_data)
-        logger.info(f"✅ Successfully generated consolidated report: {report_path}")
-        # ... (copy logic remains the same) ...
+        logger.success(f"Generated consolidated report: {report_path}")
     except Exception as e:
-        logger.error(f"❌ Failed to write consolidated CSV report: {e}")
+        logger.error(f"Failed to write consolidated CSV report: {e}")
 
-
-    # --- NEW: Send Granular Teams Notifications By Manager ---
+    # Send granular Teams notifications by manager
     if os.getenv('TEAMS_WEBHOOK_URL'):
+        logger.processing("Preparing Teams notifications by manager")
         issues_by_manager = defaultdict(list)
         unmanaged_issues = []
 
@@ -189,6 +204,7 @@ def write_consolidated_report(all_issues_data: list):
                 unmanaged_issues.append(row)
 
         # Send a notification for each manager
+        sent_count = 0
         for manager_name, issues in sorted(issues_by_manager.items()):
             manager_email = issues[0].get("Assignee Manager Email")
             
@@ -216,13 +232,18 @@ def write_consolidated_report(all_issues_data: list):
                 })
             
             notification_utils.send_teams_notification(title, body_elements, mentions)
+            sent_count += 1
+
+        logger.success(f"Sent {sent_count} Teams notifications to managers")
 
         if unmanaged_issues:
-            logger.warning(f"Found {len(unmanaged_issues)} issues with no manager information in LDAP.")
+            logger.warning(f"Found {len(unmanaged_issues)} issues with no manager information in LDAP")
 
 
 def main():
     """Main function to execute all data quality reports."""
+    log_section_header(logger, "DATA QUALITY REPORT")
+    
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     load_dotenv(dotenv_path=os.path.join(project_root, '.env'))
     
@@ -249,8 +270,10 @@ def main():
             all_issues_data.extend(issues_found)
     
     write_consolidated_report(all_issues_data)
+    logger.complete("Data quality report generation completed successfully")
 
 
 if __name__ == "__main__":
+    from logging_config import setup_logging
+    setup_logging()
     main()
-

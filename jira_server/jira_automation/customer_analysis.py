@@ -2,13 +2,15 @@ import os
 import json
 from jira import JIRA
 from dotenv import load_dotenv
-import logging
+#import logging
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_date
 import shutil
 
 # Use the centralized logging system
-logger = logging.getLogger(__name__)
+from logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def connect_to_jira():
     """Connects to Jira using credentials from environment variables."""

@@ -1,46 +1,55 @@
+# jira_automation/daily_pushes.py
+"""
+Daily push report generation.
+
+This module tracks merged pull requests and generates an HTML report with charts
+showing development activity over time.
+"""
+
 import os
 from jira import JIRA
 from dotenv import load_dotenv
-import logging
 from datetime import datetime, timedelta
-import csv
-from collections import defaultdict
 import json
 import re
 import pandas as pd
 import plotly.express as px
 import shutil
+from logging_utils import get_logger, log_section_header
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 def connect_to_jira():
     """Connects to Jira using credentials from environment variables."""
     try:
-        logger.info(f"⚙️ Connecting to Jira server at {os.getenv('JIRA_URL')}...")
+        jira_url = os.getenv('JIRA_URL')
+        logger.connecting(f"Connecting to Jira server at {jira_url}")
+        
         jira_client = JIRA(
-            server=os.getenv('JIRA_URL'),
+            server=jira_url,
             token_auth=os.getenv('JIRA_TOKEN')
         )
-        logger.info(f"✅ Successfully connected to Jira version {jira_client.server_info()['version']}!")
+        
+        version = jira_client.server_info()['version']
+        logger.success(f"Connected to Jira version {version}")
         return jira_client
+        
     except Exception as e:
-        logger.error(f"❌ Failed to connect to Jira: {e}")
+        logger.error(f"Failed to connect to Jira: {e}")
         return None
+
 
 def _extract_json_from_string(text: str) -> dict | None:
     """
     Finds and extracts a JSON object from a complex string by matching curly braces.
     """
     try:
-        # Find the start of the JSON object within the larger string
         start_brace_index = text.find('{')
         if start_brace_index == -1:
             return None
 
         open_braces = 0
-        # Iterate through the string to find the matching closing brace
         for i, char in enumerate(text[start_brace_index:]):
             if char == '{':
                 open_braces += 1
@@ -48,19 +57,19 @@ def _extract_json_from_string(text: str) -> dict | None:
                 open_braces -= 1
             
             if open_braces == 0:
-                # We've found the end of the JSON object
                 json_string = text[start_brace_index : start_brace_index + i + 1]
                 return json.loads(json_string)
         return None
     except (json.JSONDecodeError, IndexError):
         return None
 
+
 def generate_html_report(activities: list, report_path: str, days: str, report_dir: str):
     """Generates a self-contained HTML report with a chart and a data table."""
-    logger.info("Generating HTML report...")
+    logger.processing("Generating HTML report")
     
     if not activities:
-        logger.info("No activities to report. Skipping HTML generation.")
+        logger.info("No activities to report")
         return
 
     # Convert data to a Pandas DataFrame for easy manipulation
@@ -72,7 +81,6 @@ def generate_html_report(activities: list, report_path: str, days: str, report_d
     daily_counts = df.groupby('date').size().reset_index(name='count')
     daily_counts = daily_counts.sort_values('date')
 
-    # --- NEW: Create the refresh timestamp ---
     refresh_time = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
     chart_title = f'Merged Pull Request Activity (Last {days} Days)'
     
@@ -90,11 +98,9 @@ def generate_html_report(activities: list, report_path: str, days: str, report_d
     # Build the HTML table from the detailed activities
     table_rows = ""
     for act in activities:
-        # --- FIX: Parse and reformat the timestamp for display ---
         dt_object = pd.to_datetime(act['timestamp'])
         formatted_timestamp = dt_object.strftime('%d-%m-%Y %H:%M:%S')
 
-        # Make the ticket key a link to Jira
         ticket_link = f"<a href='https://rndjira.sas.com/browse/{act['ticket']}' target='_blank'>{act['ticket']}</a>"
         table_rows += f"""
         <tr>
@@ -133,7 +139,6 @@ def generate_html_report(activities: list, report_path: str, days: str, report_d
     <body>
         <div class="container">
             <h1>Daily Push Report</h1>
-            <!-- Plotly chart will be rendered here -->
             {chart_html}
             
             <h2>Detailed Activity</h2>
@@ -161,25 +166,24 @@ def generate_html_report(activities: list, report_path: str, days: str, report_d
     # Write the timestamped HTML content to a file
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    logger.info(f"✅ Successfully generated timestamped HTML report at: {report_path}")
+    logger.success(f"Generated timestamped HTML report at: {report_path}")
 
     # Save a copy with a consistent name for embedding
     latest_report_path = os.path.join(report_dir, 'latest_push_report.html')
     with open(latest_report_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    logger.info(f"✅ Successfully updated latest report at: {latest_report_path}")
+    logger.success(f"Updated latest report at: {latest_report_path}")
 
-    # --- NEW: Copy the latest report to the homepage directory ---
+    # Copy the latest report to the homepage directory
     homepage_dir = os.getenv('HOMEPAGE_REPORTS_DIR')
     if homepage_dir:
         try:
-            # Ensure the destination directory exists
             os.makedirs(homepage_dir, exist_ok=True)
             destination_path = os.path.join(homepage_dir, 'latest_push_report.html')
             shutil.copy(latest_report_path, destination_path)
-            logger.info(f"✅ Successfully copied latest report to homepage directory: {destination_path}")
+            logger.success(f"Copied latest report to homepage directory: {destination_path}")
         except Exception as e:
-            logger.error(f"❌ Failed to copy report to homepage directory: {e}")
+            logger.error(f"Failed to copy report to homepage directory: {e}")
 
 
 def get_daily_push_report(jira):
@@ -187,10 +191,9 @@ def get_daily_push_report(jira):
     Finds all tickets with commits or merged pull requests in the last N days
     and generates a report.
     """
-    # Get configuration from environment variables
     projects = os.getenv('JIRA_PROJECTS', '')
     if not projects:
-        logger.error("❌ JIRA_PROJECTS environment variable is not set. Aborting.")
+        logger.error("JIRA_PROJECTS environment variable is not set")
         return
 
     days_to_check = os.getenv('JIRA_PUSH_REPORT_DAYS', '7')
@@ -199,19 +202,17 @@ def get_daily_push_report(jira):
 
     jql_query = f"project in ({projects}) AND type in (Story, Bug) AND updated >= -{days_to_check}d AND (Development[pullrequests].status IS NOT EMPTY)"
 
-
-    logger.info(f"🔍 Running JQL query to find tickets with recent development activity...")
-    logger.info(f"   Query: {jql_query}")
+    logger.searching("Running JQL query to find tickets with recent development activity")
+    logger.debug(f"Query: {jql_query}")
 
     try:
-        # We don't need to expand 'development' if the data is in a custom field
         issues = jira.search_issues(jql_query, maxResults=1000)
         
         if not issues:
-            logger.info(f"🎉 No tickets with PR activity found in the last {days_to_check} days.")
+            logger.complete(f"No tickets with PR activity found in the last {days_to_check} days")
             return
 
-        logger.info(f"Found {len(issues)} tickets with PR activity. Analyzing summary data...")
+        logger.info(f"Found {len(issues)} tickets with PR activity")
         
         activities = []
         time_window = datetime.now(datetime.now().astimezone().tzinfo) - timedelta(days=int(days_to_check))
@@ -229,7 +230,7 @@ def get_daily_push_report(jira):
             dev_summary_json = _extract_json_from_string(json_substring)
 
             if not dev_summary_json:
-                logger.warning(f"Could not parse development summary for {issue.key}. Skipping.")
+                logger.debug(f"Could not parse development summary for {issue.key}")
                 continue
 
             try:
@@ -245,7 +246,7 @@ def get_daily_push_report(jira):
                     pr_update_time = datetime.strptime(last_updated_str, '%Y-%m-%dT%H:%M:%S.%f%z')
                     
                     if pr_update_time >= time_window:
-                        logger.info(f"  -> Found recent merged PR activity for {issue.key}")
+                        logger.debug(f"Found recent merged PR activity for {issue.key}")
                         activities.append({
                             'type': 'Pull Request (Activity)',
                             'repo': 'N/A (Summary)',
@@ -259,11 +260,10 @@ def get_daily_push_report(jira):
                         })
 
             except (ValueError, KeyError) as e:
-                logger.warning(f"Could not process parsed summary for {issue.key}. Skipping. Error: {e}")
-
+                logger.debug(f"Could not process parsed summary for {issue.key}: {e}")
 
         if not activities:
-            logger.info(f"🎉 No recent merged PR activity found within the last {days_to_check} days based on summary data.")
+            logger.complete(f"No recent merged PR activity found within the last {days_to_check} days")
             return
 
         # Generate the HTML report
@@ -273,21 +273,26 @@ def get_daily_push_report(jira):
         activities.sort(key=lambda x: x['timestamp'], reverse=True)
         
         generate_html_report(activities, report_path, days_to_check, report_dir)
+        logger.complete("Daily push report generation completed successfully")
 
     except Exception as e:
-        logger.error(f"❌ An error occurred while generating the report: {e}")
-        if 'issue' in locals():
-            logger.debug(f"Raw data for potentially problematic issue {issue.key}: {json.dumps(issue.raw, indent=2)}")
+        logger.exception(f"An error occurred while generating the report: {e}")
 
 
 def main():
     """Main function to execute the daily push report."""
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_dotenv(dotenv_path=os.path.join(project_root, '.env'))
+    log_section_header(logger, "DAILY PUSH REPORT")
     
     jira_client = connect_to_jira()
     if jira_client:
         get_daily_push_report(jira_client)
 
+
 if __name__ == "__main__":
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(dotenv_path=os.path.join(project_root, '.env'))
+    
+    from logging_config import setup_logging
+    setup_logging()
+    
     main()
