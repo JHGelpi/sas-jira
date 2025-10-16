@@ -417,9 +417,15 @@
     "support_lvl": "exec_watchlist"
   },
   {
-    "industry:": "",
+    "industry": "",
     "customer_name": "Posten",
     "jira_label": ["Posten"],
+    "support_lvl": "exec_watchlist"
+  },
+  {
+    "industry": "",
+    "customer_name": "UTAC",
+    "jira_label": ["UTAC"],
     "support_lvl": "exec_watchlist"
   }
 ]
