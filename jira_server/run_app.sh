@@ -41,7 +41,11 @@ fi
 echo "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
-# 3. Install/update dependencies from requirements.txt.
+# 3. Upgrade pip to the latest version.
+echo "Upgrading pip to the latest version..."
+pip install --upgrade pip
+
+# 4. Install/update dependencies from requirements.txt.
 echo "Installing/updating dependencies from requirements.txt..."
 pip install -r requirements.txt
 
