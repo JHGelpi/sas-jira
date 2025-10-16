@@ -40,13 +40,18 @@ handlers:
     encoding: utf8
 
 loggers:
-  # Logger for the Uvicorn web server
+  # Logger for the Uvicorn web server (changed to WARNING to reduce noise)
   uvicorn:
     handlers: [console, file_handler]
-    level: INFO
+    level: WARNING  # Changed from INFO - only shows warnings and errors
     propagate: false
+  
+  # Logger for Uvicorn error/general messages (changed to WARNING)
   uvicorn.error:
-    level: INFO
+    level: WARNING  # Changed from INFO - hides "Application startup complete" message
+    propagate: false
+  
+  # Logger for Uvicorn access logs (kept at INFO for request logging)
   uvicorn.access:
     handlers: [access_file_handler] # Use the dedicated access handler
     level: INFO

@@ -236,8 +236,43 @@ def write_consolidated_report(all_issues_data: list):
 
         logger.success(f"Sent {sent_count} Teams notifications to managers")
 
+        # Send notification for unmanaged issues to fallback recipient
         if unmanaged_issues:
             logger.warning(f"Found {len(unmanaged_issues)} issues with no manager information in LDAP")
+
+            fallback_name = os.getenv('DATA_QUALITY_FALLBACK_NAME')
+            fallback_email = os.getenv('DATA_QUALITY_FALLBACK_EMAIL')
+
+            if fallback_name and fallback_email:
+                logger.processing(f"Sending unmanaged issues notification to {fallback_name}")
+
+                title = "Jira Data Quality Action Items - Unassigned Manager"
+                mentions = [{'name': fallback_name, 'email': fallback_email}]
+
+                # Build the card body with a FactSet for each issue
+                body_elements = [{
+                    "type": "TextBlock",
+                    "text": "The following tickets have no manager information in LDAP and require data quality updates:",
+                    "wrap": True
+                }]
+
+                for issue in unmanaged_issues:
+                    issue_link = f"[{issue['Issue Key']}]({issue['Issue URL']})"
+                    body_elements.append({
+                        "type": "FactSet",
+                        "facts": [
+                            {"title": "Issue:", "value": issue_link},
+                            {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
+                            {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
+                            {"title": "JQL:", "value": "JQL Confluence Page: https://rndconfluence.sas.com/x/Kul4L"}
+                        ],
+                        "separator": True
+                    })
+
+                notification_utils.send_teams_notification(title, body_elements, mentions)
+                logger.success(f"Sent unmanaged issues notification with {len(unmanaged_issues)} issues")
+            else:
+                logger.warning("DATA_QUALITY_FALLBACK_NAME or DATA_QUALITY_FALLBACK_EMAIL not set. Cannot send unmanaged issues notification.")
 
 
 def main():
