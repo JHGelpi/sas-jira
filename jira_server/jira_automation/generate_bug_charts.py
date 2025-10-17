@@ -77,7 +77,6 @@ def main():
     fig1 = None
     if not df_open.empty:
         import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
 
         # Prepare data for ALL bugs (default view)
         daily_counts_all = df_open.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
@@ -88,53 +87,48 @@ def main():
         daily_counts_crp = df_crp.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
         total_daily_crp = df_crp.groupby('snapshot_date').size().reset_index(name='total_bugs')
 
+        # Get complete list of all projects that appear in either dataset
+        all_projects = sorted(set(daily_counts_all['project_key'].unique()) | set(daily_counts_crp['project_key'].unique()))
+
         # Create figure
         fig1 = go.Figure()
 
-        # Add traces for ALL bugs (visible by default)
-        projects = sorted(daily_counts_all['project_key'].unique())
-        for project in projects:
-            project_data_all = daily_counts_all[daily_counts_all['project_key'] == project]
-            project_data_crp = daily_counts_crp[daily_counts_crp['project_key'] == project] if project in daily_counts_crp['project_key'].values else None
+        # Track trace indices for visibility toggling
+        trace_indices = []
 
+        # Add traces for each project (ALL bugs first, then CRP bugs)
+        for project in all_projects:
             color = color_palette.get(project, None)
 
-            # Trace for ALL bugs
+            # Get data for this project
+            project_data_all = daily_counts_all[daily_counts_all['project_key'] == project]
+            project_data_crp = daily_counts_crp[daily_counts_crp['project_key'] == project]
+
+            # Trace for ALL bugs (visible by default)
             fig1.add_trace(go.Scatter(
-                x=project_data_all['snapshot_date'],
-                y=project_data_all['open_bugs'],
+                x=project_data_all['snapshot_date'] if not project_data_all.empty else [],
+                y=project_data_all['open_bugs'] if not project_data_all.empty else [],
                 mode='lines+markers',
                 name=project,
                 line=dict(color=color),
                 marker=dict(symbol='circle'),
                 visible=True,
-                legendgroup=project
+                legendgroup=project,
+                showlegend=True
             ))
 
             # Trace for CRP bugs only (hidden by default)
-            if project_data_crp is not None and not project_data_crp.empty:
-                fig1.add_trace(go.Scatter(
-                    x=project_data_crp['snapshot_date'],
-                    y=project_data_crp['open_bugs'],
-                    mode='lines+markers',
-                    name=project,
-                    line=dict(color=color),
-                    marker=dict(symbol='circle'),
-                    visible=False,
-                    legendgroup=project,
-                    showlegend=False
-                ))
-            else:
-                # Add empty trace to maintain index alignment
-                fig1.add_trace(go.Scatter(
-                    x=[],
-                    y=[],
-                    mode='lines+markers',
-                    name=project,
-                    visible=False,
-                    legendgroup=project,
-                    showlegend=False
-                ))
+            fig1.add_trace(go.Scatter(
+                x=project_data_crp['snapshot_date'] if not project_data_crp.empty else [],
+                y=project_data_crp['open_bugs'] if not project_data_crp.empty else [],
+                mode='lines+markers',
+                name=project,
+                line=dict(color=color),
+                marker=dict(symbol='circle'),
+                visible=False,
+                legendgroup=project,
+                showlegend=True
+            ))
 
         # Add aggregate total line for ALL bugs
         fig1.add_trace(go.Scatter(
@@ -155,16 +149,23 @@ def main():
             name='Total (All Projects)',
             line=dict(color='black', width=3, dash='dash'),
             marker=dict(size=6, color='black'),
-            visible=False,
-            showlegend=False
+            visible=False
         ))
 
         # Create visibility arrays for dropdown
-        num_projects = len(projects)
-        # For "All Bugs": show first set of traces (projects + total)
-        visible_all = [True] * num_projects + [False] * num_projects + [True, False]
-        # For "CRP Only": show second set of traces (projects + total)
-        visible_crp = [False] * num_projects + [True] * num_projects + [False, True]
+        num_projects = len(all_projects)
+        # Each project has 2 traces (ALL and CRP), plus 2 total traces at the end
+        # For "All Bugs": show first trace of each project + first total
+        visible_all = []
+        for i in range(num_projects):
+            visible_all.extend([True, False])  # Show ALL, hide CRP
+        visible_all.extend([True, False])  # Show ALL total, hide CRP total
+
+        # For "CRP Only": show second trace of each project + second total
+        visible_crp = []
+        for i in range(num_projects):
+            visible_crp.extend([False, True])  # Hide ALL, show CRP
+        visible_crp.extend([False, True])  # Hide ALL total, show CRP total
 
         # Add dropdown menu
         fig1.update_layout(
@@ -185,10 +186,10 @@ def main():
                     direction="down",
                     pad={"r": 10, "t": 10},
                     showactive=True,
-                    x=0.0,
+                    x=1.02,
                     xanchor="left",
-                    y=1.15,
-                    yanchor="top",
+                    y=1.08,
+                    yanchor="bottom",
                     bgcolor="white",
                     bordercolor="gray",
                     borderwidth=1
@@ -225,7 +226,7 @@ def main():
         chart_df = pd.merge(bugs_by_release_agg, hover_text_df, on=['release', 'state'])
 
         fig2 = px.bar(chart_df, x='release', y='count', color='state',
-                      title='CRP Bugs by Release (Current Snapshot)',
+                      title='Bugs by Release (Current Snapshot)',
                       labels={'release': 'Release Version', 'count': 'Number of Bugs', 'state': 'Status'},
                       category_orders={'release': sorted(chart_df['release'].dropna().unique())},
                       barmode='group',
