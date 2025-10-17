@@ -247,8 +247,8 @@ def main():
     logger.processing("Generating HTML report")
     try:
         with open(report_path, 'w') as f:
-            f.write("<html><head><title>CRP Bug Trends Report</title></head><body>")
-            f.write("<h1>CRP Bug Trends Report</h1>")
+            f.write("<html><head><title>Bug Trends Report</title></head><body>")
+            f.write("<h1>Bug Trends Report</h1>")
             if fig1:
                 f.write(fig1.to_html(full_html=False, include_plotlyjs='cdn'))
             if fig2:
