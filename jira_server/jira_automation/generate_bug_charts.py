@@ -65,18 +65,38 @@ def main():
         'COMPSRVCAS': '#98df8a'
     }
 
-    # Chart 1: Outstanding CRP Bugs (Column Chart)
+    # Chart 1: Outstanding CRP Bugs (Line Chart)
     logger.processing("Generating Outstanding CRP Bugs chart")
     df_crp = df[df['origin'].str.contains('CRP', na=False) & (df['status_category'] != 'Done')].copy()
-    
+
     fig1 = None
     if not df_crp.empty:
+        # Get daily counts by project
         daily_counts = df_crp.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
-        fig1 = px.bar(daily_counts, x='snapshot_date', y='open_bugs', color='project_key',
+
+        # Create line chart with individual project lines
+        fig1 = px.line(daily_counts, x='snapshot_date', y='open_bugs', color='project_key',
                       title='Daily Open CRP Bugs (Last 6 Months)',
                       labels={'snapshot_date': 'Date', 'open_bugs': 'Number of Open Bugs', 'project_key': 'Project'},
-                      color_discrete_map=color_palette)
+                      color_discrete_map=color_palette,
+                      markers=True)
+
+        # Calculate aggregate total across all projects
+        total_daily = df_crp.groupby('snapshot_date').size().reset_index(name='total_bugs')
+
+        # Add aggregate total line (bold, black, dashed)
+        import plotly.graph_objects as go
+        fig1.add_trace(go.Scatter(
+            x=total_daily['snapshot_date'],
+            y=total_daily['total_bugs'],
+            mode='lines+markers',
+            name='Total (All Projects)',
+            line=dict(color='black', width=3, dash='dash'),
+            marker=dict(size=6, color='black')
+        ))
+
         fig1.update_xaxes(type='date')
+        fig1.update_layout(hovermode='x unified')
         logger.success("Generated Outstanding CRP Bugs chart")
     else:
         logger.warning("No data found for the 'Outstanding CRP Bugs' chart")
