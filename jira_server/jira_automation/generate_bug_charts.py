@@ -65,41 +65,145 @@ def main():
         'COMPSRVCAS': '#98df8a'
     }
 
-    # Chart 1: Outstanding CRP Bugs (Line Chart)
-    logger.processing("Generating Outstanding CRP Bugs chart")
-    df_crp = df[df['origin'].str.contains('CRP', na=False) & (df['status_category'] != 'Done')].copy()
+    # Chart 1: Outstanding Open Bugs (Line Chart with CRP Filter)
+    logger.processing("Generating Outstanding Open Bugs chart")
+
+    # Filter to only open bugs (not Done)
+    df_open = df[df['status_category'] != 'Done'].copy()
+
+    # Mark which bugs are CRP
+    df_open['is_crp'] = df_open['origin'].str.contains('CRP', na=False)
 
     fig1 = None
-    if not df_crp.empty:
-        # Get daily counts by project
-        daily_counts = df_crp.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
-
-        # Create line chart with individual project lines
-        fig1 = px.line(daily_counts, x='snapshot_date', y='open_bugs', color='project_key',
-                      title='Daily Open CRP Bugs (Last 6 Months)',
-                      labels={'snapshot_date': 'Date', 'open_bugs': 'Number of Open Bugs', 'project_key': 'Project'},
-                      color_discrete_map=color_palette,
-                      markers=True)
-
-        # Calculate aggregate total across all projects
-        total_daily = df_crp.groupby('snapshot_date').size().reset_index(name='total_bugs')
-
-        # Add aggregate total line (bold, black, dashed)
+    if not df_open.empty:
         import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        # Prepare data for ALL bugs (default view)
+        daily_counts_all = df_open.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
+        total_daily_all = df_open.groupby('snapshot_date').size().reset_index(name='total_bugs')
+
+        # Prepare data for CRP bugs only
+        df_crp = df_open[df_open['is_crp']]
+        daily_counts_crp = df_crp.groupby(['snapshot_date', 'project_key']).size().reset_index(name='open_bugs')
+        total_daily_crp = df_crp.groupby('snapshot_date').size().reset_index(name='total_bugs')
+
+        # Create figure
+        fig1 = go.Figure()
+
+        # Add traces for ALL bugs (visible by default)
+        projects = sorted(daily_counts_all['project_key'].unique())
+        for project in projects:
+            project_data_all = daily_counts_all[daily_counts_all['project_key'] == project]
+            project_data_crp = daily_counts_crp[daily_counts_crp['project_key'] == project] if project in daily_counts_crp['project_key'].values else None
+
+            color = color_palette.get(project, None)
+
+            # Trace for ALL bugs
+            fig1.add_trace(go.Scatter(
+                x=project_data_all['snapshot_date'],
+                y=project_data_all['open_bugs'],
+                mode='lines+markers',
+                name=project,
+                line=dict(color=color),
+                marker=dict(symbol='circle'),
+                visible=True,
+                legendgroup=project
+            ))
+
+            # Trace for CRP bugs only (hidden by default)
+            if project_data_crp is not None and not project_data_crp.empty:
+                fig1.add_trace(go.Scatter(
+                    x=project_data_crp['snapshot_date'],
+                    y=project_data_crp['open_bugs'],
+                    mode='lines+markers',
+                    name=project,
+                    line=dict(color=color),
+                    marker=dict(symbol='circle'),
+                    visible=False,
+                    legendgroup=project,
+                    showlegend=False
+                ))
+            else:
+                # Add empty trace to maintain index alignment
+                fig1.add_trace(go.Scatter(
+                    x=[],
+                    y=[],
+                    mode='lines+markers',
+                    name=project,
+                    visible=False,
+                    legendgroup=project,
+                    showlegend=False
+                ))
+
+        # Add aggregate total line for ALL bugs
         fig1.add_trace(go.Scatter(
-            x=total_daily['snapshot_date'],
-            y=total_daily['total_bugs'],
+            x=total_daily_all['snapshot_date'],
+            y=total_daily_all['total_bugs'],
             mode='lines+markers',
             name='Total (All Projects)',
             line=dict(color='black', width=3, dash='dash'),
-            marker=dict(size=6, color='black')
+            marker=dict(size=6, color='black'),
+            visible=True
         ))
 
-        fig1.update_xaxes(type='date')
-        fig1.update_layout(hovermode='x unified')
-        logger.success("Generated Outstanding CRP Bugs chart")
+        # Add aggregate total line for CRP bugs only
+        fig1.add_trace(go.Scatter(
+            x=total_daily_crp['snapshot_date'],
+            y=total_daily_crp['total_bugs'],
+            mode='lines+markers',
+            name='Total (All Projects)',
+            line=dict(color='black', width=3, dash='dash'),
+            marker=dict(size=6, color='black'),
+            visible=False,
+            showlegend=False
+        ))
+
+        # Create visibility arrays for dropdown
+        num_projects = len(projects)
+        # For "All Bugs": show first set of traces (projects + total)
+        visible_all = [True] * num_projects + [False] * num_projects + [True, False]
+        # For "CRP Only": show second set of traces (projects + total)
+        visible_crp = [False] * num_projects + [True] * num_projects + [False, True]
+
+        # Add dropdown menu
+        fig1.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=list([
+                        dict(
+                            args=[{"visible": visible_all}],
+                            label="All Bugs",
+                            method="update"
+                        ),
+                        dict(
+                            args=[{"visible": visible_crp}],
+                            label="CRP Only",
+                            method="update"
+                        )
+                    ]),
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x=0.0,
+                    xanchor="left",
+                    y=1.15,
+                    yanchor="top",
+                    bgcolor="white",
+                    bordercolor="gray",
+                    borderwidth=1
+                )
+            ],
+            xaxis=dict(title='Date', type='date'),
+            yaxis=dict(title='Number of Open Bugs'),
+            title='Daily Open Bugs (Last 6 Months)',
+            hovermode='x unified',
+            legend=dict(title='Project')
+        )
+
+        logger.success("Generated Outstanding Open Bugs chart with CRP filter")
     else:
-        logger.warning("No data found for the 'Outstanding CRP Bugs' chart")
+        logger.warning("No data found for the 'Outstanding Open Bugs' chart")
 
     # Chart 2: Bugs by Release (Grouped with Project Hover Info)
     logger.processing("Generating Bugs by Release chart")
