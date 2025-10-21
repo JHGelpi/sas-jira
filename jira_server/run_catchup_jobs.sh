@@ -35,6 +35,7 @@ SCRIPTS=(
     "run_daily_job.sh"
     "run_bug_trending_analysis.sh"
     "run_compdiv_burndown.sh"
+    "run_burndown_dashboard.sh"
 )
 
 # Total number of scripts

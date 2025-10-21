@@ -12,7 +12,7 @@ from jira import JIRA
 from jira_data_analysis import (jira_processor, initiative_children, investment_trends, db_utils)
 from jira_automation import (create_rca_subtasks, data_quality_report, customer_analysis,
                              derive_platform_version, ldap_manager_report, collect_bug_snapshots,
-                             generate_bug_charts, compdiv_burndown)
+                             generate_bug_charts, compdiv_burndown, generate_burndown_dashboard)
 from logging_utils import get_logger, log_section_header
 
 logger = get_logger(__name__)
@@ -310,7 +310,7 @@ def run_bug_chart_generation_task():
 def task_compdiv_burndown_all():
     """Runs the COMPDIV burndown for all epics."""
     log_section_header(logger, "COMPDIV BURNDOWN")
-    
+
     logger.start("Starting COMPDIV burndown for all epics")
     try:
         results = compdiv_burndown.run_for_all_compdiv_epics(run_dt=date.today())
@@ -319,3 +319,15 @@ def task_compdiv_burndown_all():
     except Exception as e:
         logger.exception(f"An error occurred during COMPDIV burndown: {e}")
         return {}
+
+
+def run_burndown_dashboard_generation_task():
+    """Generates the burndown dashboard from existing HTML files."""
+    log_section_header(logger, "BURNDOWN DASHBOARD GENERATION")
+
+    logger.start("Starting burndown dashboard generation task")
+    try:
+        generate_burndown_dashboard.main()
+        logger.complete("Burndown dashboard generation completed successfully")
+    except Exception as e:
+        logger.exception(f"An error occurred during dashboard generation: {e}")

@@ -36,7 +36,8 @@ from tasks import (
     run_bug_snapshot_collection_task,
     run_bug_chart_generation_task,
     run_new_release_export_task,
-    task_compdiv_burndown_all
+    task_compdiv_burndown_all,
+    run_burndown_dashboard_generation_task
 )
 
 from jira_automation.compdiv_burndown import build_plot_html
@@ -323,14 +324,33 @@ async def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
     """
     logger.info("COMPDIV burndown job endpoint triggered via API")
     logger.processing("Scheduling COMPDIV burndown background task")
-    
+
     background_tasks.add_task(task_compdiv_burndown_all)
-    
+
     logger.success("COMPDIV burndown job scheduled")
     return {
         "message": "Enqueued COMPDIV burndown for all epics",
         "status": "scheduled",
         "tasks": ["compdiv_burndown"]
+    }
+
+
+@app.post("/jobs/generate-burndown-dashboard", status_code=202, summary="Generate Burndown Dashboard")
+async def trigger_burndown_dashboard_generation(background_tasks: BackgroundTasks):
+    """
+    Generates the burndown dashboard HTML file from existing burndown charts.
+    Creates a tabbed interface organizing COMPDIV, COMPLANG, and COMPHOST charts.
+    """
+    logger.info("Burndown dashboard generation endpoint triggered via API")
+    logger.processing("Scheduling burndown dashboard generation background task")
+
+    background_tasks.add_task(run_burndown_dashboard_generation_task)
+
+    logger.success("Burndown dashboard generation scheduled")
+    return {
+        "message": "Burndown dashboard generation started in the background.",
+        "status": "scheduled",
+        "tasks": ["burndown_dashboard"]
     }
 
 
