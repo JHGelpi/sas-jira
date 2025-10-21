@@ -378,6 +378,9 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
     </div>
 
     <script>
+        // Track if tabs have been initialized
+        const tabsInitialized = {{}};
+
         function switchTab(event, tabId) {{
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
@@ -392,10 +395,28 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
             }});
 
             // Show selected tab content
-            document.getElementById(tabId).classList.add('active');
+            const selectedTab = document.getElementById(tabId);
+            selectedTab.classList.add('active');
 
             // Add active class to clicked button
             event.currentTarget.classList.add('active');
+
+            // Force iframes to reload on first view to fix legend truncation
+            // This only happens once per tab to avoid unnecessary reloads
+            if (!tabsInitialized[tabId]) {{
+                setTimeout(() => {{
+                    const iframes = selectedTab.querySelectorAll('iframe');
+                    iframes.forEach(iframe => {{
+                        // Force iframe to reload by resetting its src
+                        const src = iframe.src;
+                        iframe.src = '';
+                        setTimeout(() => {{
+                            iframe.src = src;
+                        }}, 10);
+                    }});
+                    tabsInitialized[tabId] = true;
+                }}, 100);
+            }}
         }}
     </script>
 </body>
