@@ -36,10 +36,88 @@ def get_jira_client():
         return None
 
 
+def close_completed_iris_initiatives(jira, db_pool):
+    """
+    Checks all active IRIS initiatives and closes them if they are in a closed statusCategory.
+    Sets eff_end_date to current date and active_flag to false for closed initiatives.
+    """
+    log_section_header(logger, "CLOSE COMPLETED IRIS INITIATIVES")
+
+    conn = db_pool.getconn()
+    try:
+        # Fetch all active IRIS initiatives from the database
+        with conn.cursor() as cursor:
+            query = """
+                SELECT issue_key
+                FROM tbl_initiative_issue_keys
+                WHERE "IRIS" = true
+                  AND (active_flag IS NULL OR active_flag = true)
+            """
+            cursor.execute(query)
+            active_iris_keys = [row[0] for row in cursor.fetchall()]
+
+        if not active_iris_keys:
+            logger.info("No active IRIS initiatives found in database")
+            return
+
+        logger.info(f"Found {len(active_iris_keys)} active IRIS initiatives to check")
+
+        # Fetch status information from Jira for all active IRIS initiatives
+        keys_to_close = []
+
+        for i in range(0, len(active_iris_keys), 100):
+            chunk = active_iris_keys[i:i + 100]
+            jql = f"key in ({','.join(f'\"{k}\"' for k in chunk)})"
+
+            try:
+                logger.searching(f"Checking status for batch {i//100 + 1} ({len(chunk)} issues)")
+                issues = jira.search_issues(jql, fields="key,status", maxResults=len(chunk))
+
+                for issue in issues:
+                    status_category = issue.fields.status.statusCategory.name
+                    logger.debug(f"{issue.key}: statusCategory = {status_category}")
+
+                    if status_category.lower() == "done":
+                        logger.info(f"{issue.key} is in closed statusCategory '{status_category}' - marking for closure")
+                        keys_to_close.append(issue.key)
+
+            except Exception as e:
+                logger.error(f"Failed to fetch issues for chunk starting at {i}: {e}")
+                continue
+
+        if not keys_to_close:
+            logger.info("No IRIS initiatives need to be closed. All active initiatives are still open")
+            return
+
+        # Update database to close the initiatives
+        today = datetime.now().date()
+
+        with conn.cursor() as cursor:
+            logger.database(f"Closing {len(keys_to_close)} IRIS initiatives in tbl_initiative_issue_keys")
+
+            update_query = """
+                UPDATE tbl_initiative_issue_keys
+                SET eff_end_date = %s, active_flag = false
+                WHERE issue_key = ANY(%s)
+                  AND "IRIS" = true
+            """
+            cursor.execute(update_query, (today, keys_to_close))
+            conn.commit()
+
+            logger.success(f"Successfully closed {len(keys_to_close)} IRIS initiatives")
+            logger.info(f"Closed initiatives: {', '.join(keys_to_close)}")
+
+    except Exception as e:
+        conn.rollback()
+        logger.exception(f"Failed to close completed IRIS initiatives: {e}")
+    finally:
+        db_pool.putconn(conn)
+
+
 def sync_initiatives_from_jql(jira, db_pool):
     """Fetches initiatives from a JQL query and inserts any new ones into the database."""
     log_section_header(logger, "INITIATIVE SYNC FROM JQL")
-    
+
     jql = os.getenv('JIRA_INITIATIVE_JQL')
     if not jql:
         logger.warning("JIRA_INITIATIVE_JQL environment variable not set. Skipping initiative sync")
@@ -47,10 +125,10 @@ def sync_initiatives_from_jql(jira, db_pool):
 
     iris_labels_str = os.getenv('JIRA_IRIS_LABELS', '')
     iris_labels_set = {label.strip() for label in iris_labels_str.split(',') if label.strip()}
-    
+
     logger.searching(f"Fetching initiatives from Jira with JQL")
     logger.debug(f"Query: {jql}")
-    
+
     jira_initiatives = jira.search_issues(jql, fields=["key", "labels"], maxResults=False)
     logger.info(f"Found {len(jira_initiatives)} potential initiatives in Jira")
 
@@ -65,7 +143,7 @@ def sync_initiatives_from_jql(jira, db_pool):
         if issue.key not in existing_db_keys:
             issue_labels = set(issue.fields.labels)
             is_iris = not iris_labels_set.isdisjoint(issue_labels)
-            
+
             logger.info(f"Found new initiative to insert: {issue.key} (IRIS: {is_iris})")
             new_initiatives_to_insert.append(
                 (issue.key, today, far_future_date, is_iris)
@@ -208,14 +286,15 @@ def store_issues_bulk(db_pool, issues_to_store: dict):
 def main():
     """Main function to fetch and store initiative-related issues."""
     log_section_header(logger, "INITIATIVE CHILDREN ANALYSIS")
-    
+
     jira = get_jira_client()
     if not jira:
         return
-        
+
     db_pool = db_utils.get_connection_pool()
-    
+
     sync_initiatives_from_jql(jira, db_pool)
+    close_completed_iris_initiatives(jira, db_pool)
 
     logger.start("Proceeding to fetch child issues for all initiatives")
     allowed_projects_str = os.getenv("JIRA_PROJECTS", "")

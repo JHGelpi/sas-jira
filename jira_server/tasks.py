@@ -12,7 +12,7 @@ from jira import JIRA
 from jira_data_analysis import (jira_processor, initiative_children, investment_trends, db_utils)
 from jira_automation import (create_rca_subtasks, data_quality_report, customer_analysis,
                              derive_platform_version, ldap_manager_report, collect_bug_snapshots,
-                             generate_bug_charts, compdiv_burndown, generate_burndown_dashboard)
+                             generate_bug_charts, compdiv_burndown, generate_burndown_dashboard, iris_burndown)
 from logging_utils import get_logger, log_section_header
 
 logger = get_logger(__name__)
@@ -55,7 +55,7 @@ def get_jira_client():
 def run_jira_export_task(run_flag: str):
     """The main worker task for the 'daily' data sync."""
     log_section_header(logger, f"JIRA DAILY EXPORT ({run_flag.upper()})")
-    
+
     start_time = datetime.now()
     logger.start(f"Starting Jira daily export task for run_flag='{run_flag}'")
 
@@ -65,9 +65,9 @@ def run_jira_export_task(run_flag: str):
         if not jira:
             logger.error("Cannot proceed without Jira client")
             return
-            
+
         jql_query = jira_processor.build_daily_jql(db_conn_pool)
-        
+
         fields_to_fetch = jira_processor.get_required_field_list(jira)
         all_issues = jira_processor.fetch_all_issues(jira, jql_query, fields_to_fetch)
 
@@ -80,7 +80,11 @@ def run_jira_export_task(run_flag: str):
             return
 
         jira_processor.process_and_load_issues(db_conn_pool, all_issues, run_flag, jira)
-        
+
+        # Close completed IRIS initiatives daily
+        logger.info("Checking for completed IRIS initiatives to close")
+        initiative_children.close_completed_iris_initiatives(jira, db_conn_pool)
+
     except Exception as e:
         logger.exception(f"An error occurred during Jira daily export task: {e}")
     finally:
@@ -331,3 +335,17 @@ def run_burndown_dashboard_generation_task():
         logger.complete("Burndown dashboard generation completed successfully")
     except Exception as e:
         logger.exception(f"An error occurred during dashboard generation: {e}")
+
+
+def task_iris_burndown_all():
+    """Runs the IRIS burndown for all active IRIS epics."""
+    log_section_header(logger, "IRIS BURNDOWN")
+
+    logger.start("Starting IRIS burndown for all active IRIS epics")
+    try:
+        results = iris_burndown.run_for_all_iris_epics(run_dt=date.today())
+        logger.complete(f"IRIS burndown completed for {len(results)} epics")
+        return results
+    except Exception as e:
+        logger.exception(f"An error occurred during IRIS burndown: {e}")
+        return {}

@@ -37,7 +37,8 @@ from tasks import (
     run_bug_chart_generation_task,
     run_new_release_export_task,
     task_compdiv_burndown_all,
-    run_burndown_dashboard_generation_task
+    run_burndown_dashboard_generation_task,
+    task_iris_burndown_all
 )
 
 from jira_automation.compdiv_burndown import build_plot_html
@@ -332,6 +333,24 @@ async def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
         "message": "Enqueued COMPDIV burndown for all epics",
         "status": "scheduled",
         "tasks": ["compdiv_burndown"]
+    }
+
+
+@app.post("/jobs/iris-burndown", status_code=202, summary="Trigger IRIS Burndown for All Active IRIS Epics")
+async def trigger_iris_burndown(background_tasks: BackgroundTasks):
+    """
+    Enqueues a background job to run IRIS burndown analysis for all active IRIS epics.
+    """
+    logger.info("IRIS burndown job endpoint triggered via API")
+    logger.processing("Scheduling IRIS burndown background task")
+
+    background_tasks.add_task(task_iris_burndown_all)
+
+    logger.success("IRIS burndown job scheduled")
+    return {
+        "message": "Enqueued IRIS burndown for all active IRIS epics",
+        "status": "scheduled",
+        "tasks": ["iris_burndown"]
     }
 
 

@@ -20,37 +20,46 @@ from logging_utils import get_logger, log_section_header
 logger = get_logger(__name__)
 
 
-def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str]]:
+def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[str]]:
     """
     Scans the burndown directory and collects HTML files for each tab.
 
     Returns:
-        Tuple of (overview_files, bigint_files) - both lists sorted alphabetically
+        Tuple of (overview_files, bigint_files, iris_files) - all lists sorted alphabetically
     """
     overview_files = []
     bigint_files = []
+    iris_files = []
 
     try:
         files = [f for f in os.listdir(burndown_dir) if f.endswith('_burndown.html')]
         logger.info(f"Found {len(files)} burndown HTML files")
 
         for filename in files:
-            if filename.startswith('COMPDIV'):
+            # IRIS files have IRIS_ prefix and go exclusively to IRIS tab
+            if filename.startswith('IRIS_'):
+                iris_files.append(filename)
+            elif filename.startswith('COMPDIV'):
                 overview_files.append(filename)
             elif filename.startswith('COMPLANG') or filename.startswith('COMPHOST'):
                 bigint_files.append(filename)
+            else:
+                # Any other files go to Overview by default
+                overview_files.append(filename)
 
         # Sort alphabetically
         overview_files.sort()
         bigint_files.sort()
+        iris_files.sort()
 
         logger.info(f"Overview tab: {len(overview_files)} files")
         logger.info(f"BIGINT tab: {len(bigint_files)} files")
+        logger.info(f"IRIS tab: {len(iris_files)} files")
 
     except Exception as e:
         logger.error(f"Failed to collect HTML files: {e}")
 
-    return overview_files, bigint_files
+    return overview_files, bigint_files, iris_files
 
 
 def extract_epic_title(html_path: str) -> str:
@@ -84,7 +93,7 @@ def extract_epic_title(html_path: str) -> str:
 
 def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     """
-    Generates the dashboard HTML file with tabs for Overview and BIGINT.
+    Generates the dashboard HTML file with tabs for Overview, BIGINT, and IRIS.
 
     Args:
         burndown_dir: Directory containing the burndown HTML files
@@ -93,9 +102,9 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     log_section_header(logger, "BURNDOWN DASHBOARD GENERATION")
     logger.start("Starting burndown dashboard generation")
 
-    overview_files, bigint_files = collect_html_files(burndown_dir)
+    overview_files, bigint_files, iris_files = collect_html_files(burndown_dir)
 
-    if not overview_files and not bigint_files:
+    if not overview_files and not bigint_files and not iris_files:
         logger.warning("No burndown HTML files found. Dashboard not generated.")
         return
 
@@ -122,8 +131,18 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
             'path': filepath
         })
 
+    iris_charts = []
+    for filename in iris_files:
+        filepath = os.path.join(burndown_dir, filename)
+        title = extract_epic_title(filepath)
+        iris_charts.append({
+            'filename': filename,
+            'title': title,
+            'path': filepath
+        })
+
     # Generate the HTML
-    html_content = generate_html_structure(overview_charts, bigint_charts, burndown_dir)
+    html_content = generate_html_structure(overview_charts, bigint_charts, iris_charts, burndown_dir)
 
     # Write the dashboard file
     try:
@@ -135,13 +154,14 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         raise
 
 
-def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dict], burndown_dir: str) -> str:
+def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dict], iris_charts: List[dict], burndown_dir: str) -> str:
     """
     Generates the complete HTML structure for the dashboard.
 
     Args:
         overview_charts: List of chart metadata for Overview tab
         bigint_charts: List of chart metadata for BIGINT tab
+        iris_charts: List of chart metadata for IRIS tab
         burndown_dir: Base directory for burndown files (for relative paths)
 
     Returns:
@@ -169,6 +189,7 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
 
     overview_html = generate_grid_html(overview_charts)
     bigint_html = generate_grid_html(bigint_charts)
+    iris_html = generate_grid_html(iris_charts)
 
     # Generate timestamp in dd-mm-yyyy HH:MM:SS format
     timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -366,6 +387,10 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
                 BIGINT
                 <span class="tab-count">{len(bigint_charts)}</span>
             </button>
+            <button class="tab-button" onclick="switchTab(event, 'iris')">
+                IRIS
+                <span class="tab-count">{len(iris_charts)}</span>
+            </button>
         </div>
 
         <div id="overview" class="tab-content active">
@@ -374,6 +399,10 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
 
         <div id="bigint" class="tab-content">
             {bigint_html}
+        </div>
+
+        <div id="iris" class="tab-content">
+            {iris_html}
         </div>
     </div>
 
