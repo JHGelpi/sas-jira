@@ -1,9 +1,11 @@
-# Normalized Sprint Migration Plan
+# Ship Cadence Migration Plan
 **From Sprint Name to Fix Version-Based Calculation**
 
 ## Executive Summary
 
-Migrate the `normalized_sprint` calculation from sprint name regex parsing to fix version-based logic. This will provide more accurate sprint tracking and enable validation of fix version data quality.
+Migrate the `ship_cadence` calculation from sprint name regex parsing to fix version-based logic. This will provide more accurate release tracking and enable validation of fix version data quality.
+
+**Terminology Change**: The field previously called `normalized_sprint` is being renamed to `ship_cadence` to better reflect that it represents the actual ship/release cadence (fix version) rather than a normalized sprint name.
 
 ---
 
@@ -30,9 +32,11 @@ normalized_sprint (derived in queries)
 ```
 
 ### Current Usage
-- **investment_trends.py**: Sorting and grouping by normalized sprint for investment analysis
-- **okr_summary.sql**: Aggregating story points by normalized sprint
+- **investment_trends.py**: Sorting and grouping by normalized_sprint for investment analysis
+- **okr_summary.sql**: Aggregating story points by normalized_sprint (5 references)
 - Various reports and dashboards
+
+**Note**: All references to `normalized_sprint` will be renamed to `ship_cadence` as part of this migration.
 
 ---
 
@@ -40,7 +44,7 @@ normalized_sprint (derived in queries)
 
 ### New Implementation
 - **Source Field**: `tbl_jira_sprint_data.fix_version`
-- **Storage**: New column `tbl_jira_sprint_data.normalized_sprint` (materialized, not derived)
+- **Storage**: New column `tbl_jira_sprint_data.ship_cadence` (materialized, not derived)
 - **Calculation**: Python function to parse, sort, and select latest valid fix version
 - **Validation**: Data quality audit for Done issues with invalid fix versions
 
@@ -54,7 +58,7 @@ tbl_jira_sprint_data.fix_version (pipe-delimited)
     ↓
 NEW: normalize_fix_version() function
     ↓
-tbl_jira_sprint_data.normalized_sprint (new column)
+tbl_jira_sprint_data.ship_cadence (new column)
     ↓
 Reports/Dashboards (use materialized column)
 ```
@@ -105,17 +109,17 @@ Reports/Dashboards (use materialized column)
 #### Add Column to `tbl_jira_sprint_data`
 
 ```sql
--- Add new column for materialized normalized sprint
+-- Add new column for materialized ship cadence
 ALTER TABLE tbl_jira_sprint_data
-ADD COLUMN normalized_sprint VARCHAR(7);
+ADD COLUMN ship_cadence VARCHAR(7);
 
 -- Add index for performance (frequently used in WHERE/GROUP BY)
-CREATE INDEX idx_jira_sprint_data_normalized_sprint
-ON tbl_jira_sprint_data(normalized_sprint);
+CREATE INDEX idx_jira_sprint_data_ship_cadence
+ON tbl_jira_sprint_data(ship_cadence);
 
 -- Add comment for documentation
-COMMENT ON COLUMN tbl_jira_sprint_data.normalized_sprint
-IS 'Latest valid fix version in YYYY.MM format, derived from fix_version field';
+COMMENT ON COLUMN tbl_jira_sprint_data.ship_cadence
+IS 'Latest valid fix version in YYYY.MM format, derived from fix_version field. Represents the ship/release cadence.';
 ```
 
 #### Migration Strategy
@@ -141,19 +145,19 @@ parse_fix_version_data(fields.fixVersions), parse_component_data(fields.componen
 **Changes Needed**:
 1. Keep `parse_fix_version_data()` as-is (stores raw pipe-delimited string)
 2. Add call to new `normalize_fix_version()` function
-3. Include `normalized_sprint` in CSV headers and row data
+3. Include `ship_cadence` in CSV headers and row data
 
 **Pseudo-code**:
 ```python
 # In process_and_load_issues()
 fix_version_raw = parse_fix_version_data(fields.fixVersions)
-normalized_sprint = normalize_fix_version(fix_version_raw)
+ship_cadence = normalize_fix_version(fix_version_raw)
 
 # Add to CSV row
 row = [
     # ... existing fields ...
     fix_version_raw,  # Keep original
-    normalized_sprint,  # New field
+    ship_cadence,     # New field
     # ... rest of fields ...
 ]
 ```
@@ -233,7 +237,7 @@ def test_normalize_fix_version():
 **Logic**:
 ```
 IF issue.statusCategory = "Done"
-AND normalized_sprint IS NULL OR normalized_sprint = ""
+AND ship_cadence IS NULL OR ship_cadence = ""
 THEN flag as data quality issue
 ```
 
@@ -281,14 +285,14 @@ def check_invalid_fix_versions_for_done_issues(jira, db_pool):
 ```python
 def check_invalid_fix_versions_db(db_pool):
     """
-    Queries database for Done issues with invalid normalized_sprint.
+    Queries database for Done issues with invalid ship_cadence.
     More efficient than JQL for large result sets.
     """
     query = """
         SELECT issue_key, issue_status, fix_version, summary
         FROM tbl_jira_sprint_data
         WHERE issue_status IN ('Done', 'Closed', 'Accepted and Close(Q)')
-        AND (normalized_sprint IS NULL OR normalized_sprint = '')
+        AND (ship_cadence IS NULL OR ship_cadence = '')
         AND update_date >= CURRENT_DATE - INTERVAL '30 days'
         ORDER BY update_date DESC
         LIMIT 1000
@@ -306,6 +310,100 @@ def check_invalid_fix_versions_db(db_pool):
 
 ---
 
+### 5. Updating Existing Database Objects
+
+#### Identify All References to normalized_sprint
+
+**Known Files Using normalized_sprint**:
+1. `jira_data_analysis/okr_summary.sql` - 5 references (lines 8, 31, 39, 48, 51)
+2. `jira_data_analysis/investment_trends.py` - Used for sorting and grouping
+
+**SQL to Find All Database Views/Functions Referencing normalized_sprint**:
+```sql
+-- Find all views that reference normalized_sprint
+SELECT
+    schemaname,
+    viewname,
+    definition
+FROM pg_views
+WHERE definition ILIKE '%normalized_sprint%'
+AND schemaname = 'public';
+
+-- Find all functions that reference normalized_sprint
+SELECT
+    n.nspname AS schema_name,
+    p.proname AS function_name,
+    pg_get_functiondef(p.oid) AS definition
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE pg_get_functiondef(p.oid) ILIKE '%normalized_sprint%'
+AND n.nspname = 'public';
+
+-- Find all materialized views
+SELECT
+    schemaname,
+    matviewname,
+    definition
+FROM pg_matviews
+WHERE definition ILIKE '%normalized_sprint%'
+AND schemaname = 'public';
+```
+
+#### Update Strategy
+
+**Phase 1: Add New Column (Week 1)**
+- Add `ship_cadence` column to `tbl_jira_sprint_data`
+- Keep existing queries using old regex logic
+- No breaking changes
+
+**Phase 2: Dual Population (Week 2-3)**
+- ETL populates both `ship_cadence` (new) and continues regex logic for old queries
+- Test new column with sample queries
+- Identify all downstream dependencies
+
+**Phase 3: Migration (Week 4)**
+- Update all SQL files and views to use `ship_cadence` instead of `normalized_sprint`
+- Update Python code to reference new column name
+- Deploy changes
+
+**Phase 4: Cleanup (Week 5+)**
+- After validation period, optionally drop old regex calculations
+- Monitor for any missed references
+
+#### Files Requiring Updates
+
+**1. okr_summary.sql**
+- Line 8: `a.normalized_sprint` → `a.ship_cadence`
+- Line 31: `normalized_sprint,` → `ship_cadence,`
+- Line 39: `PARTITION BY normalized_sprint` → `PARTITION BY ship_cadence`
+- Line 48: `normalized_sprint` → `ship_cadence`
+- Line 51: `normalized_sprint,` → `ship_cadence,`
+
+**2. investment_trends.py**
+- Update any references to normalized_sprint in sorting/grouping logic
+- Update column names in dataframe operations
+- Update chart labels/axes if needed
+
+**3. Any Database Views** (to be discovered via SQL above)
+- Use ALTER VIEW or CREATE OR REPLACE VIEW to update definitions
+- Test each view after update
+
+#### Sample Migration SQL
+
+```sql
+-- Example: Update a view that uses normalized_sprint
+CREATE OR REPLACE VIEW v_sprint_summary AS
+SELECT
+    ship_cadence,  -- Changed from normalized_sprint
+    COUNT(*) as issue_count,
+    SUM(story_points) as total_points
+FROM tbl_jira_sprint_data
+WHERE ship_cadence IS NOT NULL  -- Changed from normalized_sprint
+GROUP BY ship_cadence;  -- Changed from normalized_sprint
+```
+
+---
+
 ## Implementation Plan
 
 ### Phase 1: Preparation & Testing (Week 1)
@@ -317,18 +415,23 @@ def check_invalid_fix_versions_db(db_pool):
    - Verify sorting logic handles year boundaries correctly
 
 2. **Database Schema Update**
-   - Add `normalized_sprint` column to `tbl_jira_sprint_data`
+   - Add `ship_cadence` column to `tbl_jira_sprint_data`
    - Add index for performance
    - Test on development/staging database first
 
-3. **Create Backfill Script**
+3. **Identify All Database Objects Using normalized_sprint**
+   - Run discovery SQL queries to find all views/functions/materialized views
+   - Document all files and database objects that need updates
+   - Create comprehensive list for Phase 4 migration
+
+4. **Create Backfill Script**
    ```python
-   # backfill_normalized_sprint.py
-   # Updates normalized_sprint for all existing records
+   # backfill_ship_cadence.py
+   # Updates ship_cadence for all existing records
    # Can be run iteratively in batches for large tables
    ```
 
-4. **Testing**
+5. **Testing**
    - Unit tests for `normalize_fix_version()`
    - Integration tests with sample Jira data
    - Verify sorting: `2025.12` vs `2026.01`
@@ -338,7 +441,7 @@ def check_invalid_fix_versions_db(db_pool):
 
 #### Tasks:
 1. **Update `jira_processor.py`**
-   - Add `normalized_sprint` to CSV headers
+   - Add `ship_cadence` to CSV headers
    - Call `normalize_fix_version()` during issue processing
    - Add to database insert/update logic
 
@@ -378,16 +481,17 @@ def check_invalid_fix_versions_db(db_pool):
 
 #### Tasks:
 1. **Update SQL Queries**
-   - Replace `regexp_replace(sprint_name, ...)` with `normalized_sprint` column
-   - Update `okr_summary.sql`
+   - Replace `regexp_replace(sprint_name, ...)` with `ship_cadence` column
+   - Update `okr_summary.sql` (5 references to normalized_sprint)
+   - Update any database views that reference normalized_sprint
    - Update any ad-hoc queries or views
 
 2. **Update Python Code**
-   - Verify `investment_trends.py` works with new column
+   - Update `investment_trends.py` to use ship_cadence instead of normalized_sprint
    - Update any other reports/scripts using normalized sprint
 
 3. **Update Documentation**
-   - Update CLAUDE.md with new logic
+   - Update CLAUDE.md with new logic and terminology
    - Update README.md if needed
    - Document the change for other developers
 
@@ -430,7 +534,7 @@ def check_invalid_fix_versions_db(db_pool):
 **Impact**: High
 **Likelihood**: Medium
 **Mitigation**:
-- Identify all queries using normalized_sprint before migration
+- Identify all queries using normalized_sprint before migration (okr_summary.sql, investment_trends.py confirmed)
 - Test each report after changes
 - Keep dual logic temporarily (populate both old and new)
 - Gradual rollout: new column first, migrate queries second
@@ -448,7 +552,7 @@ def check_invalid_fix_versions_db(db_pool):
 **Impact**: Medium
 **Likelihood**: Low
 **Mitigation**:
-- Add index on normalized_sprint column
+- Add index on ship_cadence column
 - Monitor query performance before/after
 - Materialize column (don't compute on-the-fly)
 - Optimize backfill script to run in batches
@@ -479,7 +583,7 @@ If issues arise, we can rollback in phases:
 - Re-deploy corrected version
 
 ### Full Rollback (Week 4+)
-- Drop `normalized_sprint` column
+- Drop `ship_cadence` column
 - Revert all code changes
 - Continue with old sprint_name-based logic
 - Requires full rollback plan execution
@@ -489,12 +593,12 @@ If issues arise, we can rollback in phases:
 ## Success Criteria
 
 ### Functional Requirements ✓
-- [ ] `normalized_sprint` column populated for all records
+- [ ] `ship_cadence` column populated for all records
 - [ ] Sorting logic correctly handles year boundaries (2025.12 < 2026.01)
 - [ ] Multi-version strings parsed correctly (`"A|B|C"` → latest)
 - [ ] Invalid versions filtered out (`"Now"`, `"Next"`, `"Future"`)
 - [ ] Data quality audit identifies Done issues with invalid fix versions
-- [ ] Reports and dashboards show correct data
+- [ ] Reports and dashboards show correct data using ship_cadence
 
 ### Non-Functional Requirements ✓
 - [ ] ETL process runtime increase < 10%
@@ -515,7 +619,7 @@ If issues arise, we can rollback in phases:
 
 ### Question 1: What if an issue has NO fix versions?
 **Options**:
-- A) Set `normalized_sprint` to `NULL`
+- A) Set `ship_cadence` to `NULL`
 - B) Set to empty string `""`
 - C) Fallback to old sprint_name regex logic
 - **Recommendation**: Option A (NULL) - clearest semantic meaning
@@ -529,7 +633,7 @@ If issues arise, we can rollback in phases:
 ### Question 3: How to handle issues with ONLY "Now"/"Next"/"Future"?
 **Context**: Open/In Progress issues often use these placeholders
 **Options**:
-- A) Set `normalized_sprint` to NULL (not yet scheduled)
+- A) Set `ship_cadence` to NULL (not yet scheduled)
 - B) Use current sprint as default
 - C) Use a special value like "Unscheduled"
 - **Recommendation**: Option A for Done issues (flagged), Option C for open issues
@@ -541,7 +645,7 @@ If issues arise, we can rollback in phases:
 - C) Report only, no enforcement
 - **Recommendation**: Option B - 2 weeks warning, then enforce
 
-### Question 5: Should we support multiple normalized sprints?
+### Question 5: Should we support multiple ship cadences?
 **Context**: If issue spans multiple fix versions
 **Options**:
 - A) Store only latest (current plan)
@@ -589,7 +693,7 @@ def test_normalize_fix_version_invalid_format():
 ### Integration Tests
 1. Load sample Jira data with various fix version patterns
 2. Run ETL process
-3. Verify `normalized_sprint` column populated correctly
+3. Verify `ship_cadence` column populated correctly
 4. Compare against expected results
 
 ### Regression Tests
@@ -623,7 +727,7 @@ def test_normalize_fix_version_invalid_format():
 ### Week 1: Announcement
 **Audience**: All Jira users, product owners, scrum masters
 **Message**:
-> "We're improving sprint tracking by using fix versions instead of sprint names. Starting [DATE], the system will validate that Done issues have valid fix versions in YYYY.MM format (e.g., 2025.09). Issues with only 'Now', 'Next', or 'Future' will be flagged."
+> "We're improving release tracking by using fix versions to calculate ship cadence. Starting [DATE], the system will validate that Done issues have valid fix versions in YYYY.MM format (e.g., 2025.09). Issues with only 'Now', 'Next', or 'Future' will be flagged."
 
 ### Week 2: Reminder
 **Audience**: Teams with flagged issues
@@ -633,7 +737,7 @@ def test_normalize_fix_version_invalid_format():
 ### Week 3: Go-Live
 **Audience**: All teams
 **Message**:
-> "Normalized sprint calculation now uses fix versions. Daily quality reports will flag Done issues without valid YYYY.MM fix versions. Reports and dashboards updated."
+> "Ship cadence calculation now uses fix versions. Daily quality reports will flag Done issues without valid YYYY.MM fix versions. Reports and dashboards updated."
 
 ### Week 4: Follow-up
 **Audience**: All teams
@@ -649,7 +753,7 @@ def test_normalize_fix_version_invalid_format():
 ```python
 #!/usr/bin/env python3
 """
-Backfill normalized_sprint column for existing records.
+Backfill ship_cadence column for existing records.
 Run in batches to avoid locking the table.
 """
 
@@ -660,8 +764,8 @@ from jira_data_analysis.jira_utils import normalize_fix_version
 
 load_dotenv()
 
-def backfill_normalized_sprint(batch_size=10000):
-    """Backfill normalized_sprint for all records in batches."""
+def backfill_ship_cadence(batch_size=10000):
+    """Backfill ship_cadence for all records in batches."""
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
 
@@ -691,13 +795,13 @@ def backfill_normalized_sprint(batch_size=10000):
 
                 # Update each record
                 for record_id, fix_version in batch:
-                    normalized = normalize_fix_version(fix_version)
+                    ship_cadence = normalize_fix_version(fix_version)
 
                     cur.execute("""
                         UPDATE tbl_jira_sprint_data
-                        SET normalized_sprint = %s
+                        SET ship_cadence = %s
                         WHERE id = %s
-                    """, (normalized, record_id))
+                    """, (ship_cadence, record_id))
 
                     updated += 1
 
@@ -717,7 +821,7 @@ def backfill_normalized_sprint(batch_size=10000):
 
 
 if __name__ == "__main__":
-    backfill_normalized_sprint()
+    backfill_ship_cadence()
 ```
 
 ---
