@@ -379,15 +379,21 @@ Located in `jira_automation/`
 **Checks**:
 - Missing fix versions
 - Invalid fix versions for Done issues (not matching YYYY.MM pattern)
+  - Excludes bugs with resolutions other than "Fixed" or "Completed"
+  - Rationale: Bugs closed as Duplicate, Won't Fix, etc. don't require fix versions
 - Missing origin/root cause
 - Missing pipeline discovery stage
 - Missing platform version
 - Missing affects version
 
-**Project Exclusion**:
-- Environment variable `DATA_QUALITY_EXCLUDE_PROJECTS` allows excluding specific projects
-- Example: `DATA_QUALITY_EXCLUDE_PROJECTS="SIGNOFF,TESTPROJ"`
-- Automatically adds `AND project NOT IN (...)` to all JQL queries
+**Filtering Logic**:
+- **Project Exclusion**: `DATA_QUALITY_EXCLUDE_PROJECTS` environment variable
+  - Example: `DATA_QUALITY_EXCLUDE_PROJECTS="SIGNOFF,TESTPROJ"`
+  - Automatically adds `AND project NOT IN (...)` to all JQL queries
+- **Bug Resolution Filtering**: For fix version validation only
+  - Bugs with resolution = "Fixed" or "Completed" → Checked for valid fix version
+  - Bugs with other resolutions (Duplicate, Won't Fix, Cannot Reproduce, etc.) → Excluded from check
+  - Stories and other issue types → Always checked regardless of resolution
 
 **Output**:
 - CSV report: `reports/data_quality_report_YYYY-MM-DD.csv`

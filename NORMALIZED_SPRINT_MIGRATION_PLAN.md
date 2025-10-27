@@ -237,9 +237,12 @@ def test_normalize_fix_version():
 **Logic**:
 ```
 IF issue.statusCategory = "Done"
+AND (issue.type != "Bug" OR issue.resolution IN ("Fixed", "Completed"))
 AND ship_cadence IS NULL OR ship_cadence = ""
 THEN flag as data quality issue
 ```
+
+**Exception**: Bugs with resolutions other than "Fixed" or "Completed" (e.g., Duplicate, Won't Fix, Cannot Reproduce) are excluded from this validation, as they don't require fix versions.
 
 **Implementation Location**: `jira_automation/data_quality_report.py`
 

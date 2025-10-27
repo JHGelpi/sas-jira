@@ -201,6 +201,9 @@ def check_invalid_fix_versions_for_done_issues(jira, ldap_map: dict) -> list:
     Issues in Done status should have at least one fix version matching
     the YYYY.MM pattern. Issues with only "Now", "Next", or "Future" are flagged.
 
+    Bugs with resolutions other than "Fixed" or "Completed" are excluded from
+    this check, as they don't require valid fix versions (e.g., Duplicate, Won't Fix).
+
     Args:
         jira: Jira client instance
         ldap_map: Dictionary mapping employee emails to manager info
@@ -226,7 +229,7 @@ def check_invalid_fix_versions_for_done_issues(jira, ldap_map: dict) -> list:
 
     processed_issues = []
     try:
-        fields_to_fetch = ["summary", "assignee", "fixVersions", "status"]
+        fields_to_fetch = ["summary", "assignee", "fixVersions", "status", "resolution", "issuetype"]
         issues = jira.search_issues(jql_query, fields=fields_to_fetch, maxResults=1000)
 
         if not issues:
@@ -235,8 +238,20 @@ def check_invalid_fix_versions_for_done_issues(jira, ldap_map: dict) -> list:
 
         logger.info(f"Found {len(issues)} Done issues to validate")
         invalid_count = 0
+        excluded_by_resolution = 0
 
         for issue in issues:
+            # Get issue type
+            issue_type = issue.fields.issuetype.name if hasattr(issue.fields, 'issuetype') else None
+
+            # Get resolution
+            resolution = issue.fields.resolution.name if hasattr(issue.fields, 'resolution') and issue.fields.resolution else None
+
+            # Skip bugs with resolutions other than Fixed or Completed
+            if issue_type and issue_type.lower() == 'bug' and resolution:
+                if resolution.lower() not in ['fixed', 'completed']:
+                    excluded_by_resolution += 1
+                    continue
             # Get fix versions as pipe-delimited string
             fix_versions_raw = '|'.join([v.name for v in issue.fields.fixVersions]) if issue.fields.fixVersions else ''
 
@@ -268,6 +283,9 @@ def check_invalid_fix_versions_for_done_issues(jira, ldap_map: dict) -> list:
                     "Affects Version": ""
                 })
                 invalid_count += 1
+
+        if excluded_by_resolution > 0:
+            logger.info(f"Excluded {excluded_by_resolution} bugs with non-Fixed/Completed resolutions")
 
         if invalid_count > 0:
             logger.warning(f"Found {invalid_count} Done issues with invalid fix versions")
