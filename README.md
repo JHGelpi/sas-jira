@@ -372,14 +372,27 @@ Located in `jira_automation/`
 **Purpose**: Generates reports on missing/invalid Jira data
 
 **Key Functions**:
-- `run_quality_checks()`: Executes multiple JQL queries for data gaps
-- `generate_csv_report()`: Outputs findings to CSV
+- `fetch_issues_for_report()`: Executes JQL queries for data gaps
+- `check_invalid_fix_versions_for_done_issues()`: Validates fix version format (YYYY.MM)
+- `write_consolidated_report()`: Outputs findings to CSV and sends Teams notifications
 
 **Checks**:
 - Missing fix versions
+- Invalid fix versions for Done issues (not matching YYYY.MM pattern)
 - Missing origin/root cause
-- Unestimated stories
-- Orphaned subtasks
+- Missing pipeline discovery stage
+- Missing platform version
+- Missing affects version
+
+**Project Exclusion**:
+- Environment variable `DATA_QUALITY_EXCLUDE_PROJECTS` allows excluding specific projects
+- Example: `DATA_QUALITY_EXCLUDE_PROJECTS="SIGNOFF,TESTPROJ"`
+- Automatically adds `AND project NOT IN (...)` to all JQL queries
+
+**Output**:
+- CSV report: `reports/data_quality_report_YYYY-MM-DD.csv`
+- Teams notifications sent to managers with actionable items
+- Unassigned issues sent to fallback contact
 
 **Trigger**: `/jobs/data-quality-report`
 
@@ -820,6 +833,11 @@ IRIS_MAX_LOOKAHEAD_DAYS="365"
 # === REPORTING ===
 JIRA_REPORT_DIR="./reports"
 HOMEPAGE_REPORTS_DIR="/path/to/homepage/reports/"
+
+# === DATA QUALITY ===
+DATA_QUALITY_EXCLUDE_PROJECTS="SIGNOFF"  # Comma-separated list of projects to exclude
+DATA_QUALITY_FALLBACK_NAME="Manager Name"
+DATA_QUALITY_FALLBACK_EMAIL="manager@company.com"
 
 # === DATA QUALITY JQL ===
 JQL_MISSING_FIXVER="project in (COMPDIV) AND fixVersion is EMPTY"

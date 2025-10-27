@@ -12,6 +12,7 @@ from datetime import datetime
 from collections import defaultdict
 from jira import JIRA
 from jira_data_analysis import db_utils
+from jira_data_analysis.jira_utils import normalize_fix_version
 from jira_automation import notification_utils
 from dotenv import load_dotenv
 from logging_utils import get_logger, log_section_header, log_subsection_header
@@ -92,13 +93,44 @@ def get_ldap_data_from_db(db_pool) -> dict:
     return ldap_map
 
 
-def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: str, 
+def get_project_exclusion_clause() -> str:
+    """
+    Builds a JQL clause to exclude projects from data quality reporting.
+
+    Reads from DATA_QUALITY_EXCLUDE_PROJECTS environment variable which should
+    contain a comma-separated list of project keys (e.g., "SIGNOFF,TESTPROJ").
+
+    Returns:
+        JQL clause like "AND project NOT IN (SIGNOFF, TESTPROJ)" or empty string if no exclusions
+    """
+    excluded_projects = os.getenv('DATA_QUALITY_EXCLUDE_PROJECTS', '').strip()
+    if not excluded_projects:
+        return ""
+
+    # Split by comma and clean up whitespace
+    project_keys = [p.strip() for p in excluded_projects.split(',') if p.strip()]
+
+    if not project_keys:
+        return ""
+
+    # Build JQL clause
+    projects_str = ', '.join(project_keys)
+    logger.debug(f"Excluding projects from data quality report: {projects_str}")
+    return f"AND project NOT IN ({projects_str})"
+
+
+def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: str,
                             custom_field_ids: dict, ldap_map: dict) -> list:
     """Runs a JQL query and returns a list of processed issue data, enriched with manager info."""
     jql_query = os.getenv(jql_env_var)
     if not jql_query:
         logger.skip(f"Environment variable '{jql_env_var}' not set")
         return []
+
+    # Add project exclusion clause
+    project_exclusion = get_project_exclusion_clause()
+    if project_exclusion:
+        jql_query = f"{jql_query} {project_exclusion}"
 
     log_subsection_header(logger, report_name)
     logger.searching("Running query")
@@ -159,6 +191,92 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
     except Exception as e:
         logger.exception(f"An error occurred while fetching data for report '{report_name}': {e}")
     
+    return processed_issues
+
+
+def check_invalid_fix_versions_for_done_issues(jira, ldap_map: dict) -> list:
+    """
+    Finds Done issues without valid fix versions (YYYY.MM format).
+
+    Issues in Done status should have at least one fix version matching
+    the YYYY.MM pattern. Issues with only "Now", "Next", or "Future" are flagged.
+
+    Args:
+        jira: Jira client instance
+        ldap_map: Dictionary mapping employee emails to manager info
+
+    Returns:
+        List of processed issue data for issues with invalid fix versions
+    """
+    log_subsection_header(logger, "Invalid Fix Versions for Done Issues")
+
+    # JQL to find Done issues that were updated recently
+    # We'll validate fix versions in Python since JQL can't easily check the YYYY.MM pattern
+    jql_query = "statusCategory = Done AND updated >= -30d"
+
+    # Add project exclusion clause
+    project_exclusion = get_project_exclusion_clause()
+    if project_exclusion:
+        jql_query = f"{jql_query} {project_exclusion}"
+
+    jql_query = f"{jql_query} ORDER BY updated DESC"
+
+    logger.searching("Running query for Done issues")
+    logger.debug(f"Query: {jql_query}")
+
+    processed_issues = []
+    try:
+        fields_to_fetch = ["summary", "assignee", "fixVersions", "status"]
+        issues = jira.search_issues(jql_query, fields=fields_to_fetch, maxResults=1000)
+
+        if not issues:
+            logger.info("No Done issues found")
+            return []
+
+        logger.info(f"Found {len(issues)} Done issues to validate")
+        invalid_count = 0
+
+        for issue in issues:
+            # Get fix versions as pipe-delimited string
+            fix_versions_raw = '|'.join([v.name for v in issue.fields.fixVersions]) if issue.fields.fixVersions else ''
+
+            # Normalize to get valid YYYY.MM version
+            normalized = normalize_fix_version(fix_versions_raw)
+
+            # If no valid version found, flag this issue
+            if not normalized:
+                assignee = issue.fields.assignee.displayName if issue.fields.assignee else "Unassigned"
+                assignee_email = issue.fields.assignee.emailAddress.lower() if issue.fields.assignee else None
+
+                # Look up manager info from the pre-loaded map
+                manager_info = ldap_map.get(assignee_email, {}) if assignee_email else {}
+                manager_name = manager_info.get('manager_name')
+                manager_email = manager_info.get('manager_email')
+
+                processed_issues.append({
+                    "Reason": "Invalid Fix Version for Done Issue",
+                    "Issue Key": issue.key,
+                    "Issue URL": f"https://rndjira.sas.com/browse/{issue.key}",
+                    "Assignee": assignee,
+                    "Assignee Email": assignee_email,
+                    "Assignee Manager": manager_name,
+                    "Assignee Manager Email": manager_email,
+                    "Fix Version": fix_versions_raw if fix_versions_raw else "(empty)",
+                    "Origin": "",
+                    "Pipeline Discovery Stage": "",
+                    "Platform Version": "",
+                    "Affects Version": ""
+                })
+                invalid_count += 1
+
+        if invalid_count > 0:
+            logger.warning(f"Found {invalid_count} Done issues with invalid fix versions")
+        else:
+            logger.success("All Done issues have valid fix versions")
+
+    except Exception as e:
+        logger.exception(f"An error occurred while checking fix versions: {e}")
+
     return processed_issues
 
 
@@ -303,7 +421,13 @@ def main():
         issues_found = fetch_issues_for_report(jira_client, jql_var, report_name, reason, custom_field_ids, ldap_map)
         if issues_found:
             all_issues_data.extend(issues_found)
-    
+
+    # Check for invalid fix versions on Done issues
+    logger.processing("Checking for Done issues with invalid fix versions")
+    invalid_fix_version_issues = check_invalid_fix_versions_for_done_issues(jira_client, ldap_map)
+    if invalid_fix_version_issues:
+        all_issues_data.extend(invalid_fix_version_issues)
+
     write_consolidated_report(all_issues_data)
     logger.complete("Data quality report generation completed successfully")
 

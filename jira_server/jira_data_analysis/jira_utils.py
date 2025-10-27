@@ -104,6 +104,48 @@ def parse_fix_version_data(fix_versions: list) -> str:
         return ''
     return '|'.join(fv.name for fv in fix_versions if hasattr(fv, 'name'))
 
+def normalize_fix_version(fix_version_str: str) -> str:
+    """
+    Extracts and returns the latest valid fix version from a pipe-delimited string.
+
+    Valid fix versions match the pattern YYYY.MM (e.g., 2025.09, 2026.01).
+    Invalid values like "Now", "Next", "Future" are ignored.
+
+    Args:
+        fix_version_str: Pipe-delimited string of fix versions (e.g., "2025.09|2026.01|Now")
+
+    Returns:
+        Latest valid fix version in YYYY.MM format, or empty string if none found
+
+    Examples:
+        >>> normalize_fix_version("2025.09|2025.10|2026.01")
+        "2026.01"
+        >>> normalize_fix_version("Now|2025.12")
+        "2025.12"
+        >>> normalize_fix_version("Now")
+        ""
+    """
+    if not fix_version_str:
+        return ""
+
+    # Split by pipe delimiter
+    versions = fix_version_str.split('|')
+
+    # Regex pattern for YYYY.MM format
+    pattern = re.compile(r'^\d{4}\.\d{2}$')
+
+    # Filter for valid versions
+    valid_versions = [v.strip() for v in versions if pattern.match(v.strip())]
+
+    if not valid_versions:
+        return ""
+
+    # Sort in descending order (latest first)
+    # Sort as floats to handle 2025.12 < 2026.01 correctly
+    valid_versions.sort(key=lambda x: float(x), reverse=True)
+
+    return valid_versions[0]
+
 def triage_parser(labels: list) -> bool:
     """Checks if a specific triage label exists in the list of labels."""
     return 'collector-59dc380c' in labels
