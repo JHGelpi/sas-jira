@@ -5,7 +5,7 @@
 -- A JOIN is generally more performant than a repeated EXISTS subquery.
 WITH filtered_data AS (
     SELECT
-        a.normalized_sprint,
+        a.ship_cadence,
         a.issue_key,
         a.sum_story_points,
         a.initiative_flag,
@@ -28,7 +28,7 @@ SELECT
         WHEN initiative_flag = 'Y' THEN 'PM Initiative Investment'
         ELSE 'Operational'
     END AS investment_category,
-    normalized_sprint,
+    ship_cadence,
     COUNT(issue_key) AS num_jiras,
     SUM(sum_story_points) AS story_points,
     -- This window function calculates the percentage of the sprint total efficiently.
@@ -36,7 +36,7 @@ SELECT
     ROUND(
         COALESCE(
             SUM(sum_story_points) * 100.0 /
-            NULLIF(SUM(SUM(sum_story_points)) OVER (PARTITION BY normalized_sprint), 0),
+            NULLIF(SUM(SUM(sum_story_points)) OVER (PARTITION BY ship_cadence), 0),
             0
         )
     ) AS pct_of_sprint_total
@@ -45,8 +45,8 @@ FROM
 -- Group by the generated category and the sprint
 GROUP BY
     investment_category,
-    normalized_sprint
+    ship_cadence
 -- Order the final result for clear presentation
 ORDER BY
-    normalized_sprint,
+    ship_cadence,
     investment_category;

@@ -391,6 +391,9 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
                 IRIS
                 <span class="tab-count">{len(iris_charts)}</span>
             </button>
+            <button class="tab-button" onclick="switchTab(event, 'bugtrends')">
+                Bug Trends
+            </button>
         </div>
 
         <div id="overview" class="tab-content active">
@@ -403,6 +406,10 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
 
         <div id="iris" class="tab-content">
             {iris_html}
+        </div>
+
+        <div id="bugtrends" class="tab-content">
+            <iframe src="bug_trends_report.html" style="width: 100%; height: calc(100vh - 200px); border: none;"></iframe>
         </div>
     </div>
 

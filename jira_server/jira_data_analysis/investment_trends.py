@@ -52,10 +52,10 @@ def fetch_data(sql_file_path: Path) -> pd.DataFrame:
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
-    """Converts normalized_sprint to a numeric type for correct sorting."""
-    if 'normalized_sprint' in df.columns:
-        logger.processing("Preprocessing data: converting sprint numbers")
-        df['sprint_order'] = pd.to_numeric(df['normalized_sprint'], errors='coerce')
+    """Converts ship_cadence to a numeric type for correct sorting."""
+    if 'ship_cadence' in df.columns:
+        logger.processing("Preprocessing data: converting ship cadence values")
+        df['sprint_order'] = pd.to_numeric(df['ship_cadence'], errors='coerce')
         df.dropna(subset=['sprint_order'], inplace=True)
         logger.info(f"After preprocessing: {len(df)} rows")
     return df
@@ -64,20 +64,20 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 def plot_by_category(df: pd.DataFrame):
     """Generates and saves one line chart per investment_category."""
     logger.processing("Generating charts per investment category")
-    
+
     for cat, sub_df in df.groupby('investment_category'):
         logger.debug(f"Creating chart for category: {cat}")
         sub_sorted = sub_df.sort_values('sprint_order', ascending=True)
         fig = px.line(
             sub_sorted,
-            x='normalized_sprint',
+            x='ship_cadence',
             y='pct_of_sprint_total',
             title=f"{cat} – % of Sprint Total",
             markers=True,
-            labels={'normalized_sprint': 'Normalized Sprint', 'pct_of_sprint_total': '% of Sprint Total'}
+            labels={'ship_cadence': 'Ship Cadence', 'pct_of_sprint_total': '% of Sprint Total'}
         )
         fig.update_layout(xaxis=dict(type='category'))
-        
+
         safe_name = cat.replace(' ', '_').replace('/', '_').lower()
         out_file = VIZ_PATH / f"{safe_name}.html"
         fig.write_html(out_file)
@@ -87,20 +87,20 @@ def plot_by_category(df: pd.DataFrame):
 def plot_master(df: pd.DataFrame):
     """Generate and save a master line chart for all categories."""
     logger.processing("Generating master chart for all categories")
-    
+
     df_sorted = df.sort_values('sprint_order', ascending=True)
-    
+
     fig = px.line(
         df_sorted,
-        x='normalized_sprint',
+        x='ship_cadence',
         y='pct_of_sprint_total',
         color='investment_category',
         title="All Categories – % of Sprint Total",
         markers=True,
-        labels={'normalized_sprint': 'Normalized Sprint', 'pct_of_sprint_total': '% of Sprint Total'}
+        labels={'ship_cadence': 'Ship Cadence', 'pct_of_sprint_total': '% of Sprint Total'}
     )
     fig.update_layout(xaxis=dict(type='category'))
-    
+
     out_file = VIZ_PATH / "all_categories_master.html"
     fig.write_html(out_file)
     logger.success(f"Saved master chart: {out_file}")

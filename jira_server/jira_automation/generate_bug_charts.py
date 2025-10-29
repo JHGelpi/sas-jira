@@ -17,6 +17,108 @@ from logging_utils import get_logger, log_section_header
 logger = get_logger(__name__)
 
 
+def generate_bug_trends_html(fig1, fig2):
+    """
+    Generates HTML content for the bug trends report matching the dashboard.html theme.
+
+    Args:
+        fig1: Plotly figure for Outstanding Open Bugs chart
+        fig2: Plotly figure for Bugs by Release chart
+
+    Returns:
+        Complete HTML string with consistent styling
+    """
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+    # Generate Plotly HTML for charts
+    chart1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn', div_id='bug-trends-chart1') if fig1 else '<p style="text-align: center; padding: 40px; color: #666;">No data available for Outstanding Open Bugs chart</p>'
+    chart2_html = fig2.to_html(full_html=False, include_plotlyjs='cdn', div_id='bug-trends-chart2') if fig2 else '<p style="text-align: center; padding: 40px; color: #666;">No data available for Bugs by Release chart</p>'
+
+    html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Trends Report</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }}
+
+        .dashboard-header {{
+            background-color: #fff;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+
+        .dashboard-header h1 {{
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }}
+
+        .dashboard-header p {{
+            color: #666;
+            font-size: 14px;
+        }}
+
+        .chart-container {{
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }}
+
+        .chart-title {{
+            font-weight: 600;
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }}
+
+        .chart-content {{
+            width: 100%;
+            min-height: 500px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <h1>Bug Trends Report</h1>
+        <p>Bug trend analysis from snapshot data - Updated: {timestamp}</p>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-title">Daily Open Bugs (Last 6 Months)</div>
+        <div class="chart-content">
+            {chart1_html}
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-title">Bugs by Release (Current Snapshot)</div>
+        <div class="chart-content">
+            {chart2_html}
+        </div>
+    </div>
+</body>
+</html>
+'''
+    return html
+
+
 def main():
     """Generates the bug trend charts from the snapshot data."""
     log_section_header(logger, "BUG TREND CHART GENERATION")
@@ -239,21 +341,15 @@ def main():
     else:
         logger.warning("No data found for the 'Bugs by Release' chart")
 
-    # Generate HTML
+    # Generate HTML (matching dashboard.html theme)
     report_dir = os.getenv('JIRA_REPORT_DIR', './reports')
     os.makedirs(report_dir, exist_ok=True)
     report_path = os.path.join(report_dir, "bug_trends_report.html")
 
-    logger.processing("Generating HTML report")
+    logger.processing("Generating HTML report with dashboard theme")
     try:
         with open(report_path, 'w') as f:
-            f.write("<html><head><title>Bug Trends Report</title></head><body>")
-            f.write("<h1>Bug Trends Report</h1>")
-            if fig1:
-                f.write(fig1.to_html(full_html=False, include_plotlyjs='cdn'))
-            if fig2:
-                f.write(fig2.to_html(full_html=False, include_plotlyjs='cdn'))
-            f.write("</body></html>")
+            f.write(generate_bug_trends_html(fig1, fig2))
         logger.success(f"Successfully generated bug trends report at {report_path}")
     except Exception as e:
         logger.error(f"Failed to write HTML report: {e}")
@@ -267,6 +363,17 @@ def main():
             logger.success(f"Copied report to {homepage_dir}")
         except Exception as e:
             logger.error(f"Failed to copy report to homepage directory: {e}")
+
+    # Copy to burndown directory for dashboard integration
+    burndown_dir = os.getenv('COMPDIV_BURNDOWN_DIR')
+    if burndown_dir:
+        try:
+            os.makedirs(burndown_dir, exist_ok=True)
+            burndown_report_path = os.path.join(burndown_dir, "bug_trends_report.html")
+            shutil.copy(report_path, burndown_report_path)
+            logger.success(f"Copied report to burndown directory: {burndown_report_path}")
+        except Exception as e:
+            logger.error(f"Failed to copy report to burndown directory: {e}")
     
     logger.complete("Bug chart generation completed successfully")
 

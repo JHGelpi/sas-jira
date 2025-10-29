@@ -13,9 +13,9 @@ from io import StringIO
 
 from . import db_utils
 from .jira_utils import (
-    parse_sprint_data, parse_label_data, parse_fix_version_data, 
-    parse_component_data, escaped_bug_flag, triage_parser, oper_parser, 
-    format_date, get_custom_field_id
+    parse_sprint_data, parse_label_data, parse_fix_version_data,
+    parse_component_data, escaped_bug_flag, triage_parser, oper_parser,
+    format_date, get_custom_field_id, normalize_fix_version
 )
 from logging_utils import get_logger
 
@@ -190,7 +190,7 @@ def process_and_load_issues(db_pool, all_issues: list, run_flag: str, jira_clien
     string_buffer = StringIO()
     writer = csv.writer(string_buffer)
     headers = ["epic_link", "parent_link", "oper_epic", "oper_flg", "triage_flg", "pipeline_stage",
-               "bug_origin", "escaped_bug", "fix_version", "components", "issue_key", "summary",
+               "bug_origin", "escaped_bug", "fix_version", "ship_cadence", "components", "issue_key", "summary",
                "issue_url", "issue_type", "sprint_name", "assignee", "status", "sprint_start_date",
                "sprint_end_date", "completed_date", "sprint_state", "labels", "sprint_owner", "export_date",
                "story_points", "run_flag", "jira_created_date", "jira_updated_date"]
@@ -239,11 +239,15 @@ def build_row(issue, sprint_managers: dict, oper_epics: dict, run_flag: str, fie
     story_points_val = getattr(fields, field_ids.get('story_points'), 0)
     story_points = float(story_points_val) if story_points_val is not None else 0.0
 
+    # Calculate ship_cadence from fix_version
+    fix_version_raw = parse_fix_version_data(fields.fixVersions)
+    ship_cadence = normalize_fix_version(fix_version_raw)
+
     return [
         epic_link, parent_link, oper_epics.get(epic_link, ''),
         'Y' if oper_parser(fields.labels) else 'N', 'Y' if triage_parser(fields.labels) else 'N',
         pipeline_stage, bug_origin, 'Y' if escaped_bug_flag(bug_origin, pipeline_stage) else 'N',
-        parse_fix_version_data(fields.fixVersions), parse_component_data(fields.components),
+        fix_version_raw, ship_cadence, parse_component_data(fields.components),
         issue.key, fields.summary, f'{jira_server.rstrip("/")}/browse/{issue.key}',
         fields.issuetype.name, parsed_sprint['name'], fields.assignee.displayName if fields.assignee else 'Unassigned',
         fields.status.name, parsed_sprint['start_date'], parsed_sprint['end_date'],
