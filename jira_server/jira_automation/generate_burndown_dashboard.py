@@ -62,10 +62,13 @@ def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[st
     return overview_files, bigint_files, iris_files
 
 
-def extract_epic_title(html_path: str) -> str:
+def extract_epic_title(html_path: str) -> Tuple[str, str]:
     """
-    Extracts the epic title from the HTML file by reading the Plotly title.
+    Extracts the epic title and key from the HTML file by reading the Plotly title.
     Falls back to the filename if extraction fails.
+
+    Returns:
+        Tuple of (title, epic_key) where epic_key is None if not found
     """
     try:
         with open(html_path, 'r', encoding='utf-8') as f:
@@ -83,12 +86,22 @@ def extract_epic_title(html_path: str) -> str:
                 # This handles both cases: titles with/without closing parenthesis before <br>
                 title = re.split(r'<br>', title)[0]
 
-                return title.strip()
+                title = title.strip()
+
+                # Extract epic key from title (e.g., "COMPDIV-120" from "Epic Title (COMPDIV-120)")
+                epic_key_match = re.search(r'\(([A-Z]+-\d+)\)', title)
+                epic_key = epic_key_match.group(1) if epic_key_match else None
+
+                return title, epic_key
     except Exception as e:
         logger.debug(f"Could not extract title from {html_path}: {e}")
 
     # Fallback: use filename without extension
-    return Path(html_path).stem.replace('_burndown', '')
+    fallback_title = Path(html_path).stem.replace('_burndown', '')
+    # Try to extract epic key from filename
+    epic_key_match = re.search(r'([A-Z]+-\d+)', fallback_title)
+    epic_key = epic_key_match.group(1) if epic_key_match else None
+    return fallback_title, epic_key
 
 
 def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
@@ -114,30 +127,33 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     overview_charts = []
     for filename in overview_files:
         filepath = os.path.join(burndown_dir, filename)
-        title = extract_epic_title(filepath)
+        title, epic_key = extract_epic_title(filepath)
         overview_charts.append({
             'filename': filename,
             'title': title,
+            'epic_key': epic_key,
             'path': filepath
         })
 
     bigint_charts = []
     for filename in bigint_files:
         filepath = os.path.join(burndown_dir, filename)
-        title = extract_epic_title(filepath)
+        title, epic_key = extract_epic_title(filepath)
         bigint_charts.append({
             'filename': filename,
             'title': title,
+            'epic_key': epic_key,
             'path': filepath
         })
 
     iris_charts = []
     for filename in iris_files:
         filepath = os.path.join(burndown_dir, filename)
-        title = extract_epic_title(filepath)
+        title, epic_key = extract_epic_title(filepath)
         iris_charts.append({
             'filename': filename,
             'title': title,
+            'epic_key': epic_key,
             'path': filepath
         })
 
@@ -175,9 +191,16 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
 
         grid_html = '<div class="chart-grid">\n'
         for chart in charts:
+            # Create clickable title if epic_key exists
+            if chart.get('epic_key'):
+                jira_url = f"https://rndjira.sas.com/browse/{chart['epic_key']}"
+                title_html = f'<a href="{jira_url}" target="_blank" class="epic-link">{chart["title"]}</a>'
+            else:
+                title_html = chart['title']
+
             grid_html += f'''
     <div class="chart-card">
-        <div class="chart-title">{chart['title']}</div>
+        <div class="chart-title">{title_html}</div>
         <iframe src="{chart['filename']}" class="chart-iframe"></iframe>
         <div class="chart-link">
             <a href="{chart['filename']}" target="_blank">Open in new tab ↗</a>
@@ -343,6 +366,17 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
             font-weight: 600;
             color: #333;
             font-size: 14px;
+        }}
+
+        .chart-title .epic-link {{
+            color: #333;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }}
+
+        .chart-title .epic-link:hover {{
+            color: #1976d2;
+            text-decoration: underline;
         }}
 
         .chart-iframe {{
