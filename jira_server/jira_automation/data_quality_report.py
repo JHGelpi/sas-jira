@@ -247,7 +247,7 @@ def write_consolidated_report(all_issues_data: list):
         logger.error(f"Failed to write consolidated CSV report: {e}")
 
     # Send granular Teams notifications by manager
-    if os.getenv('TEAMS_WEBHOOK_URL'):
+    if os.getenv('TEAMS_WEBHOOK_URL_V2') or os.getenv('TEAMS_WEBHOOK_URL'):
         logger.processing("Preparing Teams notifications by manager")
         issues_by_manager = defaultdict(list)
         unmanaged_issues = []
