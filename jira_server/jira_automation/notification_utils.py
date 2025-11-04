@@ -75,15 +75,17 @@ def send_teams_notification(title: str, body_elements: list, mentions: list = No
 
     # Format payload based on webhook type
     if is_power_automate_webhook:
-        # New Power Automate format - send Adaptive Card content directly
-        # Power Automate flows expect the card content to be posted directly via Teams connector
-        # Mentions in Power Automate Teams connector work differently - need to use text mentions only
-        # Remove msteams.entities for Power Automate as the connector handles this differently
-        if 'msteams' in adaptive_card_content:
-            # Keep width but remove entities - Power Automate Teams connector doesn't support mention entities
-            adaptive_card_content['msteams'] = {"width": "Full"}
-
-        payload = adaptive_card_content
+        # Power Automate Teams webhook format - requires attachments array
+        # Keep mention entities for proper @mention functionality
+        payload = {
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": adaptive_card_content
+                }
+            ]
+        }
     else:
         # Legacy Office 365 Connector format
         payload = {
