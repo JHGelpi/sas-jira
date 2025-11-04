@@ -256,7 +256,8 @@ def write_consolidated_report(all_issues_data: list):
         logger.error(f"Failed to write consolidated CSV report: {e}")
 
     # Send granular Teams notifications by manager
-    if os.getenv('TEAMS_WEBHOOK_URL_V2') or os.getenv('TEAMS_WEBHOOK_URL'):
+    #if os.getenv('TEAMS_WEBHOOK_URL_V2') or os.getenv('TEAMS_WEBHOOK_URL'):
+    if os.getenv('TEAMS_WEBHOOK_URL_V2'):
         logger.processing("Preparing Teams notifications by manager")
         issues_by_manager = defaultdict(list)
         unmanaged_issues = []
@@ -268,60 +269,33 @@ def write_consolidated_report(all_issues_data: list):
             else:
                 unmanaged_issues.append(row)
 
-        # Send a notification for each manager
+        # Send a notification for each manager (with batching to avoid payload size limits)
         sent_count = 0
+        BATCH_SIZE = 15  # Max issues per notification to stay under Power Automate size limits
+
         for manager_name, issues in sorted(issues_by_manager.items()):
             manager_email = issues[0].get("Assignee Manager Email")
-            
-            title = f"Jira Data Quality Action Items for {manager_name}'s Team"
-            mentions = [{'name': manager_name, 'email': manager_email}] if manager_email else []
-            
-            # Build the card body with a FactSet for each issue
-            body_elements = [{
-                "type": "TextBlock",
-                "text": "Please review the following tickets assigned to your team that require data quality updates:",
-                "wrap": True
-            }]
 
-            for issue in issues:
-                issue_link = f"[{issue['Issue Key']}]({issue['Issue URL']})"
-                body_elements.append({
-                    "type": "FactSet",
-                    "facts": [
-                        {"title": "Issue:", "value": issue_link},
-                        {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
-                        {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
-                        {"title": "JQL:", "value": "JQL Confluence Page: https://rndconfluence.sas.com/x/Kul4L"}
-                    ],
-                    "separator": True
-                })
-            
-            notification_utils.send_teams_notification(title, body_elements, mentions)
-            sent_count += 1
+            # Split issues into batches
+            issue_batches = [issues[i:i + BATCH_SIZE] for i in range(0, len(issues), BATCH_SIZE)]
 
-        logger.success(f"Sent {sent_count} Teams notifications to managers")
-
-        # Send notification for unmanaged issues to fallback recipient
-        if unmanaged_issues:
-            logger.warning(f"Found {len(unmanaged_issues)} issues with no manager information in LDAP")
-
-            fallback_name = os.getenv('DATA_QUALITY_FALLBACK_NAME')
-            fallback_email = os.getenv('DATA_QUALITY_FALLBACK_EMAIL')
-
-            if fallback_name and fallback_email:
-                logger.processing(f"Sending unmanaged issues notification to {fallback_name}")
-
-                title = "Jira Data Quality Action Items - Unassigned Manager"
-                mentions = [{'name': fallback_name, 'email': fallback_email}]
+            for batch_num, issue_batch in enumerate(issue_batches, 1):
+                batch_suffix = f" (Part {batch_num}/{len(issue_batches)})" if len(issue_batches) > 1 else ""
+                title = f"Jira Data Quality Action Items for {manager_name}'s Team{batch_suffix}"
+                mentions = [{'name': manager_name, 'email': manager_email}] if manager_email else []
 
                 # Build the card body with a FactSet for each issue
+                intro_text = f"Please review the following {len(issue_batch)} tickets assigned to your team that require data quality updates:"
+                if len(issue_batches) > 1:
+                    intro_text = f"Please review the following {len(issue_batch)} tickets (batch {batch_num} of {len(issue_batches)}, total {len(issues)} issues) assigned to your team that require data quality updates:"
+
                 body_elements = [{
                     "type": "TextBlock",
-                    "text": "The following tickets have no manager information in LDAP and require data quality updates:",
+                    "text": intro_text,
                     "wrap": True
                 }]
 
-                for issue in unmanaged_issues:
+                for issue in issue_batch:
                     issue_link = f"[{issue['Issue Key']}]({issue['Issue URL']})"
                     body_elements.append({
                         "type": "FactSet",
@@ -335,7 +309,55 @@ def write_consolidated_report(all_issues_data: list):
                     })
 
                 notification_utils.send_teams_notification(title, body_elements, mentions)
-                logger.success(f"Sent unmanaged issues notification with {len(unmanaged_issues)} issues")
+                sent_count += 1
+
+        logger.success(f"Sent {sent_count} Teams notifications to managers")
+
+        # Send notification for unmanaged issues to fallback recipient (with batching)
+        if unmanaged_issues:
+            logger.warning(f"Found {len(unmanaged_issues)} issues with no manager information in LDAP")
+
+            fallback_name = os.getenv('DATA_QUALITY_FALLBACK_NAME')
+            fallback_email = os.getenv('DATA_QUALITY_FALLBACK_EMAIL')
+
+            if fallback_name and fallback_email:
+                logger.processing(f"Sending unmanaged issues notification to {fallback_name}")
+
+                # Split unmanaged issues into batches
+                unmanaged_batches = [unmanaged_issues[i:i + BATCH_SIZE] for i in range(0, len(unmanaged_issues), BATCH_SIZE)]
+
+                for batch_num, issue_batch in enumerate(unmanaged_batches, 1):
+                    batch_suffix = f" (Part {batch_num}/{len(unmanaged_batches)})" if len(unmanaged_batches) > 1 else ""
+                    title = f"Jira Data Quality Action Items - Unassigned Manager{batch_suffix}"
+                    mentions = [{'name': fallback_name, 'email': fallback_email}]
+
+                    # Build the card body with a FactSet for each issue
+                    intro_text = f"The following {len(issue_batch)} tickets have no manager information in LDAP and require data quality updates:"
+                    if len(unmanaged_batches) > 1:
+                        intro_text = f"The following {len(issue_batch)} tickets (batch {batch_num} of {len(unmanaged_batches)}, total {len(unmanaged_issues)} issues) have no manager information in LDAP and require data quality updates:"
+
+                    body_elements = [{
+                        "type": "TextBlock",
+                        "text": intro_text,
+                        "wrap": True
+                    }]
+
+                    for issue in issue_batch:
+                        issue_link = f"[{issue['Issue Key']}]({issue['Issue URL']})"
+                        body_elements.append({
+                            "type": "FactSet",
+                            "facts": [
+                                {"title": "Issue:", "value": issue_link},
+                                {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
+                                {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
+                                {"title": "JQL:", "value": "JQL Confluence Page: https://rndconfluence.sas.com/x/Kul4L"}
+                            ],
+                            "separator": True
+                        })
+
+                    notification_utils.send_teams_notification(title, body_elements, mentions)
+
+                logger.success(f"Sent {len(unmanaged_batches)} notification(s) with {len(unmanaged_issues)} unmanaged issues")
             else:
                 logger.warning("DATA_QUALITY_FALLBACK_NAME or DATA_QUALITY_FALLBACK_EMAIL not set. Cannot send unmanaged issues notification.")
 
