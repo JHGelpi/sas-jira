@@ -7,6 +7,7 @@ generates consolidated reports, and sends granular notifications by manager.
 """
 
 import os
+import re
 import csv
 from datetime import datetime
 from collections import defaultdict
@@ -126,10 +127,18 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
         logger.skip(f"Environment variable '{jql_env_var}' not set")
         return []
 
-    # Add project exclusion clause
+    # Add project exclusion clause before ORDER BY if present
     project_exclusion = get_project_exclusion_clause()
     if project_exclusion:
-        jql_query = f"{jql_query} {project_exclusion}"
+        # Find ORDER BY clause (case-insensitive) and insert exclusion before it
+        order_by_match = re.search(r'\s+ORDER\s+BY\s+', jql_query, re.IGNORECASE)
+        if order_by_match:
+            # Insert exclusion before ORDER BY
+            insert_pos = order_by_match.start()
+            jql_query = jql_query[:insert_pos] + f" {project_exclusion} " + jql_query[insert_pos:]
+        else:
+            # No ORDER BY, append to end
+            jql_query = f"{jql_query} {project_exclusion}"
 
     log_subsection_header(logger, report_name)
     logger.searching("Running query")
