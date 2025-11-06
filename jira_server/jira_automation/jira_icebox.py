@@ -101,21 +101,29 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
             # Set resolution only if it's allowed for this transition
             if 'resolution' in transition_fields:
                 try:
-                    all_resolutions = jira_client.resolutions()
-                    allowed_names = {res.name for res in all_resolutions}
+                    # Get the allowed resolution values for this specific transition
+                    resolution_field_meta = transition_fields.get('resolution', {})
+                    allowed_resolutions = resolution_field_meta.get('allowedValues', [])
 
-                    resolution_name = None
-                    if "Won't Fix" in allowed_names:
-                        resolution_name = "Won't Fix"
+                    if allowed_resolutions:
+                        # Check if "Won't Fix" is in the allowed values
+                        allowed_resolution_names = {res.get('name') for res in allowed_resolutions}
 
-                    if resolution_name:
-                        fields_payload['resolution'] = {'name': resolution_name}
-                        logger.debug(f"Will set 'Resolution' to '{resolution_name}'")
+                        resolution_name = None
+                        if "Won't Fix" in allowed_resolution_names:
+                            resolution_name = "Won't Fix"
+
+                        if resolution_name:
+                            fields_payload['resolution'] = {'name': resolution_name}
+                            logger.debug(f"Will set 'Resolution' to '{resolution_name}'")
+                        else:
+                            logger.debug(f"'Won't Fix' not in allowed resolutions for transition '{transition_name}' on {issue.key}. Allowed: {allowed_resolution_names}")
                     else:
-                        logger.warning("Could not find a suitable resolution ('Won't Fix')")
+                        # If no allowed values specified, the transition may set resolution automatically
+                        logger.debug(f"No allowed resolutions specified for transition '{transition_name}' on {issue.key} - resolution may be set automatically")
 
                 except Exception as e:
-                    logger.error(f"Could not fetch global resolutions: {e}")
+                    logger.error(f"Could not process resolution field metadata: {e}")
             else:
                 logger.debug(f"Resolution field not available for transition '{transition_name}' on {issue.key}")
 
