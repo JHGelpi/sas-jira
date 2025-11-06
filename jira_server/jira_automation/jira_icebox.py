@@ -68,7 +68,7 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
     Finds an appropriate transition to a 'Done' status category for an issue,
     sets all required fields, and applies it with an optional comment.
     All actions are performed in a single API call.
-    
+
     Returns:
         True if successful, False otherwise
     """
@@ -77,7 +77,8 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
             logger.skip(f"Issue {issue.key} is already in a Done status category")
             return True
 
-        transitions = jira_client.transitions(issue)
+        # Get transitions with field metadata to check which fields are allowed
+        transitions = jira_client.transitions(issue, expand='transitions.fields')
         done_transition = None
         for t in transitions:
             destination_status = t.get('to', {})
@@ -86,40 +87,48 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
                 if destination_status.get('name', '').lower() == 'closed':
                     done_transition = t
                     break
-        
+
         if done_transition:
             transition_id = done_transition['id']
             transition_name = done_transition['name']
             logger.processing(f"Found transition '{transition_name}' to Closed state for {issue.key}")
 
             fields_payload = {}
-            
-            # Set resolution (prioritize "Won't Fix")
-            try:
-                all_resolutions = jira_client.resolutions()
-                allowed_names = {res.name for res in all_resolutions}
-                
-                resolution_name = None
-                if "Won't Fix" in allowed_names:
-                    resolution_name = "Won't Fix"
-                
-                if resolution_name:
-                    fields_payload['resolution'] = {'name': resolution_name}
-                    logger.debug(f"Will set 'Resolution' to '{resolution_name}'")
-                else:
-                    logger.warning("Could not find a suitable resolution ('Won't Fix')")
 
-            except Exception as e:
-                logger.error(f"Could not fetch global resolutions: {e}")
+            # Get the fields available for this specific transition
+            transition_fields = done_transition.get('fields', {})
 
-            # Set the 'Doc Needed' field if configured
+            # Set resolution only if it's allowed for this transition
+            if 'resolution' in transition_fields:
+                try:
+                    all_resolutions = jira_client.resolutions()
+                    allowed_names = {res.name for res in all_resolutions}
+
+                    resolution_name = None
+                    if "Won't Fix" in allowed_names:
+                        resolution_name = "Won't Fix"
+
+                    if resolution_name:
+                        fields_payload['resolution'] = {'name': resolution_name}
+                        logger.debug(f"Will set 'Resolution' to '{resolution_name}'")
+                    else:
+                        logger.warning("Could not find a suitable resolution ('Won't Fix')")
+
+                except Exception as e:
+                    logger.error(f"Could not fetch global resolutions: {e}")
+            else:
+                logger.debug(f"Resolution field not available for transition '{transition_name}' on {issue.key}")
+
+            # Set the 'Doc Needed' field if configured and allowed
             doc_needed_field_name = "Doc Needed"
             doc_needed_field_id = _get_custom_field_id(jira_client, doc_needed_field_name)
-            
-            if doc_needed_field_id:
+
+            if doc_needed_field_id and doc_needed_field_id in transition_fields:
                 doc_needed_value = os.getenv("JIRA_ICEBOX_DOC_NEEDED_VALUE", "No")
                 fields_payload[doc_needed_field_id] = {'value': doc_needed_value}
                 logger.debug(f"Will set '{doc_needed_field_name}' to '{doc_needed_value}'")
+            elif doc_needed_field_id:
+                logger.debug(f"'{doc_needed_field_name}' field not available for transition '{transition_name}' on {issue.key}")
 
             # Perform the transition with fields and comment in one atomic call
             jira_client.transition_issue(issue, transition_id, fields=fields_payload, comment=comment)
@@ -131,7 +140,7 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
         else:
             logger.warning(f"Could not find a valid transition to 'Closed' state for {issue.key} (Status: {issue.fields.status.name})")
             return False
-            
+
     except Exception as e:
         logger.error(f"Failed to process issue {issue.key}: {e}")
         return False
