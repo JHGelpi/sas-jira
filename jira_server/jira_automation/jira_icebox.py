@@ -97,6 +97,7 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
 
             # Get the fields available for this specific transition
             transition_fields = done_transition.get('fields', {})
+            logger.debug(f"Available fields for transition '{transition_name}' on {issue.key}: {list(transition_fields.keys())}")
 
             # Set resolution only if it's allowed for this transition
             if 'resolution' in transition_fields:
@@ -129,9 +130,11 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
 
             # Set fixVersions if required for this transition
             if 'fixVersions' in transition_fields:
+                logger.debug(f"fixVersions field found in transition fields for {issue.key}")
                 try:
                     fixversions_field_meta = transition_fields.get('fixVersions', {})
                     is_required = fixversions_field_meta.get('required', False)
+                    logger.debug(f"fixVersions field required: {is_required} for {issue.key}")
 
                     if is_required:
                         # Get available fix versions for this project
@@ -169,6 +172,8 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
                 except Exception as e:
                     logger.error(f"Could not process fixVersions field: {e}")
                     return False
+            else:
+                logger.debug(f"fixVersions field NOT in transition fields for {issue.key}")
 
             # Set the 'Doc Needed' field if configured and allowed
             doc_needed_field_name = "Doc Needed"
@@ -182,6 +187,7 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
                 logger.debug(f"'{doc_needed_field_name}' field not available for transition '{transition_name}' on {issue.key}")
 
             # Perform the transition with fields and comment in one atomic call
+            logger.debug(f"Attempting transition for {issue.key} with fields_payload: {fields_payload}")
             jira_client.transition_issue(issue, transition_id, fields=fields_payload, comment=comment)
             logger.success(f"Transitioned issue {issue.key} successfully")
             if comment:
