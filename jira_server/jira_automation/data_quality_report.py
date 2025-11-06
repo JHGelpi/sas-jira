@@ -24,6 +24,7 @@ FIELD_NAMES_TO_FIND = {
     "origin": "Origin",
     "pipeline_discovery": "Pipeline Discovery Stage",
     "platform_version": "Platform Version",
+    "severity": "Severity",
 }
 
 
@@ -174,12 +175,15 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
 
             origin_id = custom_field_ids.get("origin")
             origin_val = getattr(issue.fields, origin_id, None) if origin_id else None
-            
+
             pipeline_disc_id = custom_field_ids.get("pipeline_discovery")
             pipeline_disc_val = getattr(issue.fields, pipeline_disc_id, None) if pipeline_disc_id else None
-            
+
             plat_ver_id = custom_field_ids.get("platform_version")
             plat_ver_val = getattr(issue.fields, plat_ver_id, None) if plat_ver_id else None
+
+            severity_id = custom_field_ids.get("severity")
+            severity_val = getattr(issue.fields, severity_id, None) if severity_id else None
 
             processed_issues.append({
                 "Reason": reason,
@@ -193,6 +197,7 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
                 "Origin": origin_val.value if hasattr(origin_val, 'value') else origin_val,
                 "Pipeline Discovery Stage": pipeline_disc_val.value if hasattr(pipeline_disc_val, 'value') else pipeline_disc_val,
                 "Platform Version": plat_ver_val.value if hasattr(plat_ver_val, 'value') else plat_ver_val,
+                "Severity": severity_val.value if hasattr(severity_val, 'value') else severity_val,
                 "Affects Version": affects_versions
             })
             
@@ -240,9 +245,9 @@ def write_consolidated_report(all_issues_data: list):
     report_path = os.path.join(report_dir, f"data_quality_report_{timestamp}.csv")
     
     header = [
-        "Reason", "Issue Key", "Issue URL", "Assignee", "Assignee Email", 
-        "Assignee Manager", "Assignee Manager Email", "Fix Version", "Origin", 
-        "Pipeline Discovery Stage", "Platform Version", "Affects Version"
+        "Reason", "Issue Key", "Issue URL", "Assignee", "Assignee Email",
+        "Assignee Manager", "Assignee Manager Email", "Fix Version", "Origin",
+        "Pipeline Discovery Stage", "Platform Version", "Severity", "Affects Version"
     ]
     
     try:
@@ -382,6 +387,7 @@ def main():
         "JQL_MISSING_ORIGIN": ("Missing Origin Report", "Missing Origin"),
         "JQL_MISSING_PIPEDISC": ("Missing Pipeline Discovery Report", "Missing Pipeline Discovery Stage"),
         "JQL_MISSING_PLATVER": ("Missing Platform Version Report", "Missing Platform Version"),
+        "JQL_MISSING_SEVERITY": ("Missing Severity Report", "Missing Severity"),
         "JQL_MISSING_AFFVER": ("Missing Affects Version Report", "Missing Affects Version")
     }
 
