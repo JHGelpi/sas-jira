@@ -127,6 +127,49 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
             else:
                 logger.debug(f"Resolution field not available for transition '{transition_name}' on {issue.key}")
 
+            # Set fixVersions if required for this transition
+            if 'fixVersions' in transition_fields:
+                try:
+                    fixversions_field_meta = transition_fields.get('fixVersions', {})
+                    is_required = fixversions_field_meta.get('required', False)
+
+                    if is_required:
+                        # Get available fix versions for this project
+                        project_versions = jira_client.project_versions(issue.fields.project.key)
+
+                        # Check if user configured a specific fix version name
+                        configured_version_name = os.getenv("JIRA_ICEBOX_FIX_VERSION")
+
+                        suitable_version = None
+                        if configured_version_name:
+                            # Look for exact match first
+                            for version in project_versions:
+                                if version.name == configured_version_name:
+                                    suitable_version = version
+                                    break
+
+                        # If not found via config, try to find a suitable version (prefer "Not Planned", "Unscheduled", or similar)
+                        if not suitable_version:
+                            for version in project_versions:
+                                version_name = version.name.lower()
+                                if any(keyword in version_name for keyword in ['not planned', 'unscheduled', 'icebox', 'wont fix', "won't fix"]):
+                                    suitable_version = version
+                                    break
+
+                        if suitable_version:
+                            fields_payload['fixVersions'] = [{'id': suitable_version.id}]
+                            logger.debug(f"Will set 'Fix Version/s' to '{suitable_version.name}' for {issue.key}")
+                        else:
+                            # If no suitable version exists and field is required, we can't proceed
+                            logger.warning(f"'Fix Version/s' is required for transition '{transition_name}' on {issue.key}, but no suitable version found. Cannot close this issue.")
+                            return False
+                    else:
+                        logger.debug(f"'Fix Version/s' field exists but is not required for transition '{transition_name}' on {issue.key}")
+
+                except Exception as e:
+                    logger.error(f"Could not process fixVersions field: {e}")
+                    return False
+
             # Set the 'Doc Needed' field if configured and allowed
             doc_needed_field_name = "Doc Needed"
             doc_needed_field_id = _get_custom_field_id(jira_client, doc_needed_field_name)
