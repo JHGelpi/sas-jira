@@ -80,13 +80,26 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
         # Get transitions with field metadata to check which fields are allowed
         transitions = jira_client.transitions(issue, expand='transitions.fields')
         done_transition = None
+        fallback_transition = None
+
+        # First pass: look for 'Closed' status (preferred)
         for t in transitions:
             destination_status = t.get('to', {})
             status_category = destination_status.get('statusCategory', {})
             if status_category.get('key') == 'done':
-                if destination_status.get('name', '').lower() == 'closed':
+                status_name_lower = destination_status.get('name', '').lower()
+                if status_name_lower == 'closed':
                     done_transition = t
                     break
+                # Store as fallback if it's 'Accepted and Close(Q)'
+                elif 'accepted and close' in status_name_lower:
+                    fallback_transition = t
+
+        # If 'Closed' not found, try the fallback
+        if not done_transition and fallback_transition:
+            done_transition = fallback_transition
+            logger.info(f"'Closed' state not available for {issue.key}, using fallback state '{fallback_transition['to']['name']}'")
+
 
         if done_transition:
             transition_id = done_transition['id']
@@ -107,18 +120,21 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
                     allowed_resolutions = resolution_field_meta.get('allowedValues', [])
 
                     if allowed_resolutions:
-                        # Check if "Won't Fix" is in the allowed values
+                        # Check if "Won't Do" or "Won't Fix" is in the allowed values
                         allowed_resolution_names = {res.get('name') for res in allowed_resolutions}
 
                         resolution_name = None
-                        if "Won't Fix" in allowed_resolution_names:
+                        # Prefer "Won't Do" first, then fallback to "Won't Fix"
+                        if "Won't Do" in allowed_resolution_names:
+                            resolution_name = "Won't Do"
+                        elif "Won't Fix" in allowed_resolution_names:
                             resolution_name = "Won't Fix"
 
                         if resolution_name:
                             fields_payload['resolution'] = {'name': resolution_name}
                             logger.debug(f"Will set 'Resolution' to '{resolution_name}'")
                         else:
-                            logger.debug(f"'Won't Fix' not in allowed resolutions for transition '{transition_name}' on {issue.key}. Allowed: {allowed_resolution_names}")
+                            logger.debug(f"Neither 'Won't Do' nor 'Won't Fix' found in allowed resolutions for transition '{transition_name}' on {issue.key}. Allowed: {allowed_resolution_names}")
                     else:
                         # If no allowed values specified, the transition may set resolution automatically
                         logger.debug(f"No allowed resolutions specified for transition '{transition_name}' on {issue.key} - resolution may be set automatically")
@@ -195,7 +211,7 @@ def _find_and_apply_done_transition(jira_client, issue, comment=None):
 
             return True
         else:
-            logger.warning(f"Could not find a valid transition to 'Closed' state for {issue.key} (Status: {issue.fields.status.name})")
+            logger.warning(f"Could not find a valid transition to 'Closed' or 'Accepted and Close(Q)' state for {issue.key} (Status: {issue.fields.status.name})")
             return False
 
     except Exception as e:
