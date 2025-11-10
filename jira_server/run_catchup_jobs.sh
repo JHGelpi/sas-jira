@@ -27,7 +27,6 @@ echo "" | tee -a "$LOG_FILE"
 SCRIPTS=(
     "run_ldap_refresh.sh"
     "run_customer_analysis.sh"
-    "run_pushes_job.sh"
     "run_derive_data.sh"
     "run_data_quality.sh"
     "run_rca_st_job.sh"
