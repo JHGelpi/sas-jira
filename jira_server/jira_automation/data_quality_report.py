@@ -267,12 +267,34 @@ def write_consolidated_report(all_issues_data: list):
         issues_by_manager = defaultdict(list)
         unmanaged_issues = []
 
+        # First pass: group issues by assignee's manager (existing behavior)
         for row in all_issues_data:
             manager_name = row.get("Assignee Manager")
             if manager_name:
                 issues_by_manager[manager_name].append(row)
             else:
                 unmanaged_issues.append(row)
+
+        # Build a mapping of manager email -> manager name from all issues
+        manager_email_to_name = {}
+        for row in all_issues_data:
+            mgr_email = row.get("Assignee Manager Email")
+            mgr_name = row.get("Assignee Manager")
+            if mgr_email and mgr_name:
+                manager_email_to_name[mgr_email.lower()] = mgr_name
+
+        # Second pass: add tickets assigned directly to managers
+        for row in all_issues_data:
+            assignee_email = row.get("Assignee Email")
+            if assignee_email:
+                assignee_email_lower = assignee_email.lower()
+                # Check if this assignee is a manager
+                if assignee_email_lower in manager_email_to_name:
+                    manager_name = manager_email_to_name[assignee_email_lower]
+                    # Add this issue to the manager's own list (if not already there)
+                    if row not in issues_by_manager[manager_name]:
+                        issues_by_manager[manager_name].append(row)
+                        logger.debug(f"Added self-assigned ticket {row['Issue Key']} to {manager_name}'s list")
 
         # Send a notification for each manager (with batching to avoid payload size limits)
         sent_count = 0
@@ -290,9 +312,9 @@ def write_consolidated_report(all_issues_data: list):
                 mentions = [{'name': manager_name, 'email': manager_email}] if manager_email else []
 
                 # Build the card body with a FactSet for each issue
-                intro_text = f"Please review the following {len(issue_batch)} tickets assigned to your team that require data quality updates:"
+                intro_text = f"Please review the following {len(issue_batch)} tickets assigned to you or your team that require data quality updates:"
                 if len(issue_batches) > 1:
-                    intro_text = f"Please review the following {len(issue_batch)} tickets (batch {batch_num} of {len(issue_batches)}, total {len(issues)} issues) assigned to your team that require data quality updates:"
+                    intro_text = f"Please review the following {len(issue_batch)} tickets (batch {batch_num} of {len(issue_batches)}, total {len(issues)} issues) assigned to you or your team that require data quality updates:"
 
                 body_elements = [{
                     "type": "TextBlock",
