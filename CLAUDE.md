@@ -268,3 +268,64 @@ All JQL stored in `.env` as variables (e.g., `JQL_MISSING_FIXVER`). To change qu
 2. Add mapping to `jira_processor.py` or relevant module
 3. Update database schema if persisting new fields
 4. Document in `data-dict.md` for reference
+
+### Managing Completed Epics
+
+**Automatic Closure Workflow**:
+
+The system automatically detects and closes completed epics daily:
+
+1. **Daily Job Execution**: The `/jobs/daily` endpoint runs `close_completed_initiatives()`
+2. **Epic Detection**: Queries ALL active epics from `tbl_initiative_issue_keys`:
+   ```sql
+   SELECT issue_key FROM tbl_initiative_issue_keys
+   WHERE (active_flag IS NULL OR active_flag = true)
+   ```
+3. **Status Check**: For each epic, fetches current status from Jira API
+4. **Closure Decision**: If `issue.fields.status.statusCategory.name == "Done"`:
+   - Sets `eff_end_date = CURRENT_DATE`
+   - Sets `active_flag = false`
+5. **Historical Data**: Burndown data collection continues for closed epics (shows flat zero-point lines)
+6. **Dashboard Display**: Closed epics appear with bold red headers and `[COMPLETED: DATE]` badges
+
+**Manual Reopening**:
+
+If an epic is closed in error or needs to be reactivated:
+
+```bash
+# Connect to database
+psql $DATABASE_URL
+
+# Reopen the epic
+UPDATE tbl_initiative_issue_keys
+SET active_flag = NULL, eff_end_date = NULL
+WHERE issue_key = 'COMPDIV-XXX';
+```
+
+**Important Considerations**:
+- Epics reopened in Jira remain closed in the database until manually updated
+- No data is ever deleted - all changes are fully reversible
+- Closure affects BOTH COMPDIV and IRIS initiatives
+- Burndown charts for closed epics continue to be generated daily
+
+**Related Files**:
+- `jira_data_analysis/initiative_children.py` - Closure logic
+- `jira_server/tasks.py` - Daily job integration
+- `jira_automation/generate_burndown_dashboard.py` - Visual indicators
+
+**Verification**:
+
+Check closure status:
+```sql
+-- View all closed epics
+SELECT issue_key, eff_end_date, "IRIS"
+FROM tbl_initiative_issue_keys
+WHERE active_flag = false
+ORDER BY eff_end_date DESC;
+
+-- View active epics
+SELECT issue_key, "IRIS"
+FROM tbl_initiative_issue_keys
+WHERE (active_flag IS NULL OR active_flag = true)
+ORDER BY issue_key;
+```

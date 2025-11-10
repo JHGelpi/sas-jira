@@ -81,9 +81,16 @@ def run_jira_export_task(run_flag: str):
 
         jira_processor.process_and_load_issues(db_conn_pool, all_issues, run_flag, jira)
 
-        # Close completed IRIS initiatives daily
-        logger.info("Checking for completed IRIS initiatives to close")
-        initiative_children.close_completed_iris_initiatives(jira, db_conn_pool)
+        # Close completed initiatives daily (both IRIS and COMPDIV)
+        # *** DATA SAFETY ***
+        # This ONLY updates tbl_initiative_issue_keys metadata (eff_end_date, active_flag).
+        # Burndown data tables (tbl_compdiv_burndown, tbl_iris_burndown) are NEVER modified.
+        logger.processing("Checking for completed initiatives to close")
+        try:
+            initiative_children.close_completed_initiatives(jira, db_conn_pool, initiative_type=None)
+            logger.success("Completed initiative closure check")
+        except Exception as e:
+            logger.error(f"Failed to close completed initiatives: {e}")
 
     except Exception as e:
         logger.exception(f"An error occurred during Jira daily export task: {e}")

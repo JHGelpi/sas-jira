@@ -16,8 +16,51 @@ from pathlib import Path
 from typing import List, Tuple
 from datetime import datetime
 from logging_utils import get_logger, log_section_header
+from jira_data_analysis import db_utils
 
 logger = get_logger(__name__)
+
+
+def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str]:
+    """
+    Fetch epic status from tbl_initiative_issue_keys.
+
+    *** READ-ONLY FUNCTION - NEVER MODIFIES DATA ***
+
+    Args:
+        epic_key: The epic key to look up (e.g., "COMPDIV-123")
+        db_pool: Database connection pool
+
+    Returns:
+        Tuple of (is_active, eff_end_date_str)
+        - is_active: True if active_flag is NULL/True, False if active_flag is False
+        - eff_end_date_str: Date string (YYYY-MM-DD) or empty string if not closed
+    """
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT active_flag, eff_end_date
+                FROM tbl_initiative_issue_keys
+                WHERE issue_key = %s
+                """,
+                (epic_key,)
+            )
+            row = cur.fetchone()
+            if row:
+                active_flag, eff_end_date = row
+                # Consider NULL or True as active, False as closed
+                is_active = active_flag is None or active_flag is True
+                eff_end_date_str = eff_end_date.strftime('%Y-%m-%d') if eff_end_date and not is_active else ''
+                return is_active, eff_end_date_str
+    except Exception as e:
+        logger.debug(f"Could not fetch status for {epic_key}: {e}")
+    finally:
+        db_pool.putconn(conn)
+
+    # Default: assume active if not found in database
+    return True, ''
 
 
 def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[str]]:
@@ -123,15 +166,26 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
 
     logger.processing("Building dashboard HTML structure")
 
-    # Read the HTML content for each file and extract titles
+    # Initialize database connection pool for status lookups (READ-ONLY)
+    db_pool = db_utils.get_connection_pool()
+
+    # Read the HTML content for each file and extract titles + status
     overview_charts = []
     for filename in overview_files:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
+
+        # Fetch epic status from database (READ-ONLY)
+        is_active, eff_end_date = True, ''
+        if epic_key:
+            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+
         overview_charts.append({
             'filename': filename,
             'title': title,
             'epic_key': epic_key,
+            'is_active': is_active,
+            'eff_end_date': eff_end_date,
             'path': filepath
         })
 
@@ -139,10 +193,18 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     for filename in bigint_files:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
+
+        # Fetch epic status from database (READ-ONLY)
+        is_active, eff_end_date = True, ''
+        if epic_key:
+            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+
         bigint_charts.append({
             'filename': filename,
             'title': title,
             'epic_key': epic_key,
+            'is_active': is_active,
+            'eff_end_date': eff_end_date,
             'path': filepath
         })
 
@@ -150,12 +212,28 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     for filename in iris_files:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
+
+        # Fetch epic status from database (READ-ONLY)
+        is_active, eff_end_date = True, ''
+        if epic_key:
+            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+
         iris_charts.append({
             'filename': filename,
             'title': title,
             'epic_key': epic_key,
+            'is_active': is_active,
+            'eff_end_date': eff_end_date,
             'path': filepath
         })
+
+    # Two-tier sorting: Active epics first, then alphabetically by epic_key
+    # Sort key: (not is_active, epic_key) - False (active) sorts before True (closed)
+    overview_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
+    bigint_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
+    iris_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
+
+    logger.info(f"Sorted charts: Active epics at top, closed at bottom, alphabetical within each group")
 
     # Generate the HTML
     html_content = generate_html_structure(overview_charts, bigint_charts, iris_charts, burndown_dir)
@@ -194,7 +272,16 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
             # Create clickable title if epic_key exists
             if chart.get('epic_key'):
                 jira_url = f"https://rndjira.sas.com/browse/{chart['epic_key']}"
-                title_html = f'<a href="{jira_url}" target="_blank" class="epic-link">{chart["title"]}</a>'
+                is_active = chart.get('is_active', True)
+                title_class = "epic-link"
+
+                # Add completed epic styling if inactive
+                if not is_active:
+                    title_class += " completed-epic"
+                    eff_end_date = chart.get('eff_end_date', 'Unknown')
+                    title_html = f'<a href="{jira_url}" target="_blank" class="{title_class}">{chart["title"]} <span class="completed-badge">[COMPLETED: {eff_end_date}]</span></a>'
+                else:
+                    title_html = f'<a href="{jira_url}" target="_blank" class="{title_class}">{chart["title"]}</a>'
             else:
                 title_html = chart['title']
 
@@ -377,6 +464,27 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
         .chart-title .epic-link:hover {{
             color: #1976d2;
             text-decoration: underline;
+        }}
+
+        .chart-title .epic-link.completed-epic {{
+            color: #c62828;  /* Bold red for completed epics */
+            font-weight: 700;
+        }}
+
+        .chart-title .epic-link.completed-epic:hover {{
+            color: #b71c1c;  /* Darker red on hover */
+        }}
+
+        .completed-badge {{
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #c62828;
+            margin-left: 8px;
+            padding: 2px 6px;
+            background-color: #ffebee;
+            border-radius: 3px;
+            border: 1px solid #ef9a9a;
         }}
 
         .chart-iframe {{

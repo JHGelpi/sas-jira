@@ -36,37 +36,73 @@ def get_jira_client():
         return None
 
 
-def close_completed_iris_initiatives(jira, db_pool):
+def close_completed_initiatives(jira, db_pool, initiative_type=None):
     """
-    Checks all active IRIS initiatives and closes them if they are in a closed statusCategory.
+    Checks active initiatives and closes them if they are in a closed statusCategory.
     Sets eff_end_date to current date and active_flag to false for closed initiatives.
+
+    *** DATA SAFETY ***
+    This function ONLY updates tbl_initiative_issue_keys metadata.
+    It NEVER modifies burndown data tables (tbl_compdiv_burndown, tbl_iris_burndown).
+    All changes are reversible via SQL UPDATE commands.
+
+    Args:
+        jira: Jira client instance
+        db_pool: Database connection pool
+        initiative_type: Filter for which initiatives to check:
+            - 'IRIS': Only IRIS initiatives (where "IRIS" = true)
+            - 'COMPDIV': Only COMPDIV initiatives (where issue_key ~ '^COMPDIV-\\d+$')
+            - None: All initiatives regardless of type
+
+    Returns:
+        List of epic keys that were closed
     """
-    log_section_header(logger, "CLOSE COMPLETED IRIS INITIATIVES")
+    type_label = initiative_type or "ALL"
+    log_section_header(logger, f"CLOSE COMPLETED {type_label} INITIATIVES")
 
     conn = db_pool.getconn()
     try:
-        # Fetch all active IRIS initiatives from the database
+        # Build query based on initiative type
         with conn.cursor() as cursor:
-            query = """
-                SELECT issue_key
-                FROM tbl_initiative_issue_keys
-                WHERE "IRIS" = true
-                  AND (active_flag IS NULL OR active_flag = true)
-            """
-            cursor.execute(query)
-            active_iris_keys = [row[0] for row in cursor.fetchall()]
+            if initiative_type == 'IRIS':
+                query = """
+                    SELECT issue_key
+                    FROM tbl_initiative_issue_keys
+                    WHERE "IRIS" = true
+                      AND (active_flag IS NULL OR active_flag = true)
+                """
+                params = []
+            elif initiative_type == 'COMPDIV':
+                query = """
+                    SELECT issue_key
+                    FROM tbl_initiative_issue_keys
+                    WHERE issue_key ~ '^COMPDIV-\\d+$'
+                      AND (active_flag IS NULL OR active_flag = true)
+                """
+                params = []
+            else:
+                # All initiatives
+                query = """
+                    SELECT issue_key
+                    FROM tbl_initiative_issue_keys
+                    WHERE (active_flag IS NULL OR active_flag = true)
+                """
+                params = []
 
-        if not active_iris_keys:
-            logger.info("No active IRIS initiatives found in database")
-            return
+            cursor.execute(query, params)
+            active_keys = [row[0] for row in cursor.fetchall()]
 
-        logger.info(f"Found {len(active_iris_keys)} active IRIS initiatives to check")
+        if not active_keys:
+            logger.info(f"No active {type_label} initiatives found in database")
+            return []
 
-        # Fetch status information from Jira for all active IRIS initiatives
+        logger.info(f"Found {len(active_keys)} active {type_label} initiatives to check")
+
+        # Fetch status information from Jira for all active initiatives
         keys_to_close = []
 
-        for i in range(0, len(active_iris_keys), 100):
-            chunk = active_iris_keys[i:i + 100]
+        for i in range(0, len(active_keys), 100):
+            chunk = active_keys[i:i + 100]
             jql = f"key in ({','.join(f'\"{k}\"' for k in chunk)})"
 
             try:
@@ -83,35 +119,60 @@ def close_completed_iris_initiatives(jira, db_pool):
 
             except Exception as e:
                 logger.error(f"Failed to fetch issues for chunk starting at {i}: {e}")
+                # Continue processing remaining chunks even if one fails
                 continue
 
         if not keys_to_close:
-            logger.info("No IRIS initiatives need to be closed. All active initiatives are still open")
-            return
+            logger.info(f"No {type_label} initiatives need to be closed. All active initiatives are still open")
+            return []
 
         # Update database to close the initiatives
+        # SAFETY: Only updates tbl_initiative_issue_keys metadata, never touches burndown data
         today = datetime.now().date()
 
         with conn.cursor() as cursor:
-            logger.database(f"Closing {len(keys_to_close)} IRIS initiatives in tbl_initiative_issue_keys")
+            logger.database(f"Closing {len(keys_to_close)} {type_label} initiatives in tbl_initiative_issue_keys")
+            logger.info(f"Setting eff_end_date = {today} and active_flag = false for: {', '.join(keys_to_close)}")
 
             update_query = """
                 UPDATE tbl_initiative_issue_keys
                 SET eff_end_date = %s, active_flag = false
                 WHERE issue_key = ANY(%s)
-                  AND "IRIS" = true
             """
             cursor.execute(update_query, (today, keys_to_close))
             conn.commit()
 
-            logger.success(f"Successfully closed {len(keys_to_close)} IRIS initiatives")
+            logger.success(f"Successfully closed {len(keys_to_close)} {type_label} initiatives")
             logger.info(f"Closed initiatives: {', '.join(keys_to_close)}")
+
+        return keys_to_close
 
     except Exception as e:
         conn.rollback()
-        logger.exception(f"Failed to close completed IRIS initiatives: {e}")
+        logger.exception(f"Failed to close completed {type_label} initiatives: {e}")
+        return []
     finally:
         db_pool.putconn(conn)
+
+
+def close_completed_iris_initiatives(jira, db_pool):
+    """
+    Checks all active IRIS initiatives and closes them if they are in a closed statusCategory.
+    Sets eff_end_date to current date and active_flag to false for closed initiatives.
+
+    This is a wrapper around close_completed_initiatives() for backward compatibility.
+    """
+    return close_completed_initiatives(jira, db_pool, initiative_type='IRIS')
+
+
+def close_completed_compdiv_initiatives(jira, db_pool):
+    """
+    Checks all active COMPDIV initiatives and closes them if they are in a closed statusCategory.
+    Sets eff_end_date to current date and active_flag to false for closed initiatives.
+
+    This wrapper focuses specifically on COMPDIV epics (issue_key ~ '^COMPDIV-\\d+$').
+    """
+    return close_completed_initiatives(jira, db_pool, initiative_type='COMPDIV')
 
 
 def sync_initiatives_from_jql(jira, db_pool):

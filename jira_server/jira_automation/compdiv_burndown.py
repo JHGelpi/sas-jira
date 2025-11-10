@@ -508,6 +508,10 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
         filter_flag = ff or None
 
     # Load candidate epics (optionally filtered)
+    # *** DATA SAFETY ***
+    # This query includes both active and closed epics to maintain historical burndown data.
+    # Closed epics (active_flag = false) will continue to have data collected, showing
+    # flat zero-point trend lines after closure.
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
@@ -518,10 +522,10 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     """
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
-                    WHERE 
+                    WHERE (active_flag IS NULL OR active_flag = true OR active_flag = false)
+                      AND filter_flag = %s
                     """
                 )
-                base_sql += " filter_flag = %s"
                 params.append(filter_flag)
             else:
                 base_sql = (
@@ -529,6 +533,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
                     WHERE issue_key ~ '^COMPDIV-\d+$'
+                      AND (active_flag IS NULL OR active_flag = true OR active_flag = false)
                     """
                 )
             cur.execute(base_sql, params)
@@ -545,11 +550,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
     for epic in epic_keys:
         try:
-            logger.info("COMPDIV burndown start: %s", epic)
+            # Check epic status for logging purposes (but process regardless of status for historical data)
             is_closed, epic_status_name = get_epic_status_info(epic)
-            if is_closed:
-                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
-                continue
+            status_label = "CLOSED" if is_closed else "ACTIVE"
+            logger.info("COMPDIV burndown start: %s (status: %s - %s)", epic, status_label, epic_status_name)
+
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
             #logger.info("Collected %d issues for %s", len(issues), epic)
 

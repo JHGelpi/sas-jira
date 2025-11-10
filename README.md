@@ -453,7 +453,7 @@ Located in `jira_automation/`
 **Purpose**: IRIS initiative burndown analysis (identical methodology to COMPDIV)
 
 **Key Differences from COMPDIV**:
-- Queries `tbl_initiative_issue_keys WHERE "IRIS" = true AND active_flag IS NULL`
+- Queries `tbl_initiative_issue_keys WHERE "IRIS" = true`
 - Stores data in `tbl_iris_burndown` table
 - Outputs files with `IRIS_` prefix: `IRIS_{epic_key}_burndown.html`
 - Uses `IRIS_TRACE` and `IRIS_SKIP_HTML` env vars
@@ -467,6 +467,52 @@ Located in `jira_automation/`
 **Output**: `IRIS_{epic_key}_burndown.html` files in same directory as COMPDIV
 
 **Trigger**: `/jobs/iris-burndown`
+
+---
+
+#### Epic Lifecycle & Closure 🆕
+
+Both COMPDIV and IRIS burndowns track epics through their entire lifecycle, including after completion.
+
+**Automatic Closure Process**:
+- **Frequency**: Runs daily as part of `/jobs/daily` endpoint
+- **Function**: `initiative_children.close_completed_initiatives()`
+- **Detection**: Checks Jira `statusCategory.name` for each epic
+- **Action**: When epic status = "Done", sets:
+  - `tbl_initiative_issue_keys.eff_end_date` = current date
+  - `tbl_initiative_issue_keys.active_flag` = false
+
+**Historical Data Continuity**:
+- ✅ Burndown data collection **continues** for closed epics
+- ✅ Historical trend lines remain visible in charts
+- ✅ Closed epics show flat zero-point lines (no new work)
+- ✅ Complete audit trail of when epic was closed
+
+**Dashboard Display**:
+- **Active epics**: Normal display at top of each tab (black text)
+- **Completed epics**: **Bold red header** with `[COMPLETED: YYYY-MM-DD]` badge at bottom of each tab
+- **Sorting**: Two-tier sort
+  1. Status (active first, closed last)
+  2. Alphabetical by epic key (A→Z)
+
+**Manual Reopening**:
+Epics closed in the database require manual intervention to reactivate:
+```sql
+-- Reopen an epic that was closed in error
+UPDATE tbl_initiative_issue_keys
+SET active_flag = NULL, eff_end_date = NULL
+WHERE issue_key = 'COMPDIV-123';
+```
+
+**Important Notes**:
+- Closure is based on Jira status, not database flag
+- Epics reopened in Jira remain closed in DB until manually updated
+- No data is deleted - all changes are reversible
+
+**Related Functions**:
+- `initiative_children.close_completed_initiatives()` - Unified closure checker
+- `initiative_children.close_completed_iris_initiatives()` - IRIS-specific wrapper
+- `initiative_children.close_completed_compdiv_initiatives()` - COMPDIV-specific wrapper
 
 ---
 
@@ -484,12 +530,16 @@ Dashboard (3 Tabs)
 **Key Functions**:
 - `collect_html_files()`: Scans directory, categorizes by filename prefix
 - `extract_epic_title()`: Parses Plotly HTML for display names
+- `get_epic_status_from_db()`: Fetches active_flag and eff_end_date (read-only)
 - `generate_html_structure()`: Builds responsive 3-column grid layout
 
 **Features**:
-- Tab switching with lazy iframe loading
-- Responsive grid (3 cols → 2 cols → 1 col on smaller screens)
-- Open in new tab links
+- **Two-tier sorting**: Active epics at top, closed at bottom, then alphabetical
+- **Visual status indicators**: Bold red headers for completed epics with `[COMPLETED: DATE]` badges
+- **Tab switching** with lazy iframe loading
+- **Responsive grid** (3 cols → 2 cols → 1 col on smaller screens)
+- **Direct Jira links** from epic titles
+- **Open in new tab** links for each chart
 - Automatic legend fix via iframe reload
 
 **Output**: `dashboard.html` in `COMPDIV_BURNDOWN_DIR`
@@ -697,12 +747,22 @@ Stores initiative/epic metadata for burndown analysis.
 - `active_flag` (BOOLEAN): Active status (NULL = active, false = closed)
 - `filter_flag` (CHAR(7)): Optional filtering
 
-**Updated By**: `initiative_children.sync_initiatives_from_jql()`
+**Updated By**:
+- `initiative_children.sync_initiatives_from_jql()` - Adds new epics
+- `initiative_children.close_completed_initiatives()` - Closes completed epics
 
-**IRIS Closure Logic**: `initiative_children.close_completed_iris_initiatives()` runs daily:
-- Queries active IRIS epics (`"IRIS" = true AND active_flag IS NULL`)
-- Checks Jira statusCategory for each
-- Sets `eff_end_date = CURRENT_DATE` and `active_flag = false` if closed
+**Epic Closure Logic** (runs daily as part of `/jobs/daily`):
+- Queries ALL active epics (`active_flag IS NULL OR active_flag = true`)
+- Checks Jira `statusCategory` for each epic
+- If `statusCategory.name = "Done"`:
+  - Sets `eff_end_date = CURRENT_DATE`
+  - Sets `active_flag = false`
+- Applies to both IRIS and COMPDIV initiatives
+
+**active_flag Values**:
+- `NULL` = Active (default for new epics)
+- `true` = Active (explicitly set, rare)
+- `false` = Closed/Completed (auto-set by closure process)
 
 ---
 

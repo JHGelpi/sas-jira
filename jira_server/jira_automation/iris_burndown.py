@@ -493,7 +493,11 @@ def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float,
     t_start = perf_counter()
     run_dt = run_dt or date.today()
 
-    # Load active IRIS epics
+    # Load IRIS epics (both active and closed for historical data continuity)
+    # *** DATA SAFETY ***
+    # This query includes both active and closed epics to maintain historical burndown data.
+    # Closed epics (active_flag = false) will continue to have data collected, showing
+    # flat zero-point trend lines after closure.
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
@@ -502,7 +506,7 @@ def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float,
                 SELECT issue_key
                 FROM public.tbl_initiative_issue_keys
                 WHERE "IRIS" = true
-                  AND active_flag IS NULL
+                  AND (active_flag IS NULL OR active_flag = true OR active_flag = false)
                 GROUP BY issue_key
             """
             cur.execute(sql)
@@ -519,11 +523,11 @@ def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float,
 
     for epic in epic_keys:
         try:
-            logger.info("IRIS burndown start: %s", epic)
+            # Check epic status for logging purposes (but process regardless of status for historical data)
             is_closed, epic_status_name = get_epic_status_info(epic)
-            if is_closed:
-                logger.info("Skipping %s: epic status is closed (%s)", epic, epic_status_name)
-                continue
+            status_label = "CLOSED" if is_closed else "ACTIVE"
+            logger.info("IRIS burndown start: %s (status: %s - %s)", epic, status_label, epic_status_name)
+
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
 
             trace_flag = _should_trace(epic)
