@@ -118,11 +118,13 @@ def extract_epic_title(html_path: str) -> Tuple[str, str]:
             content = f.read()
             # Look for the title in the Plotly layout
             # Pattern: "title":{"text":"Epic Title (COMPDIV-123)...
-            match = re.search(r'"title"\s*:\s*\{\s*"text"\s*:\s*"([^"]+)"', content)
+            # Use a pattern that handles escaped quotes: (?:[^"\\]|\\.)*
+            # This matches either: non-quote/non-backslash OR backslash followed by any character
+            match = re.search(r'"title"\s*:\s*\{\s*"text"\s*:\s*"((?:[^"\\]|\\.)*)"', content)
             if match:
                 title = match.group(1)
 
-                # Decode unicode escapes (e.g., \u003c -> <)
+                # Decode unicode escapes (e.g., \u003c -> <, \" -> ")
                 title = title.encode().decode('unicode_escape')
 
                 # Remove everything starting from <br> (including the HTML tags)
