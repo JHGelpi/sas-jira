@@ -6,3 +6,4 @@ fastapi-jira-forecast/
 venv/
 **/__pycache__/
 jira_server/reports/
+jira_server/helper_files/customer_support_lvls.json
