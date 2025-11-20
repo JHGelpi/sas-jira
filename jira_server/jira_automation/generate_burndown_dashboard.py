@@ -182,6 +182,21 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         if epic_key:
             is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
 
+        # Fallback: If epic_key from title didn't match database, try extracting from filename
+        # This handles cases where issues were moved/renamed in Jira
+        if is_active and eff_end_date == '':
+            filename_epic_match = re.search(r'([A-Z]+-\d+)', filename)
+            if filename_epic_match:
+                filename_epic_key = filename_epic_match.group(1)
+                if filename_epic_key != epic_key:
+                    logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
+                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback:
+                        # Filename key found a match in DB
+                        is_active = is_active_fallback
+                        eff_end_date = eff_end_date_fallback
+                        logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
+
         overview_charts.append({
             'filename': filename,
             'title': title,
@@ -201,6 +216,21 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         if epic_key:
             is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
 
+        # Fallback: If epic_key from title didn't match database, try extracting from filename
+        # This handles cases where issues were moved/renamed in Jira
+        if is_active and eff_end_date == '':
+            filename_epic_match = re.search(r'([A-Z]+-\d+)', filename)
+            if filename_epic_match:
+                filename_epic_key = filename_epic_match.group(1)
+                if filename_epic_key != epic_key:
+                    logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
+                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback:
+                        # Filename key found a match in DB
+                        is_active = is_active_fallback
+                        eff_end_date = eff_end_date_fallback
+                        logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
+
         bigint_charts.append({
             'filename': filename,
             'title': title,
@@ -219,6 +249,21 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         is_active, eff_end_date = True, ''
         if epic_key:
             is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+
+        # Fallback: If epic_key from title didn't match database, try extracting from filename
+        # This handles cases where issues were moved/renamed in Jira
+        if is_active and eff_end_date == '':
+            filename_epic_match = re.search(r'([A-Z]+-\d+)', filename)
+            if filename_epic_match:
+                filename_epic_key = filename_epic_match.group(1)
+                if filename_epic_key != epic_key:
+                    logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
+                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback:
+                        # Filename key found a match in DB
+                        is_active = is_active_fallback
+                        eff_end_date = eff_end_date_fallback
+                        logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
 
         iris_charts.append({
             'filename': filename,
