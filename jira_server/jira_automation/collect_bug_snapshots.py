@@ -72,7 +72,7 @@ def main():
     
     # Define all fields we need to fetch from Jira
     fields_to_fetch = [
-        "issuetype", "status", "assignee", "versions", "fixVersions", "project"
+        "issuetype", "status", "assignee", "versions", "fixVersions", "project", "summary", "updated"
     ]
     if origin_id:
         fields_to_fetch.append(origin_id)
@@ -118,7 +118,9 @@ def main():
             fix_versions,
             fields.assignee.displayName if fields.assignee else None,
             get_custom_field_value(pipeline_id),
-            fields.project.key if fields.project else None
+            fields.project.key if fields.project else None,
+            fields.summary if hasattr(fields, 'summary') else None,
+            fields.updated if hasattr(fields, 'updated') else None
         ))
         
     if not snapshot_data:
@@ -137,7 +139,8 @@ def main():
             sql = """
                 INSERT INTO tbl_bug_snapshots (
                     snapshot_date, issue_key, issue_type, status_category, origin,
-                    affects_version, fix_version, assignee, pipeline_discovery_stage, project_key
+                    affects_version, fix_version, assignee, pipeline_discovery_stage, project_key,
+                    summary, updated
                 ) VALUES %s
                 ON CONFLICT (snapshot_date, issue_key) DO UPDATE SET
                     issue_type = EXCLUDED.issue_type,
@@ -147,7 +150,9 @@ def main():
                     fix_version = EXCLUDED.fix_version,
                     assignee = EXCLUDED.assignee,
                     pipeline_discovery_stage = EXCLUDED.pipeline_discovery_stage,
-                    project_key = EXCLUDED.project_key;
+                    project_key = EXCLUDED.project_key,
+                    summary = EXCLUDED.summary,
+                    updated = EXCLUDED.updated;
             """
             from psycopg2.extras import execute_values
             execute_values(cursor, sql, snapshot_data)

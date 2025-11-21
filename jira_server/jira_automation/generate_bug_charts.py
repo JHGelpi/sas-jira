@@ -17,23 +17,29 @@ from logging_utils import get_logger, log_section_header
 logger = get_logger(__name__)
 
 
-def generate_bug_trends_html(fig1, fig2):
+def generate_bug_trends_html(fig1, fig2, bug_details_by_release=None):
     """
     Generates HTML content for the bug trends report matching the dashboard.html theme.
 
     Args:
         fig1: Plotly figure for Outstanding Open Bugs chart
         fig2: Plotly figure for Bugs by Release chart
+        bug_details_by_release: Dictionary mapping release versions to lists of bug details
 
     Returns:
         Complete HTML string with consistent styling
     """
     from datetime import datetime
+    import json
+
     timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 
     # Generate Plotly HTML for charts
     chart1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn', div_id='bug-trends-chart1') if fig1 else '<p style="text-align: center; padding: 40px; color: #666;">No data available for Outstanding Open Bugs chart</p>'
     chart2_html = fig2.to_html(full_html=False, include_plotlyjs='cdn', div_id='bug-trends-chart2') if fig2 else '<p style="text-align: center; padding: 40px; color: #666;">No data available for Bugs by Release chart</p>'
+
+    # Convert bug details to JSON for JavaScript
+    bug_details_json = json.dumps(bug_details_by_release or {})
 
     html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -92,6 +98,76 @@ def generate_bug_trends_html(fig1, fig2):
             width: 100%;
             min-height: 500px;
         }}
+
+        .bug-details-table-container {{
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 20px;
+            display: none;
+        }}
+
+        .bug-details-table-container.visible {{
+            display: block;
+        }}
+
+        .table-header {{
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1976d2;
+        }}
+
+        .bug-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }}
+
+        .bug-table thead {{
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }}
+
+        .bug-table th {{
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+        }}
+
+        .bug-table tbody tr {{
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s ease;
+        }}
+
+        .bug-table tbody tr:hover {{
+            background-color: #f5f5f5;
+        }}
+
+        .bug-table td {{
+            padding: 12px 16px;
+        }}
+
+        .bug-link {{
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .bug-link:hover {{
+            text-decoration: underline;
+        }}
+
+        .no-bugs-message {{
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }}
     </style>
 </head>
 <body>
@@ -113,6 +189,105 @@ def generate_bug_trends_html(fig1, fig2):
             {chart2_html}
         </div>
     </div>
+
+    <div id="bug-details-table-container" class="bug-details-table-container">
+        <div class="table-header" id="table-header"></div>
+        <div id="table-content"></div>
+    </div>
+
+    <script>
+        // Bug details data embedded from backend
+        const bugDetailsByRelease = {bug_details_json};
+
+        // Add click event handler to the Bugs by Release chart
+        const chart2Element = document.getElementById('bug-trends-chart2');
+
+        if (chart2Element) {{
+            chart2Element.on('plotly_click', function(data) {{
+                // Get the clicked bar's information
+                const point = data.points[0];
+                const release = point.x;
+                const state = point.data.name;  // "Open" or "Closed"
+
+                // Only show table for "Open" bugs
+                if (state !== 'Open') {{
+                    hideTable();
+                    return;
+                }}
+
+                // Get bug details for this release
+                const bugs = bugDetailsByRelease[release];
+
+                if (!bugs || bugs.length === 0) {{
+                    showEmptyTable(release);
+                    return;
+                }}
+
+                // Show the table with bug details
+                showBugTable(release, bugs);
+            }});
+        }}
+
+        function showBugTable(release, bugs) {{
+            const container = document.getElementById('bug-details-table-container');
+            const header = document.getElementById('table-header');
+            const content = document.getElementById('table-content');
+
+            // Set header
+            header.textContent = `Open Bugs for Release: ${{release}} (${{bugs.length}} bug${{bugs.length !== 1 ? 's' : ''}})`;
+
+            // Build table HTML
+            let tableHtml = `
+                <table class="bug-table">
+                    <thead>
+                        <tr>
+                            <th>Issue ID</th>
+                            <th>Summary</th>
+                            <th>Last Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bugs.forEach(bug => {{
+                const jiraUrl = `https://rndjira.sas.com/browse/${{bug.issue_key}}`;
+                tableHtml += `
+                    <tr>
+                        <td><a href="${{jiraUrl}}" target="_blank" class="bug-link">${{bug.issue_key}}</a></td>
+                        <td>${{bug.summary || 'N/A'}}</td>
+                        <td>${{bug.updated_str || 'N/A'}}</td>
+                    </tr>
+                `;
+            }});
+
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+            content.innerHTML = tableHtml;
+            container.classList.add('visible');
+
+            // Scroll to table
+            container.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+        }}
+
+        function showEmptyTable(release) {{
+            const container = document.getElementById('bug-details-table-container');
+            const header = document.getElementById('table-header');
+            const content = document.getElementById('table-content');
+
+            header.textContent = `Open Bugs for Release: ${{release}}`;
+            content.innerHTML = '<div class="no-bugs-message">No open bugs found for this release.</div>';
+
+            container.classList.add('visible');
+        }}
+
+        function hideTable() {{
+            const container = document.getElementById('bug-details-table-container');
+            container.classList.remove('visible');
+        }}
+    </script>
 </body>
 </html>
 '''
@@ -142,12 +317,15 @@ def main():
         logger.searching("Fetching all bug snapshot data from the last 6 months")
         six_months_ago = date.today() - timedelta(days=180)
         sql = text("""
-            SELECT * FROM tbl_bug_snapshots 
+            SELECT snapshot_date, issue_key, issue_type, status_category, origin,
+                   affects_version, fix_version, assignee, pipeline_discovery_stage,
+                   project_key, summary, updated
+            FROM tbl_bug_snapshots
             WHERE issue_type = 'Bug' AND snapshot_date >= :start_date
         """)
         df = pd.read_sql(sql, conn, params={'start_date': six_months_ago})
         logger.info(f"Fetched {len(df)} total bug snapshot records")
-        
+
     except Exception as e:
         logger.error(f"Failed to fetch data from database: {e}")
         return
@@ -313,11 +491,21 @@ def main():
     df_latest = df[df['snapshot_date'] == df['snapshot_date'].max()].copy()
 
     fig2 = None
+    bug_details_by_release = {}  # Dictionary to store bug details for each release
     if not df_latest.empty:
         df_latest['is_crp'] = df_latest['origin'].str.contains('CRP', na=False)
         df_latest['state'] = df_latest['status_category'].apply(lambda x: 'Open' if x != 'Done' else 'Closed')
         df_latest['release'] = df_latest['affects_version'].str.split(',').str[0].str.strip()
-        
+
+        # Prepare detailed bug data for open bugs by release
+        df_open_bugs = df_latest[df_latest['state'] == 'Open'].copy()
+        # Convert updated timestamp to string for JSON serialization
+        df_open_bugs['updated_str'] = pd.to_datetime(df_open_bugs['updated']).dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        for release in df_open_bugs['release'].dropna().unique():
+            release_bugs = df_open_bugs[df_open_bugs['release'] == release]
+            bug_details_by_release[release] = release_bugs[['issue_key', 'summary', 'updated_str']].to_dict('records')
+
         bugs_by_release_detailed = df_latest.groupby(['release', 'project_key', 'is_crp', 'state']).size().reset_index(name='count')
 
         hover_text_df = bugs_by_release_detailed.groupby(['release', 'state']).apply(
@@ -333,7 +521,7 @@ def main():
                       category_orders={'release': sorted(chart_df['release'].dropna().unique())},
                       barmode='group',
                       custom_data=['project_breakdown'])
-        
+
         fig2.update_traces(
             hovertemplate="<b>Release:</b> %{x}<br><b>Status:</b> %{data.name}<br><b>Total Bugs:</b> %{y}<br><b>Project Breakdown:</b><br>%{customdata[0]}<extra></extra>"
         )
@@ -349,7 +537,7 @@ def main():
     logger.processing("Generating HTML report with dashboard theme")
     try:
         with open(report_path, 'w') as f:
-            f.write(generate_bug_trends_html(fig1, fig2))
+            f.write(generate_bug_trends_html(fig1, fig2, bug_details_by_release))
         logger.success(f"Successfully generated bug trends report at {report_path}")
     except Exception as e:
         logger.error(f"Failed to write HTML report: {e}")
