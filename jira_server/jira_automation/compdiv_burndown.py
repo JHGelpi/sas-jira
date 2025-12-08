@@ -486,6 +486,46 @@ def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, t
         pool.putconn(conn)
 
 
+def cleanup_old_compdiv_html_files(active_epic_keys: Set[str]) -> None:
+    """Remove HTML files for COMPDIV epics that are no longer being tracked (completed > 30 days ago).
+
+    Args:
+        active_epic_keys: Set of epic keys currently being tracked
+    """
+    load_dotenv()
+    base_dir = os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+
+    if not os.path.exists(base_dir):
+        logger.warning(f"Burndown directory does not exist: {base_dir}")
+        return
+
+    # Find all COMPDIV HTML files (excluding IRIS_ prefixed files)
+    try:
+        all_files = [f for f in os.listdir(base_dir)
+                     if f.startswith("COMPDIV") and f.endswith("_burndown.html") and not f.startswith("IRIS_")]
+        removed_count = 0
+
+        for filename in all_files:
+            # Extract epic key from filename (e.g., COMPDIV-123_burndown.html -> COMPDIV-123)
+            match = re.search(r'(COMPDIV-\d+)_burndown\.html', filename)
+            if match:
+                epic_key = match.group(1)
+                if epic_key not in active_epic_keys:
+                    # This epic is no longer active (completed > 30 days ago), remove its HTML file
+                    filepath = os.path.join(base_dir, filename)
+                    os.remove(filepath)
+                    logger.info(f"Removed old COMPDIV HTML file: {filename} (epic completed > 30 days ago)")
+                    removed_count += 1
+
+        if removed_count > 0:
+            logger.success(f"Cleaned up {removed_count} old COMPDIV HTML file(s)")
+        else:
+            logger.debug("No old COMPDIV HTML files to clean up")
+
+    except Exception as e:
+        logger.exception(f"Error during COMPDIV HTML cleanup: {e}")
+
+
 def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | None = None) -> Dict[str, Tuple[float, float, float, float]]:
     """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each.
     Optionally filter which COMPDIV epics to run via the new `filter_flag` column.
@@ -509,9 +549,10 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
     # Load candidate epics (optionally filtered)
     # *** DATA SAFETY ***
-    # This query includes both active and closed epics to maintain historical burndown data.
-    # Closed epics (active_flag = false) will continue to have data collected, showing
-    # flat zero-point trend lines after closure.
+    # This query includes:
+    # - Active epics (active_flag IS NULL OR active_flag = true)
+    # - Recently completed epics (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
+    # Epics completed more than 30 days ago are excluded to keep the dashboard focused.
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
@@ -522,7 +563,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     """
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
-                    WHERE (active_flag IS NULL OR active_flag = true OR active_flag = false)
+                    WHERE (
+                        active_flag IS NULL
+                        OR active_flag = true
+                        OR (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
+                      )
                       AND filter_flag = %s
                     """
                 )
@@ -533,7 +578,11 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
                     WHERE issue_key ~ '^COMPDIV-\d+$'
-                      AND (active_flag IS NULL OR active_flag = true OR active_flag = false)
+                      AND (
+                        active_flag IS NULL
+                        OR active_flag = true
+                        OR (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
+                      )
                     """
                 )
             cur.execute(base_sql, params)
@@ -589,6 +638,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
             logger.exception("Failed burndown for %s", epic)
 
     duration = perf_counter() - t_start
+
+    # Clean up HTML files for epics no longer being tracked (completed > 30 days ago)
+    try:
+        cleanup_old_compdiv_html_files(set(epic_keys))
+    except Exception:
+        logger.exception("Failed to clean up old COMPDIV HTML files")
+
     # Final, explicit completion confirmation
     logger.info(
         "COMPDIV burndown completed successfully. run_date=%s, epics_total=%d, successes=%d, failures=%d, duration=%.2fs",

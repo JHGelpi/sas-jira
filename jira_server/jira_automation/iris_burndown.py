@@ -483,21 +483,63 @@ def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, t
         pool.putconn(conn)
 
 
+def cleanup_old_iris_html_files(active_epic_keys: Set[str]) -> None:
+    """Remove HTML files for IRIS epics that are no longer being tracked (completed > 30 days ago).
+
+    Args:
+        active_epic_keys: Set of epic keys currently being tracked
+    """
+    load_dotenv()
+    base_dir = os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+
+    if not os.path.exists(base_dir):
+        logger.warning(f"Burndown directory does not exist: {base_dir}")
+        return
+
+    # Find all IRIS HTML files
+    try:
+        all_files = [f for f in os.listdir(base_dir) if f.startswith("IRIS_") and f.endswith("_burndown.html")]
+        removed_count = 0
+
+        for filename in all_files:
+            # Extract epic key from filename (e.g., IRIS_COMPDIV-123_burndown.html -> COMPDIV-123)
+            import re
+            match = re.search(r'IRIS_([A-Z]+-\d+)_burndown\.html', filename)
+            if match:
+                epic_key = match.group(1)
+                if epic_key not in active_epic_keys:
+                    # This epic is no longer active (completed > 30 days ago), remove its HTML file
+                    filepath = os.path.join(base_dir, filename)
+                    os.remove(filepath)
+                    logger.info(f"Removed old IRIS HTML file: {filename} (epic completed > 30 days ago)")
+                    removed_count += 1
+
+        if removed_count > 0:
+            logger.success(f"Cleaned up {removed_count} old IRIS HTML file(s)")
+        else:
+            logger.debug("No old IRIS HTML files to clean up")
+
+    except Exception as e:
+        logger.exception(f"Error during IRIS HTML cleanup: {e}")
+
+
 def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float, float, float, float]]:
     """Load IRIS epic keys from tbl_initiative_issue_keys and compute/store today's totals for each.
 
-    Only processes active IRIS epics (where "IRIS" = true and active_flag is null).
+    Only processes active IRIS epics and epics completed within the past 30 days.
+    Epics completed more than 30 days ago are excluded from processing and HTML generation.
 
     Emits a clear completion log when finished.
     """
     t_start = perf_counter()
     run_dt = run_dt or date.today()
 
-    # Load IRIS epics (both active and closed for historical data continuity)
+    # Load IRIS epics (active + recently completed within 30 days)
     # *** DATA SAFETY ***
-    # This query includes both active and closed epics to maintain historical burndown data.
-    # Closed epics (active_flag = false) will continue to have data collected, showing
-    # flat zero-point trend lines after closure.
+    # This query includes:
+    # - Active epics (active_flag IS NULL OR active_flag = true)
+    # - Recently completed epics (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
+    # Epics completed more than 30 days ago are excluded to keep the dashboard focused.
     pool = db_utils.get_connection_pool()
     conn = pool.getconn()
     try:
@@ -506,7 +548,11 @@ def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float,
                 SELECT issue_key
                 FROM public.tbl_initiative_issue_keys
                 WHERE "IRIS" = true
-                  AND (active_flag IS NULL OR active_flag = true OR active_flag = false)
+                  AND (
+                    active_flag IS NULL
+                    OR active_flag = true
+                    OR (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
+                  )
                 GROUP BY issue_key
             """
             cur.execute(sql)
@@ -551,6 +597,13 @@ def run_for_all_iris_epics(run_dt: date | None = None) -> Dict[str, Tuple[float,
             logger.exception("Failed burndown for %s", epic)
 
     duration = perf_counter() - t_start
+
+    # Clean up HTML files for epics no longer being tracked (completed > 30 days ago)
+    try:
+        cleanup_old_iris_html_files(set(epic_keys))
+    except Exception:
+        logger.exception("Failed to clean up old IRIS HTML files")
+
     # Final, explicit completion confirmation
     logger.info(
         "IRIS burndown completed successfully. run_date=%s, epics_total=%d, successes=%d, failures=%d, duration=%.2fs",
