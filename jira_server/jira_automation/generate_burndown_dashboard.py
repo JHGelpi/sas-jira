@@ -13,10 +13,12 @@ Files are sorted alphabetically (A->Z) on each tab.
 import os
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from datetime import datetime
 from logging_utils import get_logger, log_section_header
 from jira_data_analysis import db_utils
+from jira import JIRA
+import plotly.graph_objects as go
 
 logger = get_logger(__name__)
 
@@ -61,6 +63,168 @@ def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str]:
 
     # Default: assume active if not found in database
     return True, ''
+
+
+def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
+    """
+    Fetch FTE utilization data for COMPDIV epics with BURNDWN filter flag.
+
+    Returns:
+        Tuple of (total_ftes_available, total_ftes_allocated)
+        - total_ftes_available: Total FTEs from environment variable
+        - total_ftes_allocated: Sum of 'Total FTE' field from COMPDIV epics
+    """
+    logger.start("Fetching FTE utilization data")
+
+    # Get total FTEs from environment
+    total_ftes_available = float(os.getenv('TOTAL_FTES', '78'))
+    logger.info(f"Total FTEs available (from env): {total_ftes_available}")
+
+    # Query database for COMPDIV epics with BURNDWN filter flag
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT issue_key
+                FROM tbl_initiative_issue_keys
+                WHERE issue_key LIKE 'COMPDIV-%'
+                AND filter_flag = 'BURNDWN'
+                """
+            )
+            epic_keys = [row[0] for row in cur.fetchall()]
+            logger.info(f"Found {len(epic_keys)} COMPDIV epics with BURNDWN filter")
+
+    except Exception as e:
+        logger.error(f"Failed to query database for epic keys: {e}")
+        db_pool.putconn(conn)
+        return total_ftes_available, 0.0
+    finally:
+        db_pool.putconn(conn)
+
+    # Connect to Jira and fetch Total FTE values
+    total_ftes_allocated = 0.0
+    if epic_keys:
+        try:
+            jira_url = os.getenv('JIRA_URL')
+            jira_token = os.getenv('JIRA_TOKEN')
+            jira_client = JIRA(server=jira_url, token_auth=jira_token)
+            logger.info("Connected to Jira for FTE data retrieval")
+
+            # Fetch issues in batch
+            jql = f"key in ({','.join(epic_keys)})"
+            issues = jira_client.search_issues(
+                jql,
+                fields='customfield_14239',  # Total FTE field
+                maxResults=len(epic_keys)
+            )
+
+            logger.info(f"Fetched {len(issues)} issues from Jira")
+
+            # Sum up the Total FTE values
+            for issue in issues:
+                fte_value = getattr(issue.fields, 'customfield_14239', None)
+                if fte_value is not None:
+                    try:
+                        total_ftes_allocated += float(fte_value)
+                        logger.debug(f"{issue.key}: FTE = {fte_value}")
+                    except (ValueError, TypeError):
+                        logger.warning(f"Invalid FTE value for {issue.key}: {fte_value}")
+
+            logger.success(f"Total FTEs allocated: {total_ftes_allocated}")
+
+        except Exception as e:
+            logger.error(f"Failed to fetch FTE data from Jira: {e}")
+            return total_ftes_available, 0.0
+
+    return total_ftes_available, total_ftes_allocated
+
+
+def generate_fte_utilization_chart(total_ftes_available: float, total_ftes_allocated: float) -> str:
+    """
+    Generate an HTML div containing a Plotly column chart showing FTE utilization.
+
+    Args:
+        total_ftes_available: Total FTEs from environment
+        total_ftes_allocated: Sum of allocated FTEs from epics
+
+    Returns:
+        HTML string containing the Plotly chart
+    """
+    logger.processing("Generating FTE utilization chart")
+
+    # Calculate utilization percentage
+    utilization_pct = (total_ftes_allocated / total_ftes_available * 100) if total_ftes_available > 0 else 0
+
+    # Create the figure
+    fig = go.Figure()
+
+    # Add the column for allocated FTEs
+    fig.add_trace(go.Bar(
+        x=['Allocated FTEs'],
+        y=[total_ftes_allocated],
+        name='Allocated FTEs',
+        marker_color='#1976d2',
+        text=[f'{total_ftes_allocated:.1f}<br>({utilization_pct:.1f}%)'],
+        textposition='outside',
+        textfont=dict(size=14, color='#333'),
+        hovertemplate='<b>Allocated FTEs</b><br>%{y:.1f}<br>%{text}<extra></extra>'
+    ))
+
+    # Add horizontal dashed line for total available FTEs
+    fig.add_hline(
+        y=total_ftes_available,
+        line_dash="dash",
+        line_color="#c62828",
+        line_width=3,
+        annotation_text=f"Total Available: {total_ftes_available:.1f}",
+        annotation_position="right",
+        annotation=dict(
+            font_size=12,
+            font_color="#c62828"
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title={
+            'text': f'FTE Utilization: {total_ftes_allocated:.1f} / {total_ftes_available:.1f} ({utilization_pct:.1f}%)',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 18, 'color': '#333'}
+        },
+        yaxis=dict(
+            title='FTEs',
+            range=[0, max(total_ftes_available, total_ftes_allocated) * 1.2],
+            gridcolor='#e0e0e0'
+        ),
+        xaxis=dict(
+            showticklabels=False
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        height=350,
+        margin=dict(l=60, r=60, t=80, b=40),
+        showlegend=True,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='center',
+            x=0.5
+        ),
+        hovermode='x'
+    )
+
+    # Convert to HTML div
+    chart_html = fig.to_html(
+        include_plotlyjs='cdn',
+        div_id='fte-utilization-chart',
+        config={'displayModeBar': False}
+    )
+
+    logger.success("FTE utilization chart generated")
+    return chart_html
 
 
 def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[str]]:
@@ -282,8 +446,12 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
 
     logger.info(f"Sorted charts: Active epics at top, closed at bottom, alphabetical within each group")
 
+    # Fetch FTE utilization data and generate chart
+    total_ftes_available, total_ftes_allocated = fetch_fte_utilization_data(db_pool)
+    fte_chart_html = generate_fte_utilization_chart(total_ftes_available, total_ftes_allocated)
+
     # Generate the HTML
-    html_content = generate_html_structure(overview_charts, bigint_charts, iris_charts, burndown_dir)
+    html_content = generate_html_structure(overview_charts, bigint_charts, iris_charts, burndown_dir, fte_chart_html)
 
     # Write the dashboard file
     try:
@@ -295,7 +463,7 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         raise
 
 
-def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dict], iris_charts: List[dict], burndown_dir: str) -> str:
+def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dict], iris_charts: List[dict], burndown_dir: str, fte_chart_html: str) -> str:
     """
     Generates the complete HTML structure for the dashboard.
 
@@ -304,6 +472,7 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
         bigint_charts: List of chart metadata for BIGINT tab
         iris_charts: List of chart metadata for IRIS tab
         burndown_dir: Base directory for burndown files (for relative paths)
+        fte_chart_html: HTML string containing the FTE utilization chart
 
     Returns:
         Complete HTML string
@@ -564,6 +733,11 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
     <div class="dashboard-header">
         <h1>COMPDIV Burndown Dashboard</h1>
         <p>Epic burndown charts organized by team - Updated: {timestamp}</p>
+    </div>
+
+    <!-- FTE Utilization Chart -->
+    <div class="fte-chart-container" style="background-color: #fff; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        {fte_chart_html}
     </div>
 
     <div class="tabs">
