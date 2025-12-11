@@ -322,17 +322,18 @@ async def trigger_bug_chart_generation(background_tasks: BackgroundTasks):
 async def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
     """
     Enqueues a background job to run COMPDIV burndown analysis for all epics.
+    Automatically regenerates the dashboard with updated FTE values upon completion.
     """
     logger.info("COMPDIV burndown job endpoint triggered via API")
-    logger.processing("Scheduling COMPDIV burndown background task")
+    logger.processing("Scheduling COMPDIV burndown background task (includes dashboard generation)")
 
     background_tasks.add_task(task_compdiv_burndown_all)
 
     logger.success("COMPDIV burndown job scheduled")
     return {
-        "message": "Enqueued COMPDIV burndown for all epics",
+        "message": "Enqueued COMPDIV burndown for all epics (includes dashboard generation)",
         "status": "scheduled",
-        "tasks": ["compdiv_burndown"]
+        "tasks": ["compdiv_burndown", "dashboard_generation"]
     }
 
 
@@ -340,17 +341,18 @@ async def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
 async def trigger_iris_burndown(background_tasks: BackgroundTasks):
     """
     Enqueues a background job to run IRIS burndown analysis for all active IRIS epics.
+    Automatically regenerates the dashboard with updated FTE values upon completion.
     """
     logger.info("IRIS burndown job endpoint triggered via API")
-    logger.processing("Scheduling IRIS burndown background task")
+    logger.processing("Scheduling IRIS burndown background task (includes dashboard generation)")
 
     background_tasks.add_task(task_iris_burndown_all)
 
     logger.success("IRIS burndown job scheduled")
     return {
-        "message": "Enqueued IRIS burndown for all active IRIS epics",
+        "message": "Enqueued IRIS burndown for all active IRIS epics (includes dashboard generation)",
         "status": "scheduled",
-        "tasks": ["iris_burndown"]
+        "tasks": ["iris_burndown", "dashboard_generation"]
     }
 
 

@@ -319,13 +319,18 @@ def run_bug_chart_generation_task():
 
 
 def task_compdiv_burndown_all():
-    """Runs the COMPDIV burndown for all epics."""
+    """Runs the COMPDIV burndown for all epics and regenerates the dashboard."""
     log_section_header(logger, "COMPDIV BURNDOWN")
 
     logger.start("Starting COMPDIV burndown for all epics")
     try:
         results = compdiv_burndown.run_for_all_compdiv_epics(run_dt=date.today())
         logger.complete(f"COMPDIV burndown completed for {len(results)} epics")
+
+        # Automatically regenerate the dashboard to refresh FTE values
+        logger.info("Auto-triggering dashboard generation to refresh FTE values")
+        run_burndown_dashboard_generation_task()
+
         return results
     except Exception as e:
         logger.exception(f"An error occurred during COMPDIV burndown: {e}")
@@ -345,13 +350,18 @@ def run_burndown_dashboard_generation_task():
 
 
 def task_iris_burndown_all():
-    """Runs the IRIS burndown for all active IRIS epics."""
+    """Runs the IRIS burndown for all active IRIS epics and regenerates the dashboard."""
     log_section_header(logger, "IRIS BURNDOWN")
 
     logger.start("Starting IRIS burndown for all active IRIS epics")
     try:
         results = iris_burndown.run_for_all_iris_epics(run_dt=date.today())
         logger.complete(f"IRIS burndown completed for {len(results)} epics")
+
+        # Automatically regenerate the dashboard to refresh FTE values
+        logger.info("Auto-triggering dashboard generation to refresh FTE values")
+        run_burndown_dashboard_generation_task()
+
         return results
     except Exception as e:
         logger.exception(f"An error occurred during IRIS burndown: {e}")
