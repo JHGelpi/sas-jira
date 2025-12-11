@@ -23,9 +23,9 @@ import plotly.graph_objects as go
 logger = get_logger(__name__)
 
 
-def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str]:
+def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str, bool]:
     """
-    Fetch epic status from tbl_initiative_issue_keys.
+    Fetch epic status and IRIS flag from tbl_initiative_issue_keys.
 
     *** READ-ONLY FUNCTION - NEVER MODIFIES DATA ***
 
@@ -34,16 +34,17 @@ def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str]:
         db_pool: Database connection pool
 
     Returns:
-        Tuple of (is_active, eff_end_date_str)
+        Tuple of (is_active, eff_end_date_str, is_iris)
         - is_active: True if active_flag is NULL/True, False if active_flag is False
         - eff_end_date_str: Date string (YYYY-MM-DD) or empty string if not closed
+        - is_iris: True if IRIS field is True, False otherwise
     """
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT active_flag, eff_end_date
+                SELECT active_flag, eff_end_date, "IRIS"
                 FROM tbl_initiative_issue_keys
                 WHERE issue_key = %s
                 """,
@@ -51,18 +52,20 @@ def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str]:
             )
             row = cur.fetchone()
             if row:
-                active_flag, eff_end_date = row
+                active_flag, eff_end_date, is_iris = row
                 # Consider NULL or True as active, False as closed
                 is_active = active_flag is None or active_flag is True
                 eff_end_date_str = eff_end_date.strftime('%Y-%m-%d') if eff_end_date and not is_active else ''
-                return is_active, eff_end_date_str
+                # IRIS field: True if explicitly True, False otherwise (including NULL)
+                is_iris = is_iris is True
+                return is_active, eff_end_date_str, is_iris
     except Exception as e:
         logger.debug(f"Could not fetch status for {epic_key}: {e}")
     finally:
         db_pool.putconn(conn)
 
-    # Default: assume active if not found in database
-    return True, ''
+    # Default: assume active, not IRIS if not found in database
+    return True, '', False
 
 
 def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
@@ -336,15 +339,18 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     db_pool = db_utils.get_connection_pool()
 
     # Read the HTML content for each file and extract titles + status
+    # Note: We'll collect all charts first, then redistribute IRIS epics
     overview_charts = []
+    iris_charts_from_overview = []  # IRIS epics that need to be moved from overview to IRIS tab
+
     for filename in overview_files:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
 
-        # Fetch epic status from database (READ-ONLY)
-        is_active, eff_end_date = True, ''
+        # Fetch epic status and IRIS flag from database (READ-ONLY)
+        is_active, eff_end_date, is_iris = True, '', False
         if epic_key:
-            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+            is_active, eff_end_date, is_iris = get_epic_status_from_db(epic_key, db_pool)
 
         # Fallback: If epic_key from title didn't match database, try extracting from filename
         # This handles cases where issues were moved/renamed in Jira
@@ -354,31 +360,40 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
                 filename_epic_key = filename_epic_match.group(1)
                 if filename_epic_key != epic_key:
                     logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
-                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
-                    if not is_active_fallback or eff_end_date_fallback:
+                    is_active_fallback, eff_end_date_fallback, is_iris_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback or is_iris_fallback:
                         # Filename key found a match in DB
                         is_active = is_active_fallback
                         eff_end_date = eff_end_date_fallback
+                        is_iris = is_iris_fallback
                         logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
 
-        overview_charts.append({
+        chart_data = {
             'filename': filename,
             'title': title,
             'epic_key': epic_key,
             'is_active': is_active,
             'eff_end_date': eff_end_date,
+            'is_iris': is_iris,
             'path': filepath
-        })
+        }
+
+        # If IRIS flag is true, move to IRIS tab instead of Overview
+        if is_iris:
+            iris_charts_from_overview.append(chart_data)
+            logger.info(f"Moving {epic_key} from Overview to IRIS tab (IRIS flag=true)")
+        else:
+            overview_charts.append(chart_data)
 
     bigint_charts = []
     for filename in bigint_files:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
 
-        # Fetch epic status from database (READ-ONLY)
-        is_active, eff_end_date = True, ''
+        # Fetch epic status and IRIS flag from database (READ-ONLY)
+        is_active, eff_end_date, is_iris = True, '', False
         if epic_key:
-            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+            is_active, eff_end_date, is_iris = get_epic_status_from_db(epic_key, db_pool)
 
         # Fallback: If epic_key from title didn't match database, try extracting from filename
         # This handles cases where issues were moved/renamed in Jira
@@ -388,11 +403,12 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
                 filename_epic_key = filename_epic_match.group(1)
                 if filename_epic_key != epic_key:
                     logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
-                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
-                    if not is_active_fallback or eff_end_date_fallback:
+                    is_active_fallback, eff_end_date_fallback, is_iris_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback or is_iris_fallback:
                         # Filename key found a match in DB
                         is_active = is_active_fallback
                         eff_end_date = eff_end_date_fallback
+                        is_iris = is_iris_fallback
                         logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
 
         bigint_charts.append({
@@ -401,6 +417,7 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
             'epic_key': epic_key,
             'is_active': is_active,
             'eff_end_date': eff_end_date,
+            'is_iris': is_iris,
             'path': filepath
         })
 
@@ -409,10 +426,10 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         filepath = os.path.join(burndown_dir, filename)
         title, epic_key = extract_epic_title(filepath)
 
-        # Fetch epic status from database (READ-ONLY)
-        is_active, eff_end_date = True, ''
+        # Fetch epic status and IRIS flag from database (READ-ONLY)
+        is_active, eff_end_date, is_iris = True, '', False
         if epic_key:
-            is_active, eff_end_date = get_epic_status_from_db(epic_key, db_pool)
+            is_active, eff_end_date, is_iris = get_epic_status_from_db(epic_key, db_pool)
 
         # Fallback: If epic_key from title didn't match database, try extracting from filename
         # This handles cases where issues were moved/renamed in Jira
@@ -422,11 +439,12 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
                 filename_epic_key = filename_epic_match.group(1)
                 if filename_epic_key != epic_key:
                     logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
-                    is_active_fallback, eff_end_date_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
-                    if not is_active_fallback or eff_end_date_fallback:
+                    is_active_fallback, eff_end_date_fallback, is_iris_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
+                    if not is_active_fallback or eff_end_date_fallback or is_iris_fallback:
                         # Filename key found a match in DB
                         is_active = is_active_fallback
                         eff_end_date = eff_end_date_fallback
+                        is_iris = is_iris_fallback
                         logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
 
         iris_charts.append({
@@ -435,8 +453,14 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
             'epic_key': epic_key,
             'is_active': is_active,
             'eff_end_date': eff_end_date,
+            'is_iris': is_iris,
             'path': filepath
         })
+
+    # Merge IRIS epics that were moved from overview
+    iris_charts.extend(iris_charts_from_overview)
+    if iris_charts_from_overview:
+        logger.info(f"Added {len(iris_charts_from_overview)} IRIS epics to IRIS tab from Overview")
 
     # Two-tier sorting: Active epics first, then alphabetically by epic_key
     # Sort key: (not is_active, epic_key) - False (active) sorts before True (closed)
@@ -450,8 +474,21 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     total_ftes_available, total_ftes_allocated = fetch_fte_utilization_data(db_pool)
     fte_chart_html = generate_fte_utilization_chart(total_ftes_available, total_ftes_allocated)
 
+    # Calculate active counts (excluding closed epics)
+    overview_active_count = sum(1 for chart in overview_charts if chart.get('is_active', True))
+    bigint_active_count = sum(1 for chart in bigint_charts if chart.get('is_active', True))
+    iris_active_count = sum(1 for chart in iris_charts if chart.get('is_active', True))
+
+    logger.info(f"Active epic counts - Overview: {overview_active_count}/{len(overview_charts)}, "
+                f"BIGINT: {bigint_active_count}/{len(bigint_charts)}, "
+                f"IRIS: {iris_active_count}/{len(iris_charts)}")
+
     # Generate the HTML
-    html_content = generate_html_structure(overview_charts, bigint_charts, iris_charts, burndown_dir, fte_chart_html)
+    html_content = generate_html_structure(
+        overview_charts, bigint_charts, iris_charts,
+        burndown_dir, fte_chart_html,
+        overview_active_count, bigint_active_count, iris_active_count
+    )
 
     # Write the dashboard file
     try:
@@ -463,7 +500,16 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         raise
 
 
-def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dict], iris_charts: List[dict], burndown_dir: str, fte_chart_html: str) -> str:
+def generate_html_structure(
+    overview_charts: List[dict],
+    bigint_charts: List[dict],
+    iris_charts: List[dict],
+    burndown_dir: str,
+    fte_chart_html: str,
+    overview_active_count: int,
+    bigint_active_count: int,
+    iris_active_count: int
+) -> str:
     """
     Generates the complete HTML structure for the dashboard.
 
@@ -473,6 +519,9 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
         iris_charts: List of chart metadata for IRIS tab
         burndown_dir: Base directory for burndown files (for relative paths)
         fte_chart_html: HTML string containing the FTE utilization chart
+        overview_active_count: Number of active (non-closed) epics in Overview tab
+        bigint_active_count: Number of active (non-closed) epics in BIGINT tab
+        iris_active_count: Number of active (non-closed) epics in IRIS tab
 
     Returns:
         Complete HTML string
@@ -744,15 +793,15 @@ def generate_html_structure(overview_charts: List[dict], bigint_charts: List[dic
         <div class="tab-buttons">
             <button class="tab-button active" onclick="switchTab(event, 'overview')">
                 Overview
-                <span class="tab-count">{len(overview_charts)}</span>
+                <span class="tab-count">{overview_active_count}</span>
             </button>
             <button class="tab-button" onclick="switchTab(event, 'bigint')">
                 BIGINT
-                <span class="tab-count">{len(bigint_charts)}</span>
+                <span class="tab-count">{bigint_active_count}</span>
             </button>
             <button class="tab-button" onclick="switchTab(event, 'iris')">
                 IRIS
-                <span class="tab-count">{len(iris_charts)}</span>
+                <span class="tab-count">{iris_active_count}</span>
             </button>
             <button class="tab-button" onclick="switchTab(event, 'bugtrends')">
                 Bug Trends
