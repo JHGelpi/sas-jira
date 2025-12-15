@@ -205,6 +205,21 @@ The burndown analysis (`compdiv_burndown.py`) performs recursive BFS traversal o
 - **Database storage**: Results stored per epic per date for historical trending
 - **HTML generation**: `build_plot_html(epic_key)` creates Plotly charts from stored data
 
+#### Forecast Methodology
+
+Burndown forecasts use **constrained linear regression** with a 365-day maximum completion horizon:
+
+- **Algorithm**: OLS regression with slope constraint `b ≤ -V/365` where V is the y-intercept (initial value)
+- **Constraint enforcement**: If natural slope is too shallow (would predict completion > 365 days), no forecast is shown
+- **Confidence intervals**: 80% CI calculated using Delta Method for valid forecasts
+- **Shared implementation**: `jira_automation/burndown_forecast.py` (used by both COMPDIV and IRIS)
+- **Behavior**:
+  - Epics burning down fast enough: Chart shows forecast line, CI bounds, and completion date
+  - Epics burning down too slowly: Chart shows only historical data (no forecast)
+- **Environment variables**: `COMPDIV_MAX_LOOKAHEAD_DAYS` and `IRIS_MAX_LOOKAHEAD_DAYS` for optional additional horizon limits
+
+See `TREND_LINE_REQUIREMENTS.md` for mathematical specification of the constraint.
+
 ### Cron Integration
 
 Jobs are scheduled via macOS cron (see `crontab_schedules.txt`):

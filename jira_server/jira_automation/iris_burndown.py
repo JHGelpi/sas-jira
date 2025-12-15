@@ -13,6 +13,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from jira_data_analysis import db_utils
+from jira_automation.burndown_forecast import constrained_linear_forecast
 
 from logging_utils import get_logger
 
@@ -632,86 +633,40 @@ def _should_trace(epic_key: str) -> bool:
 # ---- Prediction + chart ----
 
 def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float = 0.80):
-    """Fit y = a + b t; return (t_zero_date, lo_date, hi_date) for when y=0.
-
-    Safety/robustness:
-      • If the slope b is non-negative or ~0, return (None, None, None) — not burning down.
-      • Respect env var IRIS_MAX_LOOKAHEAD_DAYS. If the predicted zero or its CI bounds
-        are farther than this many days from the first sample, return None for them so we
-        skip drawing lines/rects. This prevents OverflowError from enormous timedeltas.
     """
-    if len(dates) < 3:
-        return (None, None, None)
+    Wrapper for shared constrained forecast logic with IRIS-specific config.
 
-    # Normalize to the earliest date as t0
-    t0 = min(dates)
-    t = np.array([(d - t0).days for d in dates], dtype=float)
-    y = np.array(totals, dtype=float)
+    Uses constrained linear regression with 365-day maximum completion horizon.
+    If the natural burndown slope is too shallow (would predict completion > 365 days),
+    returns (None, None, None) instead of showing an unrealistic forecast.
 
-    # OLS fit for y = a + b t
-    X = np.column_stack([np.ones_like(t), t])
-    XtX = X.T @ X
-    try:
-        beta = np.linalg.inv(XtX) @ (X.T @ y)
-    except np.linalg.LinAlgError:
-        return (None, None, None)
+    Parameters
+    ----------
+    dates : List[date]
+        Observation dates (must be sorted chronologically)
+    totals : List[float]
+        Points remaining at each date
+    conf : float, default 0.80
+        Confidence level for CI (0.80 = 80%)
 
-    a, b = float(beta[0]), float(beta[1])
+    Returns
+    -------
+    Tuple[Optional[date], Optional[date], Optional[date]]
+        (zero_date, ci_lower, ci_upper)
+        - All dates are None if no valid forecast can be made
 
-    # If not burning down or essentially flat, don't attempt a forecast
-    if b >= 0 or abs(b) < 1e-6:
-        return (None, None, None)
-
-    # Residual variance & covariance of beta
-    yhat = X @ beta
-    resid = y - yhat
-    dof = max(1, len(y) - 2)
-    sigma2 = float((resid @ resid) / dof)
-    cov_beta = sigma2 * np.linalg.inv(XtX)
-
-    # Predicted zero-crossing (in days from t0)
-    t_zero = -a / b
-
-    # Delta method for Var(t_zero)
-    da = -1.0 / b
-    db = a / (b * b)
-    var_t0 = (da * da) * cov_beta[0, 0] + (db * db) * cov_beta[1, 1] + 2 * da * db * cov_beta[0, 1]
-    se_t0 = math.sqrt(max(0.0, var_t0))
-
-    # z for central CI (e.g., 80%)
-    z = 1.2815515655446004  # ~N(0,1) 80% two-sided
-    lo = t_zero - z * se_t0
-    hi = t_zero + z * se_t0
-
-    # Respect max lookahead horizon
+    Notes
+    -----
+    Respects IRIS_MAX_LOOKAHEAD_DAYS environment variable for optional
+    horizon limiting (0 = disabled).
+    """
     load_dotenv()
     try:
         max_look = int(os.getenv("IRIS_MAX_LOOKAHEAD_DAYS") or 0)
     except Exception:
         max_look = 0
 
-    def clamp_to_date_or_none(x: float | int | None):
-        if x is None:
-            return None
-        try:
-            xf = float(x)
-        except Exception:
-            return None
-        # Negative or non-finite -> no forecast
-        if not math.isfinite(xf) or xf < 0:
-            return None
-        # Enforce horizon if configured (>0 means enabled)
-        if max_look > 0 and xf > max_look:
-            return None
-        try:
-            return t0 + timedelta(days=xf)
-        except OverflowError:
-            return None
-
-    zdt = clamp_to_date_or_none(t_zero)
-    lodt = clamp_to_date_or_none(lo)
-    hidt = clamp_to_date_or_none(hi)
-    return (zdt, lodt, hidt)
+    return constrained_linear_forecast(dates, totals, conf=conf, max_lookahead_days=max_look)
 
 
 def fetch_burndown_series(epic_key: str) -> Tuple[List[date], List[float], List[float], List[float], List[float]]:
@@ -762,6 +717,58 @@ def build_plot_html(epic_key: str) -> str:
         fig.add_trace(go.Scatter(x=dt_dates, y=story, mode="lines+markers", name="Story points"))
         fig.add_trace(go.Scatter(x=dt_dates, y=task_research, mode="lines+markers", name="Task/Research points"))
 
+        # Add regression trend line if we have enough data
+        if len(dates) >= 3 and len(total) >= 3:
+            # Calculate OLS regression for visualization
+            t0 = min(dates)
+            t = np.array([(d - t0).days for d in dates], dtype=float)
+            y = np.array(total, dtype=float)
+
+            try:
+                X = np.column_stack([np.ones_like(t), t])
+                beta = np.linalg.inv(X.T @ X) @ (X.T @ y)
+                a, b = float(beta[0]), float(beta[1])
+
+                # Only draw trend line if slope is negative (actually burning down)
+                if b < 0 and abs(b) >= 1e-6:
+                    # Check if it passes the 365-day constraint
+                    b_min = -a / 365
+                    passes_constraint = (b <= b_min)
+
+                    # Extend trend line from start to zero-crossing (or reasonable endpoint)
+                    t_zero = -a / b
+
+                    # For valid forecasts: extend to zero; for slow forecasts: limit extension
+                    if passes_constraint:
+                        t_end = t_zero  # Extend all the way to zero
+                    else:
+                        t_end = max(t) + 90  # Extend only 90 days beyond last data point
+
+                    # Generate trend line points
+                    t_trend = np.array([0, t_end])
+                    y_trend = a + b * t_trend
+                    dates_trend = [t0 + timedelta(days=float(ti)) for ti in t_trend]
+                    dt_dates_trend = [_to_dt(d) for d in dates_trend]
+
+                    # Style based on constraint
+                    if passes_constraint:
+                        line_style = dict(color='green', dash='dash', width=2)
+                        trend_name = "Trend line (forecast valid)"
+                    else:
+                        line_style = dict(color='red', dash='dot', width=2)
+                        trend_name = "Trend line (too slow, >365 days)"
+
+                    fig.add_trace(go.Scatter(
+                        x=dt_dates_trend,
+                        y=y_trend,
+                        mode="lines",
+                        name=trend_name,
+                        line=line_style,
+                        hovertemplate='Trend: %{y:.1f} points<extra></extra>'
+                    ))
+            except (np.linalg.LinAlgError, ValueError):
+                pass  # Skip trend line if regression fails
+
         zdt, lo, hi = _linear_zero_day_with_ci(dates, total, conf=0.80)
         if zdt:
             zdt_dt = _to_dt(zdt)
@@ -777,15 +784,44 @@ def build_plot_html(epic_key: str) -> str:
                 xanchor="left",
                 yanchor="bottom",
             )
-            if lo and hi:
-                lo_dt, hi_dt = _to_dt(lo), _to_dt(hi)
-                fig.add_vrect(x0=lo_dt, x1=hi_dt, line_width=0, fillcolor="LightSalmon", opacity=0.2)
-                # Optional: annotate CI midpoint
-                mid_dt = lo_dt + (hi_dt - lo_dt) / 2
-                fig.add_annotation(
-                    x=mid_dt, y=1, xref="x", yref="paper", text="80% CI", showarrow=False,
-                    xanchor="center", yanchor="top", yshift=-2
-                )
+
+    # Adjust x-axis range based on forecast scenario
+    if dt_dates:
+        last_data_date = max(dates)
+        x_axis_end = None
+
+        # Determine appropriate x-axis end date
+        if len(dates) >= 3 and len(total) >= 3:
+            try:
+                # Calculate OLS to determine forecast scenario
+                t0 = min(dates)
+                t = np.array([(d - t0).days for d in dates], dtype=float)
+                y = np.array(total, dtype=float)
+                X = np.column_stack([np.ones_like(t), t])
+                beta = np.linalg.inv(X.T @ X) @ (X.T @ y)
+                a, b = float(beta[0]), float(beta[1])
+
+                if b < 0 and abs(b) >= 1e-6:
+                    # Negative slope (burning down)
+                    b_min = -a / 365
+                    t_zero = -a / b
+                    zero_date = t0 + timedelta(days=t_zero)
+
+                    if b <= b_min:
+                        # Valid forecast: extend x-axis to zero date
+                        x_axis_end = _to_dt(zero_date)
+                    else:
+                        # Too slow (>365 days): extend only 3 months beyond last data
+                        x_axis_end = _to_dt(last_data_date + timedelta(days=90))
+                else:
+                    # Positive or flat slope: use default (3 months beyond last data)
+                    x_axis_end = _to_dt(last_data_date + timedelta(days=90))
+            except (np.linalg.LinAlgError, ValueError, OverflowError):
+                # Calculation failed: use default
+                x_axis_end = _to_dt(last_data_date + timedelta(days=90))
+
+        if x_axis_end:
+            fig.update_xaxes(range=[_to_dt(min(dates)), x_axis_end])
 
     fig.update_layout(
         title=f"{epic_title} ({epic_key})<br><sup>[{status_name}]</sup>",
