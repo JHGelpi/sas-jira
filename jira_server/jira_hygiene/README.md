@@ -53,6 +53,7 @@ jira_hygiene/
   - Transition issues to closed states
   - Create sub-tasks
   - Update fixVersions (if required in your workflow)
+- Postgres database.  Reference the **PostgreSQL Data Model** section of this document for more details
 
 ### Additional Requirements (Module-Specific)
 - **Data Quality Reports**: PostgreSQL database with LDAP hierarchy table
