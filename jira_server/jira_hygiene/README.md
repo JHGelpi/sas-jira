@@ -124,16 +124,7 @@ nano .env  # or use your preferred editor
 
 ### 3. Set Up Database (Required for Data Quality)
 
-The data quality module requires a PostgreSQL database with the following table:
-
-```sql
--- LDAP hierarchy for manager lookups
-CREATE TABLE tbl_ldap_hierarchy (
-    email VARCHAR(255) PRIMARY KEY,
-    manager_name VARCHAR(255),
-    manager_email VARCHAR(255)
-);
-```
+The data quality module requires a PostgreSQL database. See the **PostgreSQL Data Model** section below for complete table definitions.
 
 ### 4. Create Logs Directory
 
@@ -378,6 +369,326 @@ For data quality reporting, ensure your PostgreSQL database has:
 - `tbl_ldap_hierarchy` table with email, manager_name, manager_email columns
 - Proper indexes on email column for performance
 - Regular updates to keep manager data current
+
+See the **PostgreSQL Data Model** section below for complete SQL table definitions.
+
+## PostgreSQL Data Model
+
+The jira_hygiene automation suite requires a PostgreSQL database with the following tables. The tables support various features including LDAP hierarchy lookups, project management tracking, and execution logging.
+
+### Required Tables
+
+#### 1. tbl_ldap_hierarchy
+Stores employee and manager relationship data from LDAP for manager lookups and notification routing.
+
+**Used by:** `data_quality_report.py`
+
+```sql
+-- LDAP hierarchy for manager lookups
+CREATE TABLE tbl_ldap_hierarchy (
+    email VARCHAR(255) PRIMARY KEY,
+    manager_name VARCHAR(255),
+    manager_email VARCHAR(255)
+);
+
+-- Index for performance
+CREATE INDEX idx_ldap_email ON tbl_ldap_hierarchy(email);
+```
+
+**Usage:** Maps Jira assignee email addresses to their managers for:
+- Grouping data quality issues by manager
+- Routing Teams notifications to appropriate managers
+- Identifying unmanaged users (not in LDAP)
+
+**Maintenance:** Should be refreshed regularly (e.g., weekly) from your organization's LDAP/Active Directory system.
+
+---
+
+#### 2. tbl_jira_project_owners
+Maps Jira project keys to project owners/managers for sprint management.
+
+**Used by:** `db_utils.py` (via `load_sprint_managers()`)
+
+```sql
+-- Jira project ownership mapping
+CREATE TABLE tbl_jira_project_owners (
+    project VARCHAR(50) PRIMARY KEY,
+    project_owner VARCHAR(255)
+);
+```
+
+**Usage:** Provides project-level ownership information for reporting and analytics.
+
+**Example Data:**
+```sql
+INSERT INTO tbl_jira_project_owners (project, project_owner) VALUES
+('COMPDIV', 'John Manager'),
+('IRIS', 'Jane Owner'),
+('PLATFORM', 'Bob Lead');
+```
+
+---
+
+#### 3. tbl_jira_oper_epics
+Maps operational epic keys to sprint teams for operational work tracking.
+
+**Used by:** `db_utils.py` (via `load_operational_epics()`)
+
+```sql
+-- Operational epic to sprint team mapping
+CREATE TABLE tbl_jira_oper_epics (
+    epic VARCHAR(50) PRIMARY KEY,
+    sprint_team VARCHAR(255)
+);
+```
+
+**Usage:** Associates operational epics (recurring work, maintenance) with specific sprint teams.
+
+**Example Data:**
+```sql
+INSERT INTO tbl_jira_oper_epics (epic, sprint_team) VALUES
+('COMPDIV-100', 'Platform Team A'),
+('COMPDIV-101', 'Platform Team B'),
+('IRIS-50', 'IRIS Core Team');
+```
+
+---
+
+#### 4. tbl_initiative_issue_keys
+Stores initiative/epic issue keys for tracking high-level work streams.
+
+**Used by:** `db_utils.py` (via `fetch_initiative_keys()`)
+
+```sql
+-- Initiative and epic tracking
+CREATE TABLE tbl_initiative_issue_keys (
+    issue_key VARCHAR(50) PRIMARY KEY
+);
+```
+
+**Usage:** Maintains a list of strategic initiative and epic keys for:
+- Release planning
+- Portfolio management
+- Initiative-level reporting
+
+**Example Data:**
+```sql
+INSERT INTO tbl_initiative_issue_keys (issue_key) VALUES
+('COMPDIV-200'),
+('COMPDIV-201'),
+('IRIS-100'),
+('IRIS-101');
+```
+
+---
+
+#### 5. tbl_run_log
+Tracks execution history of automation jobs for auditing and scheduling logic.
+
+**Used by:** `db_utils.py` (via `update_run_log()` and `release_run_check()`)
+
+```sql
+-- Execution log for automation runs
+CREATE TABLE tbl_run_log (
+    id SERIAL PRIMARY KEY,
+    "execOrigin" VARCHAR(50),
+    "startDTTM" TIMESTAMP,
+    "endDTTM" TIMESTAMP,
+    "sprint" VARCHAR(50),
+    "runType" VARCHAR(50)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_run_log_runtype ON tbl_run_log("runType");
+CREATE INDEX idx_run_log_enddttm ON tbl_run_log("endDTTM");
+```
+
+**Usage:**
+- Logs each execution of automation jobs (daily, release, icebox, etc.)
+- Determines if release analysis should run based on last execution date
+- Provides audit trail for all automation activities
+
+**Run Types:**
+- `DAILY` - Daily data synchronization runs
+- `RELEASE` - Release analysis runs
+- `ICEBOX` - Icebox automation runs
+- Custom run types as needed
+
+**Example Data:**
+```sql
+-- Example log entries
+INSERT INTO tbl_run_log ("execOrigin", "startDTTM", "endDTTM", "sprint", "runType") VALUES
+('python', '2025-01-15 09:00:00', '2025-01-15 09:15:00', 'daily', 'DAILY'),
+('python', '2025-01-15 09:30:00', '2025-01-15 09:45:00', 'icebox', 'ICEBOX'),
+('python', '2025-01-20 10:00:00', '2025-01-20 11:30:00', 'release', 'RELEASE');
+```
+
+---
+
+#### 6. tbl_jira_releases
+Stores release dates for determining when release analysis should trigger.
+
+**Used by:** `db_utils.py` (via `release_run_check()`)
+
+```sql
+-- Release date tracking
+CREATE TABLE tbl_jira_releases (
+    release_date DATE PRIMARY KEY,
+    release_name VARCHAR(255)
+);
+
+-- Index for performance
+CREATE INDEX idx_release_date ON tbl_jira_releases(release_date);
+```
+
+**Usage:**
+- Defines target release dates for the organization
+- Triggers release analysis when most recent release date has passed
+- Prevents duplicate release runs for the same release period
+
+**Example Data:**
+```sql
+INSERT INTO tbl_jira_releases (release_date, release_name) VALUES
+('2025-01-31', 'Q1 2025 Release'),
+('2025-04-30', 'Q2 2025 Release'),
+('2025-07-31', 'Q3 2025 Release'),
+('2025-10-31', 'Q4 2025 Release');
+```
+
+### Database Setup Script
+
+Here's a complete script to set up all required tables:
+
+```sql
+-- Create all required tables for jira_hygiene automation
+
+-- 1. LDAP hierarchy for manager lookups
+CREATE TABLE IF NOT EXISTS tbl_ldap_hierarchy (
+    email VARCHAR(255) PRIMARY KEY,
+    manager_name VARCHAR(255),
+    manager_email VARCHAR(255)
+);
+CREATE INDEX IF NOT EXISTS idx_ldap_email ON tbl_ldap_hierarchy(email);
+
+-- 2. Project ownership mapping
+CREATE TABLE IF NOT EXISTS tbl_jira_project_owners (
+    project VARCHAR(50) PRIMARY KEY,
+    project_owner VARCHAR(255)
+);
+
+-- 3. Operational epic to team mapping
+CREATE TABLE IF NOT EXISTS tbl_jira_oper_epics (
+    epic VARCHAR(50) PRIMARY KEY,
+    sprint_team VARCHAR(255)
+);
+
+-- 4. Initiative tracking
+CREATE TABLE IF NOT EXISTS tbl_initiative_issue_keys (
+    issue_key VARCHAR(50) PRIMARY KEY
+);
+
+-- 5. Execution log
+CREATE TABLE IF NOT EXISTS tbl_run_log (
+    id SERIAL PRIMARY KEY,
+    "execOrigin" VARCHAR(50),
+    "startDTTM" TIMESTAMP,
+    "endDTTM" TIMESTAMP,
+    "sprint" VARCHAR(50),
+    "runType" VARCHAR(50)
+);
+CREATE INDEX IF NOT EXISTS idx_run_log_runtype ON tbl_run_log("runType");
+CREATE INDEX IF NOT EXISTS idx_run_log_enddttm ON tbl_run_log("endDTTM");
+
+-- 6. Release date tracking
+CREATE TABLE IF NOT EXISTS tbl_jira_releases (
+    release_date DATE PRIMARY KEY,
+    release_name VARCHAR(255)
+);
+CREATE INDEX IF NOT EXISTS idx_release_date ON tbl_jira_releases(release_date);
+```
+
+### Database Connection
+
+All modules use the centralized database connection pool from `db_utils.py`:
+
+```python
+from jira_data_analysis import db_utils
+
+# Get the connection pool (initialized at module load)
+db_pool = db_utils.get_connection_pool()
+
+# Use a connection
+conn = db_pool.getconn()
+try:
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM tbl_ldap_hierarchy LIMIT 1")
+        # ... your query logic ...
+finally:
+    db_pool.putconn(conn)
+```
+
+**Connection Pool Configuration:**
+- Min connections: 1
+- Max connections: 20
+- Connection string: Set via `DATABASE_URL` environment variable
+
+**Example DATABASE_URL:**
+```
+postgresql://username:password@hostname:5432/database_name
+```
+
+### Table Relationships
+
+```
+┌─────────────────────────┐
+│  tbl_ldap_hierarchy     │
+│  (Manager Lookups)      │
+└─────────────────────────┘
+          ↓
+    Used by data_quality_report
+    to route notifications
+
+┌─────────────────────────┐
+│ tbl_jira_project_owners │
+│ (Project Management)    │
+└─────────────────────────┘
+
+┌─────────────────────────┐
+│  tbl_jira_oper_epics    │
+│  (Team Assignments)     │
+└─────────────────────────┘
+
+┌─────────────────────────┐
+│tbl_initiative_issue_keys│
+│  (Strategic Tracking)   │
+└─────────────────────────┘
+
+┌─────────────────────────┐        ┌─────────────────────────┐
+│    tbl_run_log          │◄───────┤  tbl_jira_releases      │
+│  (Execution History)    │        │  (Release Schedule)     │
+└─────────────────────────┘        └─────────────────────────┘
+          ↓
+    release_run_check() uses both tables
+    to determine if release analysis should run
+```
+
+### Maintenance Tasks
+
+**Daily:**
+- No daily maintenance required
+
+**Weekly:**
+- Refresh `tbl_ldap_hierarchy` from LDAP/Active Directory
+- Review `tbl_run_log` for any failed executions
+
+**Monthly:**
+- Add upcoming release dates to `tbl_jira_releases`
+- Archive old `tbl_run_log` entries (optional, for performance)
+
+**As Needed:**
+- Update `tbl_jira_project_owners` when project ownership changes
+- Update `tbl_jira_oper_epics` when operational epics are created
+- Update `tbl_initiative_issue_keys` for new strategic initiatives
 
 ## Troubleshooting
 
