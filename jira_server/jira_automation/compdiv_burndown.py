@@ -751,12 +751,34 @@ def build_plot_html(epic_key: str) -> str:
 
     dt_dates = [_to_dt(d) for d in dates]
 
+    # Filter historical data to last 3 months for visualization
+    # Keep full data for regression calculations (for accuracy)
+    three_months_ago = date.today() - timedelta(days=90)
+    filtered_indices = [i for i, d in enumerate(dates) if d >= three_months_ago]
+
+    if filtered_indices:
+        # Create filtered versions for display
+        filtered_dates = [dates[i] for i in filtered_indices]
+        filtered_dt_dates = [dt_dates[i] for i in filtered_indices]
+        filtered_bug = [bug[i] for i in filtered_indices]
+        filtered_story = [story[i] for i in filtered_indices]
+        filtered_task_research = [task_research[i] for i in filtered_indices]
+        filtered_total = [total[i] for i in filtered_indices]
+    else:
+        # If no data in last 3 months, use all data as fallback
+        filtered_dates = dates
+        filtered_dt_dates = dt_dates
+        filtered_bug = bug
+        filtered_story = story
+        filtered_task_research = task_research
+        filtered_total = total
+
     fig = go.Figure()
-    if dt_dates:
-        fig.add_trace(go.Scatter(x=dt_dates, y=total, mode="lines+markers", name="Total points"))
-        fig.add_trace(go.Scatter(x=dt_dates, y=bug, mode="lines+markers", name="Bug points"))
-        fig.add_trace(go.Scatter(x=dt_dates, y=story, mode="lines+markers", name="Story points"))
-        fig.add_trace(go.Scatter(x=dt_dates, y=task_research, mode="lines+markers", name="Task/Research points"))
+    if filtered_dt_dates:
+        fig.add_trace(go.Scatter(x=filtered_dt_dates, y=filtered_total, mode="lines+markers", name="Total points"))
+        fig.add_trace(go.Scatter(x=filtered_dt_dates, y=filtered_bug, mode="lines+markers", name="Bug points"))
+        fig.add_trace(go.Scatter(x=filtered_dt_dates, y=filtered_story, mode="lines+markers", name="Story points"))
+        fig.add_trace(go.Scatter(x=filtered_dt_dates, y=filtered_task_research, mode="lines+markers", name="Task/Research points"))
 
         # Add regression trend line if we have enough data
         if len(dates) >= 3 and len(total) >= 3:
@@ -827,14 +849,15 @@ def build_plot_html(epic_key: str) -> str:
             )
 
     # Adjust x-axis range based on forecast scenario
-    if dt_dates:
-        last_data_date = max(dates)
+    if filtered_dt_dates:
+        last_data_date = max(dates)  # Use original dates for forecast calculations
+        x_axis_start = min(filtered_dates)  # Use filtered dates for chart start
         x_axis_end = None
 
         # Determine appropriate x-axis end date
         if len(dates) >= 3 and len(total) >= 3:
             try:
-                # Calculate OLS to determine forecast scenario
+                # Calculate OLS to determine forecast scenario (using full data for accuracy)
                 t0 = min(dates)
                 t = np.array([(d - t0).days for d in dates], dtype=float)
                 y = np.array(total, dtype=float)
@@ -862,7 +885,7 @@ def build_plot_html(epic_key: str) -> str:
                 x_axis_end = _to_dt(last_data_date + timedelta(days=90))
 
         if x_axis_end:
-            fig.update_xaxes(range=[_to_dt(min(dates)), x_axis_end])
+            fig.update_xaxes(range=[_to_dt(x_axis_start), x_axis_end])
 
     # Add clickable title as annotation (Plotly titles don't support links in the title itself)
     # But we'll add both: a standard title for display AND a clickable annotation
