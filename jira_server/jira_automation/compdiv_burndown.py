@@ -864,16 +864,50 @@ def build_plot_html(epic_key: str) -> str:
         if x_axis_end:
             fig.update_xaxes(range=[_to_dt(min(dates)), x_axis_end])
 
+    # Add clickable title as annotation (Plotly titles don't support links in the title itself)
+    # But we'll add both: a standard title for display AND a clickable annotation
+    jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
+    clickable_title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 14px;">[Click to view in Jira: {epic_key}]</a>'
+
+    # Add clickable link annotation below the main title
+
+    #fig.add_annotation(
+    #    text=clickable_title_text,
+    #    xref="paper",
+    #    yref="paper",
+    #    x=0.5,
+    #    y=1.02,  # Position just below the main title
+    #    xanchor="center",
+    #    yanchor="bottom",
+    #    showarrow=False,
+    #    font=dict(size=12),
+    #)
+
+    # Set the main chart title (displayed on the chart)
+    jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
+    chart_title = f"Burndown chart for {epic_title}<br><sup>[{status_name}]</sup>"
+    clickable_title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 14px;">{chart_title}</a>'
+
     fig.update_layout(
-        title=f"{epic_title} ({epic_key})<br><sup>[{status_name}]</sup>",
+        title=clickable_title_text,
         xaxis_title="Run Date",
         yaxis_title="Points",
         hovermode="x unified",
         template="plotly_white",
+        margin=dict(t=100),  # Add top margin for title and annotation
     )
 
     import plotly.io as pio
-    return pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
+    html = pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
+
+    # Set the page title (browser tab title)
+    #page_title = f"Burndown chart for {epic_title}"
+    page_title = f"Burndown chart for {clickable_title_text}"
+    # Replace the default Plotly title with our custom title
+    html = html.replace('<head><meta charset="utf-8" /></head>',
+                       f'<head><meta charset="utf-8" /><title>{page_title}</title></head>')
+
+    return html
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:

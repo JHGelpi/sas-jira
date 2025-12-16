@@ -823,16 +823,44 @@ def build_plot_html(epic_key: str) -> str:
         if x_axis_end:
             fig.update_xaxes(range=[_to_dt(min(dates)), x_axis_end])
 
+    # Add clickable title as annotation (Plotly titles don't support links)
+    jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
+    title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 18px; font-weight: bold;">{epic_title} ({epic_key})</a><br><span style="font-size: 14px; color: #666;">[{status_name}]</span>'
+
+    fig.add_annotation(
+        text=title_text,
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=1.12,  # Position above the plot
+        xanchor="center",
+        yanchor="top",
+        showarrow=False,
+        font=dict(size=18),
+    )
+
+    # Set the main chart title (displayed on the chart)
+    chart_title = f"Burndown chart for {epic_title}<br><sup>[{status_name}]</sup>"
+
     fig.update_layout(
-        title=f"{epic_title} ({epic_key})<br><sup>[{status_name}]</sup>",
+        title=chart_title,
         xaxis_title="Run Date",
         yaxis_title="Points",
         hovermode="x unified",
         template="plotly_white",
+        margin=dict(t=100),  # Add top margin for title and annotation
     )
 
     import plotly.io as pio
-    return pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
+    html = pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
+
+    # Set the page title (browser tab title)
+    page_title = f"Burndown chart for {epic_title}"
+    # Replace the default Plotly title with our custom title
+    html = html.replace('<head><meta charset="utf-8" /></head>',
+                       f'<head><meta charset="utf-8" /><title>{page_title}</title></head>')
+
+    return html
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
