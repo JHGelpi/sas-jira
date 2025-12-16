@@ -1,0 +1,25 @@
+# Jira Icebox Automation - Python Dependencies
+# ==============================================
+# Install with: pip install -r requirements.txt
+
+# Jira Python client library
+jira
+
+# Environment variable management
+python-dotenv
+
+# YAML configuration parsing (for log_config.yaml)
+pyyaml
+
+# FastAPI and Server
+fastapi
+uvicorn[standard]
+
+# Date parsing utility
+python-dateutil
+
+# PostgreSQL database adapter
+psycopg2-binary
+
+# HTTP requests for Teams notifications
+requests

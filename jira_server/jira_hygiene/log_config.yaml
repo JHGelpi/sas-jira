@@ -1,0 +1,64 @@
+# log_config.yaml
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  # Formatter for the application logs (scripts, tasks, etc.)
+  default:
+    format: "%(asctime)s - %(levelname)s - [%(name)s] - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  
+  # Formatter for the web server's access logs
+  access:
+    (): "uvicorn.logging.AccessFormatter"
+    fmt: '%(asctime)s - %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  # Handler for printing logs to the console
+  console:
+    class: "logging.StreamHandler"
+    formatter: default
+    stream: "ext://sys.stdout"
+
+  # Handler for writing application logs to a file
+  file_handler:
+    class: "logging.handlers.RotatingFileHandler"
+    formatter: default
+    filename: "logs/app.log" # Log file location
+    maxBytes: 10485760 # 10MB
+    backupCount: 5
+    encoding: utf8
+
+  # Handler for writing web server access logs to a file
+  access_file_handler:
+    class: "logging.handlers.RotatingFileHandler"
+    formatter: access
+    filename: "logs/access.log"
+    maxBytes: 10485760 # 10MB
+    backupCount: 5
+    encoding: utf8
+
+loggers:
+  # Logger for the Uvicorn web server (changed to WARNING to reduce noise)
+  uvicorn:
+    handlers: [console, file_handler]
+    level: WARNING  # Changed from INFO - only shows warnings and errors
+    propagate: false
+  
+  # Logger for Uvicorn error/general messages (changed to WARNING)
+  uvicorn.error:
+    level: WARNING  # Changed from INFO - hides "Application startup complete" message
+    propagate: false
+  
+  # Logger for Uvicorn access logs (kept at INFO for request logging)
+  uvicorn.access:
+    handlers: [access_file_handler] # Use the dedicated access handler
+    level: INFO
+    propagate: false
+  
+  # Root logger for all other application modules
+  # Any logger created with logging.getLogger(__name__) will inherit this
+root:
+  level: INFO
+  handlers: [console, file_handler]
