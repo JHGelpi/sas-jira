@@ -885,7 +885,7 @@ def build_plot_html(epic_key: str) -> str:
 
     # Set the main chart title (displayed on the chart)
     jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
-    chart_title = f"Burndown chart for {epic_title}<br><sup>[{status_name}]</sup>"
+    chart_title = f"{epic_key}<br>{epic_title}<br><sup>[{status_name}]</sup>"
     clickable_title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 14px;">{chart_title}</a>'
 
     fig.update_layout(
