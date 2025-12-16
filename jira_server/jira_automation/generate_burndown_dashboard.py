@@ -287,24 +287,42 @@ def extract_epic_title(html_path: str) -> Tuple[str, str]:
             # Pattern: "title":{"text":"Epic Title (COMPDIV-123)...
             # Use a pattern that handles escaped quotes: (?:[^"\\]|\\.)*
             # This matches either: non-quote/non-backslash OR backslash followed by any character
-            match = re.search(r'"title"\s*:\s*\{\s*"text"\s*:\s*"((?:[^"\\]|\\.)*)"', content)
-            if match:
-                title = match.group(1)
+            #
+            # IMPORTANT: There are multiple "title" fields in the JSON:
+            # 1. xaxis title (e.g., "Run Date")
+            # 2. Main chart title (the one we want)
+            # 3. yaxis title (e.g., "Points")
+            # We need to find ALL matches and filter to get the main chart title
+            matches = re.findall(r'"title"\s*:\s*\{\s*"text"\s*:\s*"((?:[^"\\]|\\.)*)"', content)
 
-                # Decode unicode escapes (e.g., \u003c -> <, \" -> ")
-                title = title.encode().decode('unicode_escape')
+            # Filter matches to find the main chart title
+            # Main title contains "Burndown chart" or an href link
+            for match_text in matches:
+                # Skip axis titles (typically short labels)
+                if match_text in ['Run Date', 'Points', 'Date', 'Value']:
+                    continue
 
-                # Remove everything starting from <br> (including the HTML tags)
-                # This handles both cases: titles with/without closing parenthesis before <br>
-                title = re.split(r'<br>', title)[0]
+                try:
+                    # Decode unicode escapes first (e.g., \u003c -> <, \" -> ")
+                    # This converts \u003ca href to <a href
+                    decoded_text = match_text.encode('utf-8').decode('unicode_escape')
 
-                title = title.strip()
+                    # Main chart title should contain either "Burndown" or "href" (after decoding)
+                    if 'Burndown' in decoded_text or 'href' in decoded_text:
+                        # Remove everything starting from <br> (including the HTML tags)
+                        # This handles both cases: titles with/without closing parenthesis before <br>
+                        title = re.split(r'<br>', decoded_text)[0]
 
-                # Extract epic key from title (e.g., "COMPDIV-120" from "Epic Title (COMPDIV-120)")
-                epic_key_match = re.search(r'\(([A-Z]+-\d+)\)', title)
-                epic_key = epic_key_match.group(1) if epic_key_match else None
+                        title = title.strip()
 
-                return title, epic_key
+                        # Extract epic key from title (e.g., "COMPDIV-120" from "Epic Title (COMPDIV-120)")
+                        epic_key_match = re.search(r'\(([A-Z]+-\d+)\)', title)
+                        epic_key = epic_key_match.group(1) if epic_key_match else None
+
+                        return title, epic_key
+                except Exception as decode_error:
+                    logger.debug(f"Error decoding title: {decode_error}")
+                    continue
     except Exception as e:
         logger.debug(f"Could not extract title from {html_path}: {e}")
 
