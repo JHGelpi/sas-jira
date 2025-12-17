@@ -562,7 +562,7 @@ def generate_html_structure(
                 if not is_active:
                     title_class += " completed-epic"
                     eff_end_date = chart.get('eff_end_date', 'Unknown')
-                    title_html = f'<a href="{jira_url}" target="_blank" class="{title_class}">{chart["title"]} <span class="completed-badge">[COMPLETED: {eff_end_date}]</span></a>'
+                    title_html = f'<span class="completed-badge">[COMPLETED: {eff_end_date}]</span><br><a href="{jira_url}" target="_blank" class="{title_class}">{chart["title"]}</a>'
                 else:
                     title_html = f'<a href="{jira_url}" target="_blank" class="{title_class}">{chart["title"]}</a>'
             else:

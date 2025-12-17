@@ -142,6 +142,38 @@ def get_epic_status_text(epic_key: str) -> str:
         return ""
 
 
+def get_epic_closure_date(epic_key: str) -> str:
+    """Return the epic's closure date (eff_end_date) from database if closed, empty string otherwise.
+
+    Returns:
+        Date string in YYYY-MM-DD format, or empty string if not closed or not found
+    """
+    pool = db_utils.get_connection_pool()
+    conn = pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT active_flag, eff_end_date
+                FROM tbl_initiative_issue_keys
+                WHERE issue_key = %s
+                """,
+                (epic_key,)
+            )
+            row = cur.fetchone()
+            if row:
+                active_flag, eff_end_date = row
+                # If inactive and has closure date, return it
+                if active_flag is False and eff_end_date:
+                    return eff_end_date.strftime('%Y-%m-%d')
+    except Exception as e:
+        logger.debug(f"Could not fetch closure date for {epic_key}: {e}")
+    finally:
+        pool.putconn(conn)
+
+    return ""
+
+
 # ---- Utils ----
 
 def _numeric_cf_id(cf_id: str | None) -> str | None:
@@ -740,6 +772,8 @@ def build_plot_html(epic_key: str) -> str:
     dates, bug, story, task_research, total = fetch_burndown_series(epic_key)
     epic_title = get_epic_display_name(epic_key)
     status_name = get_epic_status_text(epic_key)
+    is_closed, _ = get_epic_status_info(epic_key)
+    closure_date = get_epic_closure_date(epic_key) if is_closed else ""
 
     # Normalize all x-values to datetime for Plotly shapes/annotations
     def _to_dt(d):
@@ -887,29 +921,17 @@ def build_plot_html(epic_key: str) -> str:
         if x_axis_end:
             fig.update_xaxes(range=[_to_dt(x_axis_start), x_axis_end])
 
-    # Add clickable title as annotation (Plotly titles don't support links in the title itself)
-    # But we'll add both: a standard title for display AND a clickable annotation
-    jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
-    clickable_title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 14px;">[Click to view in Jira: {epic_key}]</a>'
-
-    # Add clickable link annotation below the main title
-
-    #fig.add_annotation(
-    #    text=clickable_title_text,
-    #    xref="paper",
-    #    yref="paper",
-    #    x=0.5,
-    #    y=1.02,  # Position just below the main title
-    #    xanchor="center",
-    #    yanchor="bottom",
-    #    showarrow=False,
-    #    font=dict(size=12),
-    #)
-
     # Set the main chart title (displayed on the chart)
     jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
     chart_title = f"{epic_key}<br>{epic_title}<br><sup>[{status_name}]</sup>"
-    clickable_title_text = f'<a href="{jira_url}" style="color: #1f77b4; text-decoration: none; font-size: 14px;">{chart_title}</a>'
+
+    # Add COMPLETED badge if epic is closed
+    if is_closed and closure_date:
+        # Red styling for completed epics using CSS classes
+        clickable_title_text = f'<span class="completed-badge">[COMPLETED: {closure_date}]</span><br><a href="{jira_url}" class="epic-link completed-epic">{chart_title}</a>'
+    else:
+        # Normal styling for active epics
+        clickable_title_text = f'<a href="{jira_url}" class="epic-link">{chart_title}</a>'
 
     fig.update_layout(
         title=clickable_title_text,
@@ -924,11 +946,45 @@ def build_plot_html(epic_key: str) -> str:
     html = pio.to_html(fig, full_html=True, include_plotlyjs="cdn")
 
     # Set the page title (browser tab title)
-    #page_title = f"Burndown chart for {epic_title}"
-    page_title = f"Burndown chart for {clickable_title_text}"
-    # Replace the default Plotly title with our custom title
+    page_title = f"Burndown chart for {epic_title}"
+
+    # Inject custom CSS styles for epic links and completed badges
+    custom_styles = '''<style>
+        .epic-link {
+            color: #1f77b4;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .epic-link:hover {
+            text-decoration: underline;
+        }
+
+        .epic-link.completed-epic {
+            color: #c62828;
+            font-weight: 700;
+        }
+
+        .epic-link.completed-epic:hover {
+            color: #b71c1c;
+        }
+
+        .completed-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #c62828;
+            margin-left: 8px;
+            padding: 2px 6px;
+            background-color: #ffebee;
+            border-radius: 3px;
+            border: 1px solid #ef9a9a;
+        }
+    </style>'''
+
+    # Replace the default Plotly title with our custom title and inject styles
     html = html.replace('<head><meta charset="utf-8" /></head>',
-                       f'<head><meta charset="utf-8" /><title>{page_title}</title></head>')
+                       f'<head><meta charset="utf-8" /><title>{page_title}</title>{custom_styles}</head>')
 
     return html
 
