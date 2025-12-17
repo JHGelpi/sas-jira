@@ -141,6 +141,24 @@ def get_epic_status_text(epic_key: str) -> str:
         return ""
 
 
+def get_epic_fix_version(epic_key: str) -> str:
+    """Return the epic's fix version as a pipe-separated string (empty string if none).
+
+    Returns:
+        Pipe-separated string of fix version names, or empty string if no fix versions
+    """
+    jira = get_client()
+    try:
+        issue = jira.issue(epic_key, fields="fixVersions")
+        fix_versions = getattr(issue.fields, "fixVersions", None)
+        if not fix_versions:
+            return ""
+        return '|'.join(fv.name for fv in fix_versions if hasattr(fv, 'name'))
+    except Exception:
+        logger.exception("Failed to fetch fix version for %s", epic_key)
+        return ""
+
+
 def get_epic_closure_date(epic_key: str) -> str:
     """Return the epic's closure date (eff_end_date) from database if closed, empty string otherwise.
 
@@ -731,6 +749,7 @@ def build_plot_html(epic_key: str) -> str:
     dates, bug, story, task_research, total = fetch_burndown_series(epic_key)
     epic_title = get_epic_display_name(epic_key)
     status_name = get_epic_status_text(epic_key)
+    fix_version = get_epic_fix_version(epic_key)
     is_closed, _ = get_epic_status_info(epic_key)
     closure_date = get_epic_closure_date(epic_key) if is_closed else ""
 
@@ -859,7 +878,7 @@ def build_plot_html(epic_key: str) -> str:
 
     # Add clickable title (matching COMPDIV/BIGINT format)
     jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
-    chart_title = f"{epic_key}<br>{epic_title}<br><sup>[{status_name}]</sup>"
+    chart_title = f"{epic_key}<br>{epic_title}<br><sup>Fix Version: <b>{fix_version}</b> | Status: <b>{status_name}</b></sup>"
 
     # Add COMPLETED badge if epic is closed
     if is_closed and closure_date:
