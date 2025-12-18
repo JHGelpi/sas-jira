@@ -236,6 +236,13 @@ def generate_bug_trends_html(fig1, fig2, bug_details_by_release=None):
             // Set header
             header.textContent = `Open Bugs for Release: ${{release}} (${{bugs.length}} bug${{bugs.length !== 1 ? 's' : ''}})`;
 
+            // Sort bugs by updated_str in descending order (most recent first)
+            const sortedBugs = bugs.slice().sort((a, b) => {{
+                const dateA = new Date(a.updated_str || '');
+                const dateB = new Date(b.updated_str || '');
+                return dateB - dateA;  // Descending: most recent first
+            }});
+
             // Build table HTML
             let tableHtml = `
                 <table class="bug-table">
@@ -243,18 +250,20 @@ def generate_bug_trends_html(fig1, fig2, bug_details_by_release=None):
                         <tr>
                             <th>Issue ID</th>
                             <th>Summary</th>
+                            <th>Fix Version</th>
                             <th>Last Modified</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            bugs.forEach(bug => {{
+            sortedBugs.forEach(bug => {{
                 const jiraUrl = `https://rndjira.sas.com/browse/${{bug.issue_key}}`;
                 tableHtml += `
                     <tr>
                         <td><a href="${{jiraUrl}}" target="_blank" class="bug-link">${{bug.issue_key}}</a></td>
                         <td>${{bug.summary || 'N/A'}}</td>
+                        <td>${{bug.fix_version || ''}}</td>
                         <td>${{bug.updated_str || 'N/A'}}</td>
                     </tr>
                 `;
@@ -501,10 +510,12 @@ def main():
         df_open_bugs = df_latest[df_latest['state'] == 'Open'].copy()
         # Convert updated timestamp to string for JSON serialization
         df_open_bugs['updated_str'] = pd.to_datetime(df_open_bugs['updated']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        # Fill null fix_version values with empty string for proper JSON serialization
+        df_open_bugs['fix_version'] = df_open_bugs['fix_version'].fillna('')
 
         for release in df_open_bugs['release'].dropna().unique():
             release_bugs = df_open_bugs[df_open_bugs['release'] == release]
-            bug_details_by_release[release] = release_bugs[['issue_key', 'summary', 'updated_str']].to_dict('records')
+            bug_details_by_release[release] = release_bugs[['issue_key', 'summary', 'fix_version', 'updated_str']].to_dict('records')
 
         bugs_by_release_detailed = df_latest.groupby(['release', 'project_key', 'is_crp', 'state']).size().reset_index(name='count')
 
