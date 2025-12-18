@@ -3,110 +3,14 @@
 	{
 		"selected_items":
 		[
+			[
+				"char",
+				"chart_title"
+			]
 		]
 	},
 	"buffers":
 	[
-		{
-			"file": "jira_server/helper_files/customer_support_lvls.json",
-			"settings":
-			{
-				"buffer_size": 8043,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			},
-			"undo_stack":
-			[
-				[
-					13,
-					1,
-					"paste",
-					null,
-					"AQAAAOIeAAAAAAAAZB8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAADiHgAAAAAAAOIeAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					18,
-					1,
-					"insert",
-					{
-						"characters": "JPMC"
-					},
-					"BAAAABIfAAAAAAAAEx8AAAAAAAAKAAAAVm9sa3N3YWdlbhMfAAAAAAAAFB8AAAAAAAAAAAAAFB8AAAAAAAAVHwAAAAAAAAAAAAAVHwAAAAAAABYfAAAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAASHwAAAAAAABwfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					23,
-					1,
-					"insert",
-					{
-						"characters": "JPMC"
-					},
-					"BAAAAC0fAAAAAAAALh8AAAAAAAAKAAAAVm9sa3N3YWdlbi4fAAAAAAAALx8AAAAAAAAAAAAALx8AAAAAAAAwHwAAAAAAAAAAAAAwHwAAAAAAADEfAAAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAA3HwAAAAAAAC0fAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					25,
-					1,
-					"insert",
-					{
-						"characters": ","
-					},
-					"AQAAADIfAAAAAAAAMx8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAyHwAAAAAAADIfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					26,
-					1,
-					"insert",
-					{
-						"characters": " "
-					},
-					"AQAAADMfAAAAAAAANB8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAAzHwAAAAAAADMfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					27,
-					1,
-					"insert_snippet",
-					{
-						"contents": "'$0'"
-					},
-					"AQAAADQfAAAAAAAANh8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAA0HwAAAAAAADQfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					28,
-					1,
-					"run_macro_file",
-					{
-						"file": "res://Packages/Default/Delete Left Right.sublime-macro"
-					},
-					"AgAAADQfAAAAAAAANB8AAAAAAAABAAAAJzQfAAAAAAAANB8AAAAAAAABAAAAJw",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAA1HwAAAAAAADUfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					29,
-					1,
-					"insert_snippet",
-					{
-						"contents": "\"$0\""
-					},
-					"AQAAADQfAAAAAAAANh8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAA0HwAAAAAAADQfAAAAAAAAAAAAAAAA8L8"
-				],
-				[
-					30,
-					1,
-					"insert",
-					{
-						"characters": "customer:JPMC"
-					},
-					"DQAAADUfAAAAAAAANh8AAAAAAAAAAAAANh8AAAAAAAA3HwAAAAAAAAAAAAA3HwAAAAAAADgfAAAAAAAAAAAAADgfAAAAAAAAOR8AAAAAAAAAAAAAOR8AAAAAAAA6HwAAAAAAAAAAAAA6HwAAAAAAADsfAAAAAAAAAAAAADsfAAAAAAAAPB8AAAAAAAAAAAAAPB8AAAAAAAA9HwAAAAAAAAAAAAA9HwAAAAAAAD4fAAAAAAAAAAAAAD4fAAAAAAAAPx8AAAAAAAAAAAAAPx8AAAAAAABAHwAAAAAAAAAAAABAHwAAAAAAAEEfAAAAAAAAAAAAAEEfAAAAAAAAQh8AAAAAAAAAAAAA",
-					"AgAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/AAAAAAEAAAA1HwAAAAAAADUfAAAAAAAAAAAAAAAA8L8"
-				]
-			]
-		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -166,20 +70,32 @@
 	[
 		"/Users/wegelpi/github_repos/sas-jira",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper_files",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation"
 	],
 	"file_history":
 	[
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/.env",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/compdiv_burndown.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/iris_burndown.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/generate_burndown_dashboard.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/README.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/tasks.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/.env.sample",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/logging_config.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/requirements.txt",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/FILE_LIST.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/.env.sample",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/requirements.txt",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper_files/customer_support_lvls.json",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/TREND_LINE_REQUIREMENTS.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/.env",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/app.log",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/data_quality_report.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_catchup_jobs.log",
 		"/Users/wegelpi/github_repos/sas-jira/CLAUDE.md",
 		"/Users/wegelpi/github_repos/sas-jira/NORMALIZED_SPRINT_MIGRATION_PLAN.md",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_catchup_jobs.sh",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/generate_burndown_dashboard.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/generate_bug_charts.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/catchup_jobs.log",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/crontab_schedules.txt",
@@ -187,7 +103,6 @@
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/log_config.yaml",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logging_config.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/main.py",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/compdiv_burndown.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/db_utils.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/jira_utils.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/customer_analysis.py",
@@ -286,19 +201,7 @@
 		"/Users/wegelpi/jira/helper_files/config.json",
 		"/Users/wegelpi/github_repos/comptriage-datacapture/config.json",
 		"/Users/wegelpi/encrypt/secrets/postgres.txt",
-		"/Users/wegelpi/GlobalProtectLogs_wegelpi_02132025160310/PanGPA.log",
-		"/Users/wegelpi/GlobalProtectLogs_wegelpi_02132025160310/IfConfig.txt",
-		"/Users/wegelpi/GlobalProtectLogs_wegelpi_02132025155627/gplogin.log",
-		"/Users/wegelpi/github_repos/sas-jira/main.py",
-		"/Users/wegelpi/github_repos/sas-jira/utils.py",
-		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/Comp Div 2025 OKRs Dec 11 2024 (1).md",
-		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/Comp Div 2025 OKRs Dec 11 2024.md",
-		"/Users/wegelpi/jira/jira-sprint-detail-20240520133613.txt",
-		"/Users/wegelpi/jira/helper_files/jira-audit-rules.json",
-		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/SAS v9 vs Compute Server Update.eml",
-		"/Users/wegelpi/jira/helper_files/sprints.json",
-		"/Users/wegelpi/jira/helper_files/viz_query.txt",
-		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/KitKat Collaboration 7-10-2024.md"
+		"/Users/wegelpi/GlobalProtectLogs_wegelpi_02132025160310/PanGPA.log"
 	],
 	"find":
 	{
@@ -316,6 +219,17 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"completed-badge",
+			"COMPLETED:",
+			"TITLE_HTML",
+			"run_jira_icebox_task",
+			"run_rca_subtask_creation_task",
+			"run_data_quality_report_task",
+			"run_derive_platform_version_task",
+			"xaxis",
+			"xaxis_title",
+			"Run Date",
+			"epic_title",
 			"fte",
 			"IRIS",
 			"JPMC",
@@ -345,38 +259,6 @@
 		{
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "jira_server/helper_files/customer_support_lvls.json",
-					"selected": true,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 8043,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								7777,
-								7777
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JSON/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 5791.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"stack_multiselect": false,
-					"type": "text"
-				}
 			]
 		}
 	],
@@ -386,7 +268,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 36.0
 	},
 	"layout":
 	{
@@ -413,7 +295,7 @@
 	"menu_visible": true,
 	"output.Terminus":
 	{
-		"height": 527.0,
+		"height": 344.0,
 		"history":
 		[
 		]
@@ -427,14 +309,21 @@
 	},
 	"output.Terminus 3":
 	{
-		"height": 736.0,
+		"height": 775.0,
 		"history":
 		[
 		]
 	},
 	"output.Terminus 4":
 	{
-		"height": 473.0,
+		"height": 628.0,
+		"history":
+		[
+		]
+	},
+	"output.Terminus 5":
+	{
+		"height": 508.0,
 		"history":
 		[
 		]

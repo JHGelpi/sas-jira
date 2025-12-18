@@ -406,7 +406,7 @@ def main():
                     six_months_str = SIX_MONTHS_AGO.strftime("%Y-%m-%d")
                     jql = f'"Epic Link" = "{issue.key}" AND updated >= "{six_months_str}"'
                     try:
-                        epic_children = jira.search_issues(jql, fields="key")
+                        epic_children = jira.search_issues(jql, fields="key") or []
                         for child in epic_children:
                             if child.key not in visited_keys:
                                 next_keys_to_fetch[child.key] = root_initiative_key
