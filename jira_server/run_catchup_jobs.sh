@@ -23,6 +23,39 @@ echo "Running all jobs in crontab order with 10-second pauses" | tee -a "$LOG_FI
 echo "=======================================" | tee -a "$LOG_FILE"
 echo "" | tee -a "$LOG_FILE"
 
+# --- Pre-flight Check: Verify Jira Connectivity ---
+echo "=== Pre-flight Check ===" | tee -a "$LOG_FILE"
+
+# Activate virtual environment to access Python dependencies
+source "${PROJECT_DIR}/venv/bin/activate"
+
+# Run connectivity check
+python3 "${PROJECT_DIR}/check_jira_connectivity.py" 2>&1 | tee -a "$LOG_FILE"
+CONNECTIVITY_CHECK=$?
+
+# Deactivate virtual environment
+deactivate
+
+# Check exit code and abort if connectivity failed
+if [ $CONNECTIVITY_CHECK -eq 2 ]; then
+    echo "" | tee -a "$LOG_FILE"
+    echo "ERROR: Jira configuration error detected." | tee -a "$LOG_FILE"
+    echo "Please check JIRA_URL and JIRA_TOKEN environment variables." | tee -a "$LOG_FILE"
+    echo "Aborting catch-up jobs." | tee -a "$LOG_FILE"
+    exit 2
+elif [ $CONNECTIVITY_CHECK -ne 0 ]; then
+    echo "" | tee -a "$LOG_FILE"
+    echo "ERROR: Jira connectivity check failed." | tee -a "$LOG_FILE"
+    echo "This usually means the VPN connection is down or Jira is unreachable." | tee -a "$LOG_FILE"
+    echo "Please connect to the VPN and try again." | tee -a "$LOG_FILE"
+    echo "Aborting catch-up jobs." | tee -a "$LOG_FILE"
+    exit 1
+fi
+
+echo "=== Pre-flight Check Complete ===" | tee -a "$LOG_FILE"
+echo "" | tee -a "$LOG_FILE"
+# --- End Pre-flight Check ---
+
 # Array of scripts in crontab order (8:15 AM - 8:24 AM)
 SCRIPTS=(
     "run_ldap_refresh.sh"
