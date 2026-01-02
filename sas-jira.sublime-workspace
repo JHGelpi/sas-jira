@@ -11,6 +11,15 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "jira_server/run_catchup_jobs.sh",
+			"settings":
+			{
+				"buffer_size": 4192,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -69,8 +78,7 @@
 	"expanded_folders":
 	[
 		"/Users/wegelpi/github_repos/sas-jira",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation"
+		"/Users/wegelpi/github_repos/sas-jira/jira_server"
 	],
 	"file_history":
 	[
@@ -205,7 +213,7 @@
 	],
 	"find":
 	{
-		"height": 24.0
+		"height": 38.0
 	},
 	"find_in_files":
 	{
@@ -259,6 +267,38 @@
 		{
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "jira_server/run_catchup_jobs.sh",
+					"selected": true,
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 4192,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/ShellScript/Bash.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -295,7 +335,7 @@
 	"menu_visible": true,
 	"output.Terminus":
 	{
-		"height": 344.0,
+		"height": 589.0,
 		"history":
 		[
 		]
@@ -309,21 +349,14 @@
 	},
 	"output.Terminus 3":
 	{
-		"height": 775.0,
+		"height": 736.0,
 		"history":
 		[
 		]
 	},
 	"output.Terminus 4":
 	{
-		"height": 628.0,
-		"history":
-		[
-		]
-	},
-	"output.Terminus 5":
-	{
-		"height": 508.0,
+		"height": 473.0,
 		"history":
 		[
 		]
