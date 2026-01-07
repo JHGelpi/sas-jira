@@ -266,9 +266,10 @@ def update_stale_issues(jira_client):
 def close_icebox_issues(jira_client):
     """Finds and closes issues that have been on the icebox for too long."""
     log_section_header(logger, "ICEBOX ISSUE CLOSURE")
-    
+
     jql_query = os.getenv("JQL_QUERY_ICEBOX")
     comment_to_add = os.getenv("COMMENT_TO_ADD_ICEBOX")
+    label_ignore = os.getenv("LABEL_IGNORE")
 
     if not jql_query:
         logger.warning("No JQL_QUERY_ICEBOX found in environment. Skipping icebox closure")
@@ -276,7 +277,7 @@ def close_icebox_issues(jira_client):
 
     logger.searching("Running JQL query to find icebox issues")
     logger.debug(f"Query: {jql_query}")
-    
+
     icebox_issues = jira_client.search_issues(jql_query, fields="*all", maxResults=False)
 
     if not icebox_issues:
@@ -284,6 +285,25 @@ def close_icebox_issues(jira_client):
         return
 
     logger.info(f"Found {len(icebox_issues)} icebox issues to process")
+
+    # Defensive filter: Skip issues with the ignore label (should already be filtered by JQL)
+    if label_ignore:
+        filtered_issues = []
+        for issue in icebox_issues:
+            if label_ignore in issue.fields.labels:
+                logger.skip(f"Skipping {issue.key} - has '{label_ignore}' label")
+            else:
+                filtered_issues.append(issue)
+
+        skipped_by_label = len(icebox_issues) - len(filtered_issues)
+        if skipped_by_label > 0:
+            logger.info(f"Filtered out {skipped_by_label} issue(s) with '{label_ignore}' label")
+
+        icebox_issues = filtered_issues
+
+        if not icebox_issues:
+            logger.complete("No icebox issues remaining after filtering")
+            return
     
     closed_count = 0
     skipped_count = 0
