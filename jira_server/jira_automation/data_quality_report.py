@@ -329,7 +329,7 @@ def write_consolidated_report(all_issues_data: list):
                             {"title": "Issue:", "value": issue_link},
                             {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
                             {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
-                            {"title": "JQL:", "value": "JQL Confluence Page: https://rndconfluence.sas.com/x/Kul4L"}
+                            {"title": "JQL:", "value": "[JQL Reference Page](https://sasoffice365.sharepoint.com/:fl:/g/contentstorage/CSP_a2ea7d17-5b95-4a0f-affd-8e8ada9b27a7/IQAPB2EL89JVRpywmomWuJswAUwyFcA10xFtC1RjT2evEdA?e=F7Py3b&nav=cz0lMkZjb250ZW50c3RvcmFnZSUyRkNTUF9hMmVhN2QxNy01Yjk1LTRhMGYtYWZmZC04ZThhZGE5YjI3YTcmZD1iJTIxRjMzcW9wVmJEMHF2X1k2SzJwc25wNFhCSU9FSzNkTkZ2cnVmTWY3U1dkWE9tc1JDaVBINVNaMDhRQzZxQ1R5dSZmPTAxVDdDRkpCQVBBNVFRWDQ2U0tWREpaTUUyUkdMTFJHWlEmYz0lMkYmYT1Mb29wQXBwJnA9JTQwZmx1aWR4JTJGbG9vcC1wYWdlLWNvbnRhaW5lciZ4PSU3QiUyMnclMjIlM0ElMjJUMFJUVUh4ellYTnZabVpwWTJVek5qVXVjMmhoY21Wd2IybHVkQzVqYjIxOFlpRkdNek54YjNCUVZtSkVNSEYyWDFrMlN6SndibTV3TkZoQ1NVOUZTek5rVGtaMmNuVm1UV1kzVTFka1dFOXRjMUpEYVZCSU5WTmFNRGhSUXpaeFExUjVkWHd3TVZRM1EwWnFTa1ZaTWpKSU16ZEZNbE5FUmtSbFVWNUpia3RTUkZoSVNqUktNaVUzUkNVeVF5VXlNbWtsTWpJbE0wRWxNakptTTJJNE1qTmpPQzB5WldNNUxUUTBNekV0WVRCalgaTXpVVEV5TURRMVpXVTFZaVV5TWlVM1JBJTNEJTNEKX0lMjIlN0Q%3D)"}
                         ],
                         "separator": True
                     })
@@ -376,7 +376,7 @@ def write_consolidated_report(all_issues_data: list):
                                 {"title": "Issue:", "value": issue_link},
                                 {"title": "Assignee:", "value": issue.get('Assignee', 'Unassigned')},
                                 {"title": "Reason:", "value": issue.get('Reason', 'N/A')},
-                                {"title": "JQL:", "value": "JQL Confluence Page: https://rndconfluence.sas.com/x/Kul4L"}
+                                {"title": "JQL:", "value": "[JQL Reference Page](https://sasoffice365.sharepoint.com/:fl:/g/contentstorage/CSP_a2ea7d17-5b95-4a0f-affd-8e8ada9b27a7/IQAPB2EL89JVRpywmomWuJswAUwyFcA10xFtC1RjT2evEdA?e=F7Py3b&nav=cz0lMkZjb250ZW50c3RvcmFnZSUyRkNTUF9hMmVhN2QxNy01Yjk1LTRhMGYtYWZmZC04ZThhZGE5YjI3YTcmZD1iJTIxRjMzcW9wVmJEMHF2X1k2SzJwc25wNFhCSU9FSzNkTkZ2cnVmTWY3U1dkWE9tc1JDaVBINVNaMDhRQzZxQ1R5dSZmPTAxVDdDRkpCQVBBNVFRWDQ2U0tWREpaTUUyUkdMTFJHWlEmYz0lMkYmYT1Mb29wQXBwJnA9JTQwZmx1aWR4JTJGbG9vcC1wYWdlLWNvbnRhaW5lciZ4PSU3QiUyMnclMjIlM0ElMjJUMFJUVUh4ellYTnZabVpwWTJVek5qVXVjMmhoY21Wd2IybHVkQzVqYjIxOFlpRkdNek54YjNCUVZtSkVNSEYyWDFrMlN6SndibTV3TkZoQ1NVOUZTek5rVGtaMmNuVm1UV1kzVTFka1dFOXRjMUpEYVZCSU5WTmFNRGhSUXpaeFExUjVkWHd3TVZRM1EwWnFTa1ZaTWpKSU16ZEZNbE5FUmtSbFVWNUpia3RTUkZoSVNqUktNaVUzUkNVeVF5VXlNbWtsTWpJbE0wRWxNakptTTJJNE1qTmpPQzB5WldNNUxUUTBNekV0WVRCalgaTXpVVEV5TURRMVpXVTFZaVV5TWlVM1JBJTNEJTNEKX0lMjIlN0Q%3D)"}
                             ],
                             "separator": True
                         })
