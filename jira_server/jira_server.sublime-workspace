@@ -1,0 +1,357 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"char",
+				"chart_title"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"terminus",
+				"Terminus: Open Default Shell in Panel"
+			],
+			[
+				"terminu",
+				"Terminus: Open Default Shell in Panel"
+			],
+			[
+				"termin",
+				"Terminus: Open Default Shell in Panel"
+			],
+			[
+				"temrin",
+				"Terminus: Open Default Shell in Panel"
+			],
+			[
+				"te",
+				"Terminus: Open Default Shell in Panel"
+			],
+			[
+				"package",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/wegelpi/github_repos/sas-jira"
+	],
+	"file_history":
+	[
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/.env",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/ObsidianVault/SASVault/2026 Leadership/README - Setup Guide.md",
+		"/Users/wegelpi/Library/Mobile Documents/com~apple~CloudDocs/Downloads/obsidian-templates/README - Setup Guide.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/compdiv_burndown.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/iris_burndown.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/generate_burndown_dashboard.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/README.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/tasks.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/.env.sample",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/logging_config.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_hygiene/requirements.txt",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/FILE_LIST.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/.env.sample",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/icebox_package/requirements.txt",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper_files/customer_support_lvls.json",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/TREND_LINE_REQUIREMENTS.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/app.log",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/data_quality_report.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_catchup_jobs.log",
+		"/Users/wegelpi/github_repos/sas-jira/CLAUDE.md",
+		"/Users/wegelpi/github_repos/sas-jira/NORMALIZED_SPRINT_MIGRATION_PLAN.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_catchup_jobs.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/generate_bug_charts.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/catchup_jobs.log",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/crontab_schedules.txt",
+		"/Users/wegelpi/github_repos/sas/vpnrestart",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/log_config.yaml",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logging_config.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/db_utils.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/jira_utils.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/customer_analysis.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/notification_utils.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/backfill_compdiv_burndown.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/create_rca_subtasks.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/ldap_manager_report.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/investment_trends.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/initiative_children.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/jira_processor.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/tasks.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/clt_bug_analysis.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/jira_icebox.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logging_utils.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/collect_bug_snapshots.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/daily_pushes.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/derive_platform_version.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_compdiv_burndown.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_data_quality.sh",
+		"/Users/wegelpi/github_repos/sas-jira/.gitignore",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_daily_job.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/okr_summary.sql",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper_files/select",
+		"/Users/wegelpi/github_repos/homepage/homepage.html",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_rca_st_job.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_customer_analysis.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/crontab_schedules.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/requirements.txt",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_bug_trending_analysis.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/app.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/run_jira_automation.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_icebox_job.sh",
+		"/Users/wegelpi/Library/Mobile Documents/com~apple~CloudDocs/Reflections on this morning.md",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/ObsidianVault/SASVault/_ToDos by Priority.md",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_get_jira_fields.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/get_jira_fields.py",
+		"/Users/wegelpi/sas_github/jira_triage_collector/collector_fields.json",
+		"/Users/wegelpi/sas_github/jira_triage_collector/static/css/style.css",
+		"/Users/wegelpi/sas_github/jira_triage_collector/static/js/script.js",
+		"/Users/wegelpi/sas_github/jira_triage_collector/templates/index.html",
+		"/Users/wegelpi/sas_github/jira_triage_collector/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_app.sh",
+		"/Users/wegelpi/sas_github/jira_triage_collector/templates/collector_fields.json",
+		"/Users/wegelpi/sas_github/jira_triage_collector/.env",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_ldap_refresh.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_ldap_refresh.log",
+		"/Users/wegelpi/sas_github/jira_triage_collector/run_server.sh",
+		"/Users/wegelpi/sas_github/jira_triage_collector/requirements.txt",
+		"/Users/wegelpi/sas_github/jira_triage_collector/re",
+		"/Users/wegelpi/sas_github/jira_triage_collector/log_config.yaml",
+		"/Users/wegelpi/sas_github/jira_triage_collector/README.md",
+		"/Users/wegelpi/sas_github/jira_triage_collector/.env.example",
+		"/Users/wegelpi/sas_github/jira_triage_collector/app.py",
+		"/Users/wegelpi/Downloads/sasldap/main.go",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_derive_data.sh",
+		"/Users/wegelpi/github_repos/sas-jira/README.md",
+		"/Users/wegelpi/github_repos/homepage/log_config.yaml",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper/customer_support_lvls.json",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/required_fields_audit.py",
+		"/Users/wegelpi/apro/sasinside/license.sas",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_pushes_job.log",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_pushes_job.sh",
+		"/Users/wegelpi/github_repos/homepage/.gitignore",
+		"/Users/wegelpi/github_repos/homepage/server.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/cron_daily.log",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/cron_icebox.log",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/run_task.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/.env",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/.env",
+		"/Users/wegelpi/github_repos/homepage/run_server.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis/run_task.py",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/jira_icebox.log",
+		"/Users/wegelpi/github_repos/homepage/requirements.txt",
+		"/Users/wegelpi/github_repos/homepage/.env",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/.env",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/run_main.sh",
+		"/Users/wegelpi/github_repos/sas-jira/jira-automation/run_jira_automation.sh",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/daily_jira_data.py",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/main.py",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/investment_trends.py",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/BaseEngineArch.txt",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/docker-compose.yml",
+		"/Users/wegelpi/apro/service.yaml",
+		"/Users/wegelpi/apro/deployment.yaml",
+		"/Users/wegelpi/apro/APro on Rancher Notes.md",
+		"/Users/wegelpi/apro/sasdemo/authinfo.txt",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/config.json",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/app/okr_summary.sql",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Documents/APro on Rancher Notes.md",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/data-1745279586079.csv",
+		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Downloads_Temp/epic_jira_html_template.html",
+		"/Users/wegelpi/jira/helper_files/jira_fields-20240510161002.json",
+		"/Users/wegelpi/jira/helper_files/zzjira_fields-20240510161002.json",
+		"/Users/wegelpi/Documents/A History of C and UNIX Subtitle.txt",
+		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/cron.log",
+		"/Users/wegelpi/jira/helper_files/config.json",
+		"/Users/wegelpi/github_repos/comptriage-datacapture/config.json"
+	],
+	"find":
+	{
+		"height": 24.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": false
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 24.0
+	},
+	"input":
+	{
+		"height": 36.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.Terminus":
+	{
+		"height": 589.0,
+		"history":
+		[
+		]
+	},
+	"output.Terminus 2":
+	{
+		"height": 476.0,
+		"history":
+		[
+		]
+	},
+	"output.Terminus 3":
+	{
+		"height": 736.0,
+		"history":
+		[
+		]
+	},
+	"output.Terminus 4":
+	{
+		"height": 473.0,
+		"history":
+		[
+		]
+	},
+	"output.find_results":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"pinned_build_system": "",
+	"project": "jira_server.sublime-project",
+	"replace":
+	{
+		"height": 44.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 501.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 218.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

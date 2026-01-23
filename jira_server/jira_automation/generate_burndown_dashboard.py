@@ -91,12 +91,12 @@ def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
                 """
                 SELECT issue_key
                 FROM tbl_initiative_issue_keys
-                WHERE issue_key LIKE 'COMPDIV-%'
+                WHERE (issue_key LIKE 'COMPDIV-%' OR issue_key LIKE 'ORCHDEPT-%')
                 AND filter_flag = 'BURNDWN'
                 """
             )
             epic_keys = [row[0] for row in cur.fetchall()]
-            logger.info(f"Found {len(epic_keys)} COMPDIV epics with BURNDWN filter")
+            logger.info(f"Found {len(epic_keys)} COMPDIV/ORCHDEPT epics with BURNDWN filter")
 
     except Exception as e:
         logger.error(f"Failed to query database for epic keys: {e}")
@@ -249,7 +249,7 @@ def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[st
             # IRIS files have IRIS_ prefix and go exclusively to IRIS tab
             if filename.startswith('IRIS_'):
                 iris_files.append(filename)
-            elif filename.startswith('COMPDIV'):
+            elif filename.startswith('COMPDIV') or filename.startswith('ORCHDEPT'):
                 overview_files.append(filename)
             elif filename.startswith('COMPLANG') or filename.startswith('COMPHOST'):
                 bigint_files.append(filename)
@@ -397,9 +397,14 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         }
 
         # If IRIS flag is true, move to IRIS tab instead of Overview
+        # But skip if an IRIS_-prefixed file already exists (to avoid duplication)
         if is_iris:
-            iris_charts_from_overview.append(chart_data)
-            logger.info(f"Moving {epic_key} from Overview to IRIS tab (IRIS flag=true)")
+            iris_prefixed_exists = any(f.startswith(f'IRIS_{epic_key}') for f in iris_files)
+            if iris_prefixed_exists:
+                logger.info(f"Skipping {epic_key} from Overview (IRIS_ prefixed file already exists)")
+            else:
+                iris_charts_from_overview.append(chart_data)
+                logger.info(f"Moving {epic_key} from Overview to IRIS tab (IRIS flag=true)")
         else:
             overview_charts.append(chart_data)
 

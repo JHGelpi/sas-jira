@@ -550,28 +550,28 @@ def cleanup_old_compdiv_html_files(active_epic_keys: Set[str]) -> None:
         logger.warning(f"Burndown directory does not exist: {base_dir}")
         return
 
-    # Find all COMPDIV HTML files (excluding IRIS_ prefixed files)
+    # Find all COMPDIV/ORCHDEPT HTML files (excluding IRIS_ prefixed files)
     try:
         all_files = [f for f in os.listdir(base_dir)
-                     if f.startswith("COMPDIV") and f.endswith("_burndown.html") and not f.startswith("IRIS_")]
+                     if (f.startswith("COMPDIV") or f.startswith("ORCHDEPT")) and f.endswith("_burndown.html") and not f.startswith("IRIS_")]
         removed_count = 0
 
         for filename in all_files:
-            # Extract epic key from filename (e.g., COMPDIV-123_burndown.html -> COMPDIV-123)
-            match = re.search(r'(COMPDIV-\d+)_burndown\.html', filename)
+            # Extract epic key from filename (e.g., COMPDIV-123_burndown.html -> COMPDIV-123, ORCHDEPT-456_burndown.html -> ORCHDEPT-456)
+            match = re.search(r'((?:COMPDIV|ORCHDEPT)-\d+)_burndown\.html', filename)
             if match:
                 epic_key = match.group(1)
                 if epic_key not in active_epic_keys:
                     # This epic is no longer active (completed > 30 days ago), remove its HTML file
                     filepath = os.path.join(base_dir, filename)
                     os.remove(filepath)
-                    logger.info(f"Removed old COMPDIV HTML file: {filename} (epic completed > 30 days ago)")
+                    logger.info(f"Removed old burndown HTML file: {filename} (epic completed > 30 days ago)")
                     removed_count += 1
 
         if removed_count > 0:
-            logger.success(f"Cleaned up {removed_count} old COMPDIV HTML file(s)")
+            logger.success(f"Cleaned up {removed_count} old burndown HTML file(s)")
         else:
-            logger.debug("No old COMPDIV HTML files to clean up")
+            logger.debug("No old burndown HTML files to clean up")
 
     except Exception as e:
         logger.exception(f"Error during COMPDIV HTML cleanup: {e}")
@@ -628,7 +628,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     """
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
-                    WHERE issue_key ~ '^COMPDIV-\d+$'
+                    WHERE issue_key ~ '^(COMPDIV|ORCHDEPT)-\d+$'
                       AND (
                         active_flag IS NULL
                         OR active_flag = true
