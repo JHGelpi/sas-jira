@@ -120,6 +120,29 @@ def get_project_exclusion_clause() -> str:
     return f"AND project NOT IN ({projects_str})"
 
 
+def get_project_inclusion_clause() -> str:
+    """
+    Builds a JQL clause to include only specific projects in data quality reporting.
+
+    Reads from JIRA_PROJECTS environment variable which should contain a
+    comma-separated list of project keys (e.g., "PROJ1,PROJ2,PROJ3").
+
+    Returns:
+        JQL clause like "AND project in (PROJ1, PROJ2, PROJ3)" or empty string if not set
+    """
+    projects = os.getenv('JIRA_PROJECTS', '').strip()
+    if not projects:
+        return ""
+
+    project_keys = [p.strip() for p in projects.split(',') if p.strip()]
+    if not project_keys:
+        return ""
+
+    projects_str = ', '.join(project_keys)
+    logger.debug(f"Filtering data quality report to projects: {projects_str}")
+    return f"AND project in ({projects_str})"
+
+
 def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: str,
                             custom_field_ids: dict, ldap_map: dict) -> list:
     """Runs a JQL query and returns a list of processed issue data, enriched with manager info."""
@@ -127,6 +150,16 @@ def fetch_issues_for_report(jira, jql_env_var: str, report_name: str, reason: st
     if not jql_query:
         logger.skip(f"Environment variable '{jql_env_var}' not set")
         return []
+
+    # Add project inclusion clause before ORDER BY if present
+    project_inclusion = get_project_inclusion_clause()
+    if project_inclusion:
+        order_by_match = re.search(r'\s+ORDER\s+BY\s+', jql_query, re.IGNORECASE)
+        if order_by_match:
+            insert_pos = order_by_match.start()
+            jql_query = jql_query[:insert_pos] + f" {project_inclusion} " + jql_query[insert_pos:]
+        else:
+            jql_query = f"{jql_query} {project_inclusion}"
 
     # Add project exclusion clause before ORDER BY if present
     project_exclusion = get_project_exclusion_clause()
