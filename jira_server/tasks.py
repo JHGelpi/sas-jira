@@ -324,6 +324,11 @@ def task_compdiv_burndown_all():
 
     logger.start("Starting COMPDIV burndown for all epics")
     try:
+        # Refresh IRIS flags so COMPDIV burndown correctly excludes IRIS epics
+        jira = get_jira_client()
+        db_pool = db_utils.get_connection_pool()
+        initiative_children.refresh_iris_flags(jira, db_pool)
+
         results = compdiv_burndown.run_for_all_compdiv_epics(run_dt=date.today())
         logger.complete(f"COMPDIV burndown completed for {len(results)} epics")
 
@@ -355,6 +360,11 @@ def task_iris_burndown_all():
 
     logger.start("Starting IRIS burndown for all active IRIS epics")
     try:
+        # Refresh IRIS flags from Jira before running burndown
+        jira = get_jira_client()
+        db_pool = db_utils.get_connection_pool()
+        initiative_children.refresh_iris_flags(jira, db_pool)
+
         results = iris_burndown.run_for_all_iris_epics(run_dt=date.today())
         logger.complete(f"IRIS burndown completed for {len(results)} epics")
 

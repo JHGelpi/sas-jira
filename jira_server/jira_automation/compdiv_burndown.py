@@ -634,6 +634,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                         OR active_flag = true
                         OR (active_flag = false AND eff_end_date >= CURRENT_DATE - INTERVAL '30 days')
                       )
+                      AND ("IRIS" IS NULL OR "IRIS" = false)
                     """
                 )
             cur.execute(base_sql, params)

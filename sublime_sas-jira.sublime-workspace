@@ -24,11 +24,11 @@
 		"selected_items":
 		[
 			[
-				"terminus",
+				"terminu",
 				"Terminus: Open Default Shell in Panel"
 			],
 			[
-				"terminu",
+				"terminus",
 				"Terminus: Open Default Shell in Panel"
 			],
 			[
@@ -68,11 +68,15 @@
 	},
 	"expanded_folders":
 	[
-		"/Users/wegelpi/github_repos/sas-jira"
+		"/Users/wegelpi/github_repos/sas-jira",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation"
 	],
 	"file_history":
 	[
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/.env",
+		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/data_quality_report.py",
+		"/Users/wegelpi/github_repos/sas-jira/JiraTemplates.md",
 		"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/ObsidianVault/SASVault/2026 Leadership/README - Setup Guide.md",
 		"/Users/wegelpi/Library/Mobile Documents/com~apple~CloudDocs/Downloads/obsidian-templates/README - Setup Guide.md",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/compdiv_burndown.py",
@@ -91,7 +95,6 @@
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/helper_files/customer_support_lvls.json",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/TREND_LINE_REQUIREMENTS.md",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/app.log",
-		"/Users/wegelpi/github_repos/sas-jira/jira_server/jira_automation/data_quality_report.py",
 		"/Users/wegelpi/github_repos/sas-jira/jira_server/logs/run_catchup_jobs.log",
 		"/Users/wegelpi/github_repos/sas-jira/CLAUDE.md",
 		"/Users/wegelpi/github_repos/sas-jira/NORMALIZED_SPRINT_MIGRATION_PLAN.md",
@@ -198,8 +201,7 @@
 		"/Users/wegelpi/jira/helper_files/zzjira_fields-20240510161002.json",
 		"/Users/wegelpi/Documents/A History of C and UNIX Subtitle.txt",
 		"/Users/wegelpi/github_repos/sas-jira/fastapi-containerized-app/src/cron.log",
-		"/Users/wegelpi/jira/helper_files/config.json",
-		"/Users/wegelpi/github_repos/comptriage-datacapture/config.json"
+		"/Users/wegelpi/jira/helper_files/config.json"
 	],
 	"find":
 	{
@@ -274,7 +276,7 @@
 	"menu_visible": true,
 	"output.Terminus":
 	{
-		"height": 589.0,
+		"height": 192.0,
 		"history":
 		[
 		]
@@ -349,7 +351,7 @@
 	"show_open_files": true,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 218.0,
+	"side_bar_width": 321.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

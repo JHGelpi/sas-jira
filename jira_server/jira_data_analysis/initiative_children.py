@@ -232,6 +232,107 @@ def sync_initiatives_from_jql(jira, db_pool):
         db_pool.putconn(conn)
 
 
+def refresh_iris_flags(jira, db_pool):
+    """
+    Refresh the IRIS flag for all initiatives by checking current Jira labels.
+
+    Queries JIRA_INITIATIVE_JQL and updates the "IRIS" column in tbl_initiative_issue_keys
+    based on whether each epic has any of the JIRA_IRIS_LABELS labels.
+
+    Also inserts any new epics found in the JQL that don't exist in the table yet.
+    """
+    log_section_header(logger, "REFRESH IRIS FLAGS")
+
+    jql = os.getenv('JIRA_INITIATIVE_JQL')
+    if not jql:
+        logger.warning("JIRA_INITIATIVE_JQL not set, skipping IRIS flag refresh")
+        return
+
+    iris_labels_str = os.getenv('JIRA_IRIS_LABELS', '')
+    iris_labels_set = {label.strip() for label in iris_labels_str.split(',') if label.strip()}
+    if not iris_labels_set:
+        logger.warning("JIRA_IRIS_LABELS not set, skipping IRIS flag refresh")
+        return
+
+    logger.info(f"Refreshing IRIS flags using labels: {iris_labels_set}")
+
+    # Query Jira for all initiatives with their labels
+    jira_initiatives = jira.search_issues(jql, fields=["key", "labels"], maxResults=False)
+    logger.info(f"Found {len(jira_initiatives)} initiatives from JQL")
+
+    # Build dict of epic_key -> is_iris
+    epic_iris_map = {}
+    for issue in jira_initiatives:
+        issue_labels = set(issue.fields.labels)
+        is_iris = not iris_labels_set.isdisjoint(issue_labels)
+        epic_iris_map[issue.key] = is_iris
+
+    iris_keys = [k for k, v in epic_iris_map.items() if v]
+    non_iris_keys = [k for k, v in epic_iris_map.items() if not v]
+
+    logger.info(f"IRIS epics: {len(iris_keys)}, non-IRIS epics: {len(non_iris_keys)}")
+
+    # Update database
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            # First, find which epics already exist in the table
+            all_jql_keys = list(epic_iris_map.keys())
+            cur.execute(
+                "SELECT issue_key FROM tbl_initiative_issue_keys WHERE issue_key = ANY(%s)",
+                (all_jql_keys,)
+            )
+            existing_keys = {row[0] for row in cur.fetchall()}
+            missing_keys = set(all_jql_keys) - existing_keys
+
+            # Insert any missing epics
+            if missing_keys:
+                today = datetime.now().date()
+                far_future_date = '9999-12-31'
+                new_initiatives = [
+                    (key, today, far_future_date, epic_iris_map[key])
+                    for key in missing_keys
+                ]
+                insert_query = """
+                    INSERT INTO tbl_initiative_issue_keys (issue_key, eff_start_date, eff_end_date, "IRIS")
+                    VALUES %s
+                """
+                psycopg2.extras.execute_values(cur, insert_query, new_initiatives)
+                logger.info(f"Inserted {len(missing_keys)} new initiatives: {sorted(missing_keys)}")
+
+            # Set IRIS=true for epics with IRIS labels
+            if iris_keys:
+                cur.execute(
+                    """
+                    UPDATE tbl_initiative_issue_keys
+                    SET "IRIS" = true
+                    WHERE issue_key = ANY(%s)
+                    """,
+                    (iris_keys,)
+                )
+                logger.debug(f"Set IRIS=true for {cur.rowcount} epics")
+
+            # Set IRIS=false for epics without IRIS labels
+            if non_iris_keys:
+                cur.execute(
+                    """
+                    UPDATE tbl_initiative_issue_keys
+                    SET "IRIS" = false
+                    WHERE issue_key = ANY(%s)
+                    """,
+                    (non_iris_keys,)
+                )
+                logger.debug(f"Set IRIS=false for {cur.rowcount} epics")
+
+        conn.commit()
+        logger.success("IRIS flags refreshed successfully")
+    except Exception as e:
+        conn.rollback()
+        logger.exception(f"Failed to refresh IRIS flags: {e}")
+    finally:
+        db_pool.putconn(conn)
+
+
 def is_issue_valid(issue, allowed_projects_set: set) -> bool:
     """Checks if an issue is in an allowed project and was updated recently."""
     if issue.fields.project.key not in allowed_projects_set:
