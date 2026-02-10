@@ -3,9 +3,10 @@
 Burndown dashboard generation.
 
 This module generates a tabbed HTML dashboard that organizes COMPDIV burndown
-charts into two tabs:
-- Overview: All COMPDIV*.html files in a 3-column grid
-- BIGINT: All COMPLANG*.html and COMPHOST*.html files in a 3-column grid
+charts into tabs:
+- Overview: All COMPDIV/ORCHDEPT*.html files in a 3-column grid
+- IRIS: All IRIS_*.html files in a 3-column grid
+- Bug Trends: Bug trending report
 
 Files are sorted alphabetically (A->Z) on each tab.
 """
@@ -230,15 +231,14 @@ def generate_fte_utilization_chart(total_ftes_available: float, total_ftes_alloc
     return chart_html
 
 
-def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[str]]:
+def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str]]:
     """
     Scans the burndown directory and collects HTML files for each tab.
 
     Returns:
-        Tuple of (overview_files, bigint_files, iris_files) - all lists sorted alphabetically
+        Tuple of (overview_files, iris_files) - all lists sorted alphabetically
     """
     overview_files = []
-    bigint_files = []
     iris_files = []
 
     try:
@@ -251,25 +251,21 @@ def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str], List[st
                 iris_files.append(filename)
             elif filename.startswith('COMPDIV') or filename.startswith('ORCHDEPT'):
                 overview_files.append(filename)
-            elif filename.startswith('COMPLANG') or filename.startswith('COMPHOST'):
-                bigint_files.append(filename)
             else:
                 # Any other files go to Overview by default
                 overview_files.append(filename)
 
         # Sort alphabetically
         overview_files.sort()
-        bigint_files.sort()
         iris_files.sort()
 
         logger.info(f"Overview tab: {len(overview_files)} files")
-        logger.info(f"BIGINT tab: {len(bigint_files)} files")
         logger.info(f"IRIS tab: {len(iris_files)} files")
 
     except Exception as e:
         logger.error(f"Failed to collect HTML files: {e}")
 
-    return overview_files, bigint_files, iris_files
+    return overview_files, iris_files
 
 
 def extract_epic_title(html_path: str) -> Tuple[str, str]:
@@ -336,7 +332,7 @@ def extract_epic_title(html_path: str) -> Tuple[str, str]:
 
 def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     """
-    Generates the dashboard HTML file with tabs for Overview, BIGINT, and IRIS.
+    Generates the dashboard HTML file with tabs for Overview and IRIS.
 
     Args:
         burndown_dir: Directory containing the burndown HTML files
@@ -345,9 +341,9 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     log_section_header(logger, "BURNDOWN DASHBOARD GENERATION")
     logger.start("Starting burndown dashboard generation")
 
-    overview_files, bigint_files, iris_files = collect_html_files(burndown_dir)
+    overview_files, iris_files = collect_html_files(burndown_dir)
 
-    if not overview_files and not bigint_files and not iris_files:
+    if not overview_files and not iris_files:
         logger.warning("No burndown HTML files found. Dashboard not generated.")
         return
 
@@ -408,42 +404,6 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
         else:
             overview_charts.append(chart_data)
 
-    bigint_charts = []
-    for filename in bigint_files:
-        filepath = os.path.join(burndown_dir, filename)
-        title, epic_key = extract_epic_title(filepath)
-
-        # Fetch epic status and IRIS flag from database (READ-ONLY)
-        is_active, eff_end_date, is_iris = True, '', False
-        if epic_key:
-            is_active, eff_end_date, is_iris = get_epic_status_from_db(epic_key, db_pool)
-
-        # Fallback: If epic_key from title didn't match database, try extracting from filename
-        # This handles cases where issues were moved/renamed in Jira
-        if is_active and eff_end_date == '':
-            filename_epic_match = re.search(r'([A-Z]+-\d+)', filename)
-            if filename_epic_match:
-                filename_epic_key = filename_epic_match.group(1)
-                if filename_epic_key != epic_key:
-                    logger.debug(f"Title epic {epic_key} != filename epic {filename_epic_key}, trying filename key")
-                    is_active_fallback, eff_end_date_fallback, is_iris_fallback = get_epic_status_from_db(filename_epic_key, db_pool)
-                    if not is_active_fallback or eff_end_date_fallback or is_iris_fallback:
-                        # Filename key found a match in DB
-                        is_active = is_active_fallback
-                        eff_end_date = eff_end_date_fallback
-                        is_iris = is_iris_fallback
-                        logger.info(f"Using filename epic key {filename_epic_key} for {filename} (title had {epic_key})")
-
-        bigint_charts.append({
-            'filename': filename,
-            'title': title,
-            'epic_key': epic_key,
-            'is_active': is_active,
-            'eff_end_date': eff_end_date,
-            'is_iris': is_iris,
-            'path': filepath
-        })
-
     iris_charts = []
     for filename in iris_files:
         filepath = os.path.join(burndown_dir, filename)
@@ -488,7 +448,6 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
     # Two-tier sorting: Active epics first, then alphabetically by epic_key
     # Sort key: (not is_active, epic_key) - False (active) sorts before True (closed)
     overview_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
-    bigint_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
     iris_charts.sort(key=lambda x: (not x.get('is_active', True), x.get('epic_key', '')))
 
     logger.info(f"Sorted charts: Active epics at top, closed at bottom, alphabetical within each group")
@@ -499,18 +458,16 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
 
     # Calculate active counts (excluding closed epics)
     overview_active_count = sum(1 for chart in overview_charts if chart.get('is_active', True))
-    bigint_active_count = sum(1 for chart in bigint_charts if chart.get('is_active', True))
     iris_active_count = sum(1 for chart in iris_charts if chart.get('is_active', True))
 
     logger.info(f"Active epic counts - Overview: {overview_active_count}/{len(overview_charts)}, "
-                f"BIGINT: {bigint_active_count}/{len(bigint_charts)}, "
                 f"IRIS: {iris_active_count}/{len(iris_charts)}")
 
     # Generate the HTML
     html_content = generate_html_structure(
-        overview_charts, bigint_charts, iris_charts,
+        overview_charts, iris_charts,
         burndown_dir, fte_chart_html,
-        overview_active_count, bigint_active_count, iris_active_count
+        overview_active_count, iris_active_count
     )
 
     # Write the dashboard file
@@ -525,12 +482,10 @@ def generate_dashboard_html(burndown_dir: str, output_path: str) -> None:
 
 def generate_html_structure(
     overview_charts: List[dict],
-    bigint_charts: List[dict],
     iris_charts: List[dict],
     burndown_dir: str,
     fte_chart_html: str,
     overview_active_count: int,
-    bigint_active_count: int,
     iris_active_count: int
 ) -> str:
     """
@@ -538,12 +493,10 @@ def generate_html_structure(
 
     Args:
         overview_charts: List of chart metadata for Overview tab
-        bigint_charts: List of chart metadata for BIGINT tab
         iris_charts: List of chart metadata for IRIS tab
         burndown_dir: Base directory for burndown files (for relative paths)
         fte_chart_html: HTML string containing the FTE utilization chart
         overview_active_count: Number of active (non-closed) epics in Overview tab
-        bigint_active_count: Number of active (non-closed) epics in BIGINT tab
         iris_active_count: Number of active (non-closed) epics in IRIS tab
 
     Returns:
@@ -586,7 +539,6 @@ def generate_html_structure(
         return grid_html
 
     overview_html = generate_grid_html(overview_charts)
-    bigint_html = generate_grid_html(bigint_charts)
     iris_html = generate_grid_html(iris_charts)
 
     # Generate timestamp in dd-mm-yyyy HH:MM:SS format
@@ -818,10 +770,6 @@ def generate_html_structure(
                 Overview
                 <span class="tab-count">{overview_active_count}</span>
             </button>
-            <button class="tab-button" onclick="switchTab(event, 'bigint')">
-                BIGINT
-                <span class="tab-count">{bigint_active_count}</span>
-            </button>
             <button class="tab-button" onclick="switchTab(event, 'iris')">
                 IRIS
                 <span class="tab-count">{iris_active_count}</span>
@@ -833,10 +781,6 @@ def generate_html_structure(
 
         <div id="overview" class="tab-content active">
             {overview_html}
-        </div>
-
-        <div id="bigint" class="tab-content">
-            {bigint_html}
         </div>
 
         <div id="iris" class="tab-content">
