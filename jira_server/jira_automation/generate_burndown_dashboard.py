@@ -2,9 +2,9 @@
 """
 Burndown dashboard generation.
 
-This module generates a tabbed HTML dashboard that organizes COMPDIV burndown
+This module generates a tabbed HTML dashboard that organizes burndown
 charts into tabs:
-- Overview: All COMPDIV/ORCHDEPT*.html files in a 3-column grid
+- Overview: All ORCHDEPT*.html files in a 3-column grid
 - IRIS: All IRIS_*.html files in a 3-column grid
 - Bug Trends: Bug trending report
 
@@ -31,7 +31,7 @@ def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str, bool]:
     *** READ-ONLY FUNCTION - NEVER MODIFIES DATA ***
 
     Args:
-        epic_key: The epic key to look up (e.g., "COMPDIV-123")
+        epic_key: The epic key to look up (e.g., "ORCHDEPT-123")
         db_pool: Database connection pool
 
     Returns:
@@ -71,12 +71,12 @@ def get_epic_status_from_db(epic_key: str, db_pool) -> Tuple[bool, str, bool]:
 
 def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
     """
-    Fetch FTE utilization data for COMPDIV epics with BURNDWN filter flag.
+    Fetch FTE utilization data for epics with BURNDWN filter flag.
 
     Returns:
         Tuple of (total_ftes_available, total_ftes_allocated)
         - total_ftes_available: Total FTEs from environment variable
-        - total_ftes_allocated: Sum of 'Total FTE' field from COMPDIV epics
+        - total_ftes_allocated: Sum of 'Total FTE' field from epics
     """
     logger.start("Fetching FTE utilization data")
 
@@ -84,7 +84,7 @@ def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
     total_ftes_available = float(os.getenv('TOTAL_FTES', '78'))
     logger.info(f"Total FTEs available (from env): {total_ftes_available}")
 
-    # Query database for COMPDIV epics with BURNDWN filter flag
+    # Query database for ORCHDEPT epics with BURNDWN filter flag
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cur:
@@ -92,12 +92,12 @@ def fetch_fte_utilization_data(db_pool) -> Tuple[float, float]:
                 """
                 SELECT issue_key
                 FROM tbl_initiative_issue_keys
-                WHERE (issue_key LIKE 'COMPDIV-%' OR issue_key LIKE 'ORCHDEPT-%')
+                WHERE issue_key LIKE 'ORCHDEPT-%'
                 AND filter_flag = 'BURNDWN'
                 """
             )
             epic_keys = [row[0] for row in cur.fetchall()]
-            logger.info(f"Found {len(epic_keys)} COMPDIV/ORCHDEPT epics with BURNDWN filter")
+            logger.info(f"Found {len(epic_keys)} ORCHDEPT epics with BURNDWN filter")
 
     except Exception as e:
         logger.error(f"Failed to query database for epic keys: {e}")
@@ -249,7 +249,7 @@ def collect_html_files(burndown_dir: str) -> Tuple[List[str], List[str]]:
             # IRIS files have IRIS_ prefix and go exclusively to IRIS tab
             if filename.startswith('IRIS_'):
                 iris_files.append(filename)
-            elif filename.startswith('COMPDIV') or filename.startswith('ORCHDEPT'):
+            elif filename.startswith('ORCHDEPT'):
                 overview_files.append(filename)
             else:
                 # Any other files go to Overview by default
@@ -280,7 +280,7 @@ def extract_epic_title(html_path: str) -> Tuple[str, str]:
         with open(html_path, 'r', encoding='utf-8') as f:
             content = f.read()
             # Look for the title in the Plotly layout
-            # Pattern: "title":{"text":"Epic Title (COMPDIV-123)...
+            # Pattern: "title":{"text":"Epic Title (ORCHDEPT-123)...
             # Use a pattern that handles escaped quotes: (?:[^"\\]|\\.)*
             # This matches either: non-quote/non-backslash OR backslash followed by any character
             #
@@ -311,7 +311,7 @@ def extract_epic_title(html_path: str) -> Tuple[str, str]:
 
                         title = title.strip()
 
-                        # Extract epic key from title (e.g., "COMPDIV-120" from "Epic Title (COMPDIV-120)")
+                        # Extract epic key from title (e.g., "ORCHDEPT-120" from "Epic Title (ORCHDEPT-120)")
                         epic_key_match = re.search(r'\(([A-Z]+-\d+)\)', title)
                         epic_key = epic_key_match.group(1) if epic_key_match else None
 
@@ -549,7 +549,7 @@ def generate_html_structure(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COMPDIV Burndown Dashboard</title>
+    <title>Orchestration Burndown Dashboard</title>
     <style>
         * {{
             margin: 0;
@@ -755,8 +755,8 @@ def generate_html_structure(
 </head>
 <body>
     <div class="dashboard-header">
-        <h1>COMPDIV Burndown Dashboard</h1>
-        <p>Epic burndown charts organized by team - Updated: {timestamp}</p>
+        <h1>Orchestration Burndown Dashboard</h1>
+        <p>Epic burndown charts - Updated: {timestamp}</p>
     </div>
 
     <!-- FTE Utilization Chart -->
@@ -843,9 +843,9 @@ def generate_html_structure(
 
 def main():
     """Main entry point for dashboard generation."""
-    burndown_dir = os.getenv('COMPDIV_BURNDOWN_DIR')
+    burndown_dir = os.getenv('BURNDOWN_DIR')
     if not burndown_dir:
-        logger.error("COMPDIV_BURNDOWN_DIR environment variable not set")
+        logger.error("BURNDOWN_DIR environment variable not set")
         return
 
     if not os.path.exists(burndown_dir):

@@ -43,7 +43,7 @@ def close_completed_initiatives(jira, db_pool, initiative_type=None):
 
     *** DATA SAFETY ***
     This function ONLY updates tbl_initiative_issue_keys metadata.
-    It NEVER modifies burndown data tables (tbl_compdiv_burndown, tbl_iris_burndown).
+    It NEVER modifies burndown data tables.
     All changes are reversible via SQL UPDATE commands.
 
     Args:
@@ -51,7 +51,7 @@ def close_completed_initiatives(jira, db_pool, initiative_type=None):
         db_pool: Database connection pool
         initiative_type: Filter for which initiatives to check:
             - 'IRIS': Only IRIS initiatives (where "IRIS" = true)
-            - 'COMPDIV': Only COMPDIV initiatives (where issue_key ~ '^COMPDIV-\\d+$')
+            - 'ORCHDEPT': Only ORCHDEPT initiatives (where issue_key ~ '^ORCHDEPT-\\d+$')
             - None: All initiatives regardless of type
 
     Returns:
@@ -72,11 +72,11 @@ def close_completed_initiatives(jira, db_pool, initiative_type=None):
                       AND (active_flag IS NULL OR active_flag = true)
                 """
                 params = []
-            elif initiative_type == 'COMPDIV':
+            elif initiative_type == 'ORCHDEPT':
                 query = """
                     SELECT issue_key
                     FROM tbl_initiative_issue_keys
-                    WHERE issue_key ~ '^COMPDIV-\\d+$'
+                    WHERE issue_key ~ '^ORCHDEPT-\\d+$'
                       AND (active_flag IS NULL OR active_flag = true)
                 """
                 params = []
@@ -165,14 +165,14 @@ def close_completed_iris_initiatives(jira, db_pool):
     return close_completed_initiatives(jira, db_pool, initiative_type='IRIS')
 
 
-def close_completed_compdiv_initiatives(jira, db_pool):
+def close_completed_orchdept_initiatives(jira, db_pool):
     """
-    Checks all active COMPDIV initiatives and closes them if they are in a closed statusCategory.
+    Checks all active ORCHDEPT initiatives and closes them if they are in a closed statusCategory.
     Sets eff_end_date to current date and active_flag to false for closed initiatives.
 
-    This wrapper focuses specifically on COMPDIV epics (issue_key ~ '^COMPDIV-\\d+$').
+    This wrapper focuses specifically on ORCHDEPT epics (issue_key ~ '^ORCHDEPT-\\d+$').
     """
-    return close_completed_initiatives(jira, db_pool, initiative_type='COMPDIV')
+    return close_completed_initiatives(jira, db_pool, initiative_type='ORCHDEPT')
 
 
 def sync_initiatives_from_jql(jira, db_pool):

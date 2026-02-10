@@ -28,7 +28,7 @@ from tasks import (
     #run_derive_platform_version_task
 )
 
-from jira_automation.compdiv_burndown import build_plot_html
+from jira_automation.jira_burndown import build_plot_html
 
 # Load environment variables from .env file
 load_dotenv()

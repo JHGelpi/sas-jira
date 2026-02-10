@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from jira_automation.burndown_forecast import constrained_linear_forecast
-from jira_automation.compdiv_burndown import fetch_burndown_series
+from jira_automation.jira_burndown import fetch_burndown_series
 
 load_dotenv()
 

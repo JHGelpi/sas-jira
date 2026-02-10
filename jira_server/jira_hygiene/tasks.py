@@ -12,7 +12,7 @@ from jira import JIRA
 from jira_data_analysis import (jira_processor, initiative_children, investment_trends, db_utils)
 from jira_automation import (create_rca_subtasks, data_quality_report, customer_analysis,
                              derive_platform_version, ldap_manager_report, collect_bug_snapshots,
-                             generate_bug_charts, compdiv_burndown, generate_burndown_dashboard, iris_burndown)
+                             generate_bug_charts, jira_burndown, generate_burndown_dashboard, iris_burndown)
 from logging_utils import get_logger, log_section_header
 
 logger = get_logger(__name__)

@@ -12,7 +12,7 @@ from jira import JIRA
 from jira_data_analysis import (jira_processor, initiative_children, investment_trends, db_utils)
 from jira_automation import (create_rca_subtasks, data_quality_report, customer_analysis,
                              derive_platform_version, ldap_manager_report, collect_bug_snapshots,
-                             generate_bug_charts, compdiv_burndown, generate_burndown_dashboard, iris_burndown)
+                             generate_bug_charts, jira_burndown, generate_burndown_dashboard, iris_burndown)
 from logging_utils import get_logger, log_section_header
 
 logger = get_logger(__name__)
@@ -81,10 +81,10 @@ def run_jira_export_task(run_flag: str):
 
         jira_processor.process_and_load_issues(db_conn_pool, all_issues, run_flag, jira)
 
-        # Close completed initiatives daily (both IRIS and COMPDIV)
+        # Close completed initiatives daily
         # *** DATA SAFETY ***
         # This ONLY updates tbl_initiative_issue_keys metadata (eff_end_date, active_flag).
-        # Burndown data tables (tbl_compdiv_burndown, tbl_iris_burndown) are NEVER modified.
+        # Burndown data tables are NEVER modified.
         logger.processing("Checking for completed initiatives to close")
         try:
             initiative_children.close_completed_initiatives(jira, db_conn_pool, initiative_type=None)
@@ -319,18 +319,18 @@ def run_bug_chart_generation_task():
 
 
 def task_compdiv_burndown_all():
-    """Runs the COMPDIV burndown for all epics and regenerates the dashboard."""
-    log_section_header(logger, "COMPDIV BURNDOWN")
+    """Runs the Orchestration burndown for all epics and regenerates the dashboard."""
+    log_section_header(logger, "ORCHESTRATION BURNDOWN")
 
-    logger.start("Starting COMPDIV burndown for all epics")
+    logger.start("Starting Orchestration burndown for all epics")
     try:
-        # Refresh IRIS flags so COMPDIV burndown correctly excludes IRIS epics
+        # Refresh IRIS flags so burndown correctly excludes IRIS epics
         jira = get_jira_client()
         db_pool = db_utils.get_connection_pool()
         initiative_children.refresh_iris_flags(jira, db_pool)
 
-        results = compdiv_burndown.run_for_all_compdiv_epics(run_dt=date.today())
-        logger.complete(f"COMPDIV burndown completed for {len(results)} epics")
+        results = jira_burndown.run_for_all_epics(run_dt=date.today())
+        logger.complete(f"Orchestration burndown completed for {len(results)} epics")
 
         # Automatically regenerate the dashboard to refresh FTE values
         logger.info("Auto-triggering dashboard generation to refresh FTE values")
@@ -338,7 +338,7 @@ def task_compdiv_burndown_all():
 
         return results
     except Exception as e:
-        logger.exception(f"An error occurred during COMPDIV burndown: {e}")
+        logger.exception(f"An error occurred during Orchestration burndown: {e}")
         return {}
 
 

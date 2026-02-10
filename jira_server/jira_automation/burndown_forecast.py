@@ -1,11 +1,11 @@
 """
-Shared forecasting logic for COMPDIV and IRIS burndown charts.
+Shared forecasting logic for Orchestration and IRIS burndown charts.
 
 Implements constrained linear regression with 365-day maximum completion horizon.
 When the natural burndown slope is too shallow (would predict completion > 365 days),
 returns no forecast instead of showing an unrealistic prediction.
 
-This module eliminates code duplication between compdiv_burndown.py and iris_burndown.py.
+This module eliminates code duplication between jira_burndown.py and iris_burndown.py.
 """
 
 from __future__ import annotations

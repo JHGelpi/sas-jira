@@ -541,7 +541,7 @@ def cleanup_old_iris_html_files(active_epic_keys: Set[str]) -> None:
         active_epic_keys: Set of epic keys currently being tracked
     """
     load_dotenv()
-    base_dir = os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+    base_dir = os.getenv("BURNDOWN_DIR") or os.path.join("reports", "burndown")
 
     if not os.path.exists(base_dir):
         logger.warning(f"Burndown directory does not exist: {base_dir}")
@@ -553,7 +553,7 @@ def cleanup_old_iris_html_files(active_epic_keys: Set[str]) -> None:
         removed_count = 0
 
         for filename in all_files:
-            # Extract epic key from filename (e.g., IRIS_COMPDIV-123_burndown.html -> COMPDIV-123)
+            # Extract epic key from filename (e.g., IRIS_ORCHDEPT-123_burndown.html -> ORCHDEPT-123)
             import re
             match = re.search(r'IRIS_([A-Z]+-\d+)_burndown\.html', filename)
             if match:
@@ -667,8 +667,8 @@ def _should_trace(epic_key: str) -> bool:
     """Return True if the current epic should emit per-issue trace logs.
     Controlled via env var IRIS_TRACE. Examples:
       IRIS_TRACE="*"                  -> trace all epics
-      IRIS_TRACE="COMPDIV-72"         -> trace just 72
-      IRIS_TRACE="COMPDIV-72,COMPDIV-45" -> trace a list
+      IRIS_TRACE="ORCHDEPT-72"        -> trace just 72
+      IRIS_TRACE="ORCHDEPT-72,ORCHDEPT-45" -> trace a list
     """
     load_dotenv()
     spec = os.getenv("IRIS_TRACE", "").strip()
@@ -876,7 +876,7 @@ def build_plot_html(epic_key: str) -> str:
         if x_axis_end:
             fig.update_xaxes(range=[_to_dt(min(dates)), x_axis_end])
 
-    # Add clickable title (matching COMPDIV/BIGINT format)
+    # Add clickable title
     jira_url = f"https://rndjira.sas.com/browse/{epic_key}"
     chart_title = f"{epic_key}<br>{epic_title}<br><sup>Fix Version: <b>{fix_version}</b> | Status: <b>{status_name}</b></sup>"
 
@@ -945,13 +945,13 @@ def build_plot_html(epic_key: str) -> str:
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
-    """Write/overwrite a single HTML file for an epic in COMPDIV_BURNDOWN_DIR (or default dir).
+    """Write/overwrite a single HTML file for an epic in BURNDOWN_DIR (or default dir).
     File name: IRIS_EPIC123_burndown.html (prefixed with IRIS_ to distinguish from regular burndowns)
     Returns the path written.
     """
-    # Allow .env override - use same directory as COMPDIV burndown
+    # Allow .env override - use same directory as main burndown
     load_dotenv()
-    base_dir = out_dir or os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+    base_dir = out_dir or os.getenv("BURNDOWN_DIR") or os.path.join("reports", "burndown")
     os.makedirs(base_dir, exist_ok=True)
     html = build_plot_html(epic_key)
     # Prefix with IRIS_ to distinguish IRIS initiative burndowns

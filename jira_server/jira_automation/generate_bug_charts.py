@@ -564,7 +564,7 @@ def main():
             logger.error(f"Failed to copy report to homepage directory: {e}")
 
     # Copy to burndown directory for dashboard integration
-    burndown_dir = os.getenv('COMPDIV_BURNDOWN_DIR')
+    burndown_dir = os.getenv('BURNDOWN_DIR')
     if burndown_dir:
         try:
             os.makedirs(burndown_dir, exist_ok=True)

@@ -122,7 +122,7 @@ def get_epic_display_name(epic_key: str) -> str:
 
 
 def get_epic_status_info(epic_key: str) -> tuple[bool, str]:
-    """Return (is_closed, status_name) for the COMPDIV epic.
+    """Return (is_closed, status_name) for the epic.
     Uses Jira statusCategory when available; falls back to name hints.
     """
     jira = get_client()
@@ -352,7 +352,7 @@ def _child_linked_keys_from_issue(issue) -> List[str]:
 
 def collect_issue_keys_for_epic(epic_key: str, max_depth: int = MAX_DEPTH_DEFAULT) -> List:
     """
-    Return the set of issues to count toward COMPDIV burndown for a given epic, defined as:
+    Return the set of issues to count toward burndown for a given epic, defined as:
       • Issues IN the epic (via Epic Link), and
       • All descendants reached by recursively following *child* relationships
         (Parent/Child-style links and Jira subtasks) up to `max_depth` levels,
@@ -537,28 +537,28 @@ def upsert_burndown_row(run_dt: date, epic_key: str, bug: float, story: float, t
         pool.putconn(conn)
 
 
-def cleanup_old_compdiv_html_files(active_epic_keys: Set[str]) -> None:
-    """Remove HTML files for COMPDIV epics that are no longer being tracked (completed > 30 days ago).
+def cleanup_old_html_files(active_epic_keys: Set[str]) -> None:
+    """Remove HTML files for epics that are no longer being tracked (completed > 30 days ago).
 
     Args:
         active_epic_keys: Set of epic keys currently being tracked
     """
     load_dotenv()
-    base_dir = os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+    base_dir = os.getenv("BURNDOWN_DIR") or os.path.join("reports", "burndown")
 
     if not os.path.exists(base_dir):
         logger.warning(f"Burndown directory does not exist: {base_dir}")
         return
 
-    # Find all COMPDIV/ORCHDEPT HTML files (excluding IRIS_ prefixed files)
+    # Find all ORCHDEPT HTML files (excluding IRIS_ prefixed files)
     try:
         all_files = [f for f in os.listdir(base_dir)
-                     if (f.startswith("COMPDIV") or f.startswith("ORCHDEPT")) and f.endswith("_burndown.html") and not f.startswith("IRIS_")]
+                     if f.startswith("ORCHDEPT") and f.endswith("_burndown.html") and not f.startswith("IRIS_")]
         removed_count = 0
 
         for filename in all_files:
-            # Extract epic key from filename (e.g., COMPDIV-123_burndown.html -> COMPDIV-123, ORCHDEPT-456_burndown.html -> ORCHDEPT-456)
-            match = re.search(r'((?:COMPDIV|ORCHDEPT)-\d+)_burndown\.html', filename)
+            # Extract epic key from filename (e.g., ORCHDEPT-456_burndown.html -> ORCHDEPT-456)
+            match = re.search(r'(ORCHDEPT-\d+)_burndown\.html', filename)
             if match:
                 epic_key = match.group(1)
                 if epic_key not in active_epic_keys:
@@ -574,17 +574,17 @@ def cleanup_old_compdiv_html_files(active_epic_keys: Set[str]) -> None:
             logger.debug("No old burndown HTML files to clean up")
 
     except Exception as e:
-        logger.exception(f"Error during COMPDIV HTML cleanup: {e}")
+        logger.exception(f"Error during HTML cleanup: {e}")
 
 
-def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | None = None) -> Dict[str, Tuple[float, float, float, float]]:
-    """Load epic keys from tbl_initiative_issue_keys and compute/store today’s totals for each.
-    Optionally filter which COMPDIV epics to run via the new `filter_flag` column.
+def run_for_all_epics(run_dt: date | None = None, filter_flag: str | None = None) -> Dict[str, Tuple[float, float, float, float]]:
+    """Load epic keys from tbl_initiative_issue_keys and compute/store today's totals for each.
+    Optionally filter which epics to run via the `filter_flag` column.
 
     Filtering behavior
     ------------------
     • If `filter_flag` param is provided (non-empty), only rows where tbl_initiative_issue_keys.filter_flag = filter_flag are used.
-    • If the param is None/empty, we will read COMPDIV_FILTER_FLAG from the environment; if unset, all epics are used.
+    • If the param is None/empty, we will read BURNDWN_FILTER_FLAG from the environment; if unset, all epics are used.
     • The column is CHAR(7) and optional; equality works fine even with CHAR padding in Postgres.
 
     Emits a clear completion log when finished.
@@ -595,7 +595,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
     # Resolve filter flag from param or environment
     if not filter_flag:
         load_dotenv()
-        ff = os.getenv("COMPDIV_FILTER_FLAG", "").strip()
+        ff = os.getenv("BURNDWN_FILTER_FLAG", "").strip()
         filter_flag = ff or None
 
     # Load candidate epics (optionally filtered)
@@ -628,7 +628,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                     """
                     SELECT DISTINCT issue_key
                     FROM public.tbl_initiative_issue_keys
-                    WHERE issue_key ~ '^(COMPDIV|ORCHDEPT)-\d+$'
+                    WHERE issue_key ~ '^ORCHDEPT-\d+$'
                       AND (
                         active_flag IS NULL
                         OR active_flag = true
@@ -654,7 +654,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
             # Check epic status for logging purposes (but process regardless of status for historical data)
             is_closed, epic_status_name = get_epic_status_info(epic)
             status_label = "CLOSED" if is_closed else "ACTIVE"
-            logger.info("COMPDIV burndown start: %s (status: %s - %s)", epic, status_label, epic_status_name)
+            logger.info("Burndown start: %s (status: %s - %s)", epic, status_label, epic_status_name)
 
             issues = collect_issue_keys_for_epic(epic, MAX_DEPTH_DEFAULT)
             #logger.info("Collected %d issues for %s", len(issues), epic)
@@ -668,7 +668,7 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
             successes += 1
             '''
             logger.info(
-                "COMPDIV burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
+                "Burndown done: %s (bug=%.2f story=%.2f task_research=%.2f total=%.2f)",
                 epic,
                 bug,
                 story,
@@ -676,10 +676,10 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
                 total,
             )
             '''
-            # Write/overwrite the HTML chart file for this epic (unless COMPDIV_SKIP_HTML is set)
+            # Write/overwrite the HTML chart file for this epic (unless SKIP_HTML is set)
             try:
                 load_dotenv()
-                skip_html = os.getenv("COMPDIV_SKIP_HTML", "").strip().lower() in {"1","true","yes","y"}
+                skip_html = os.getenv("SKIP_HTML", "").strip().lower() in {"1","true","yes","y"}
                 if not skip_html:
                     path = write_plot_html(epic)
                     #logger.info("Wrote burndown HTML: %s", path)
@@ -693,13 +693,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
     # Clean up HTML files for epics no longer being tracked (completed > 30 days ago)
     try:
-        cleanup_old_compdiv_html_files(set(epic_keys))
+        cleanup_old_html_files(set(epic_keys))
     except Exception:
-        logger.exception("Failed to clean up old COMPDIV HTML files")
+        logger.exception("Failed to clean up old HTML files")
 
     # Final, explicit completion confirmation
     logger.info(
-        "COMPDIV burndown completed successfully. run_date=%s, epics_total=%d, successes=%d, failures=%d, duration=%.2fs",
+        "Burndown completed successfully. run_date=%s, epics_total=%d, successes=%d, failures=%d, duration=%.2fs",
         run_dt, len(results) + failures, successes, failures, duration,
     )
     return results
@@ -707,13 +707,13 @@ def run_for_all_compdiv_epics(run_dt: date | None = None, filter_flag: str | Non
 
 def _should_trace(epic_key: str) -> bool:
     """Return True if the current epic should emit per-issue trace logs.
-    Controlled via env var COMPDIV_TRACE. Examples:
-      COMPDIV_TRACE="*"                  -> trace all epics
-      COMPDIV_TRACE="COMPDIV-72"         -> trace just 72
-      COMPDIV_TRACE="COMPDIV-72,COMPDIV-45" -> trace a list
+    Controlled via env var JIRA_TRACE. Examples:
+      JIRA_TRACE="*"                  -> trace all epics
+      JIRA_TRACE="ORCHDEPT-72"        -> trace just 72
+      JIRA_TRACE="ORCHDEPT-72,ORCHDEPT-45" -> trace a list
     """
     load_dotenv()
-    spec = os.getenv("COMPDIV_TRACE", "").strip()
+    spec = os.getenv("JIRA_TRACE", "").strip()
     if not spec:
         return False
     if spec == "*":
@@ -726,7 +726,7 @@ def _should_trace(epic_key: str) -> bool:
 
 def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float = 0.80):
     """
-    Wrapper for shared constrained forecast logic with COMPDIV-specific config.
+    Wrapper for shared constrained forecast logic.
 
     Uses constrained linear regression with 365-day maximum completion horizon.
     If the natural burndown slope is too shallow (would predict completion > 365 days),
@@ -749,12 +749,12 @@ def _linear_zero_day_with_ci(dates: List[date], totals: List[float], conf: float
 
     Notes
     -----
-    Respects COMPDIV_MAX_LOOKAHEAD_DAYS environment variable for optional
+    Respects MAX_LOOKAHEAD_DAYS environment variable for optional
     horizon limiting (0 = disabled).
     """
     load_dotenv()
     try:
-        max_look = int(os.getenv("COMPDIV_MAX_LOOKAHEAD_DAYS") or 0)
+        max_look = int(os.getenv("MAX_LOOKAHEAD_DAYS") or 0)
     except Exception:
         max_look = 0
 
@@ -1010,13 +1010,13 @@ def build_plot_html(epic_key: str) -> str:
 
 
 def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
-    """Write/overwrite a single HTML file for an epic in COMPDIV_BURNDOWN_DIR (or default dir).
-    File name: COMPDIV123_burndown.html
+    """Write/overwrite a single HTML file for an epic in BURNDOWN_DIR (or default dir).
+    File name: {epic_key}_burndown.html
     Returns the path written.
     """
     # Allow .env override
     load_dotenv()
-    base_dir = out_dir or os.getenv("COMPDIV_BURNDOWN_DIR") or os.path.join("reports", "compdiv_burndown")
+    base_dir = out_dir or os.getenv("BURNDOWN_DIR") or os.path.join("reports", "burndown")
     os.makedirs(base_dir, exist_ok=True)
     html = build_plot_html(epic_key)
     path = os.path.join(base_dir, f"{epic_key}_burndown.html")
@@ -1028,7 +1028,7 @@ def write_plot_html(epic_key: str, out_dir: str | None = None) -> str:
 __all__ = [
     "collect_issue_keys_for_epic",
     "compute_point_totals",
-    "run_for_all_compdiv_epics",
+    "run_for_all_epics",
     "fetch_burndown_series",
     "build_plot_html",
     "get_epic_display_name",

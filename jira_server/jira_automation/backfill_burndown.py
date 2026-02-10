@@ -1,17 +1,17 @@
 from __future__ import annotations
 # -----------------------------
-# File: scripts/backfill_compdiv_burndown.py
+# File: scripts/backfill_burndown.py
 # Purpose: One-time backfill of current ("as-is") totals into past business days
-#          for COMPDIV epics flagged with filter_flag = 'BURNDWN'.
+#          for epics flagged with filter_flag = 'BURNDWN'.
 # Usage:
 #   # Optional overrides via env vars:
-#   #   COMPDIV_BACKFILL_START=2025-07-01
-#   #   COMPDIV_BACKFILL_END=2025-09-29
-#   #   COMPDIV_BACKFILL_FLAG=BURNDWN
-#   #   COMPDIV_SKIP_HTML=1   # recommended to speed up backfill
-#   python -m scripts.backfill_compdiv_burndown
+#   #   BACKFILL_START=2025-07-01
+#   #   BACKFILL_END=2025-09-29
+#   #   BACKFILL_FLAG=BURNDWN
+#   #   SKIP_HTML=1   # recommended to speed up backfill
+#   python -m scripts.backfill_burndown
 
-# --- BEGIN backfill_compdiv_burndown.py ---
+# --- BEGIN backfill_burndown.py ---
 
 #import logging
 import os
@@ -19,7 +19,7 @@ from datetime import date, timedelta, datetime
 
 from dotenv import load_dotenv
 
-from jira_automation.compdiv_burndown import run_for_all_compdiv_epics
+from jira_automation.jira_burndown import run_for_all_epics
 
 from logging_utils import get_logger
 
@@ -60,27 +60,27 @@ def main():
     start_default = date(2025, 7, 1)
     end_default = date(2025, 9, 29)
 
-    start = _parse_date_env("COMPDIV_BACKFILL_START", start_default)
-    end = _parse_date_env("COMPDIV_BACKFILL_END", end_default)
+    start = _parse_date_env("BACKFILL_START", start_default)
+    end = _parse_date_env("BACKFILL_END", end_default)
     if start > end:
         start, end = end, start
 
     # Ensure we only process BURNDWN epics
-    filter_flag = os.getenv("COMPDIV_BACKFILL_FLAG", "BURNDWN").strip() or "BURNDWN"
+    filter_flag = os.getenv("BACKFILL_FLAG", "BURNDWN").strip() or "BURNDWN"
 
     # Optional: skip chart writes during backfill to save time/disk
-    os.environ.setdefault("COMPDIV_SKIP_HTML", "1")
+    os.environ.setdefault("SKIP_HTML", "1")
 
     logging.info("Backfill starting for business days %s -> %s, filter_flag=%s", start, end, filter_flag)
     total_runs = 0
     for d in business_days(start, end):
         total_runs += 1
         logging.info("Backfill run for %s...", d)
-        run_for_all_compdiv_epics(run_dt=d, filter_flag=filter_flag)
+        run_for_all_epics(run_dt=d, filter_flag=filter_flag)
 
     logging.info("Backfill complete. Days processed: %d", total_runs)
 
 
 if __name__ == "__main__":
     main()
-# --- END scripts/backfill_compdiv_burndown.py ---
+# --- END scripts/backfill_burndown.py ---

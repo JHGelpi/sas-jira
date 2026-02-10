@@ -41,7 +41,7 @@ from tasks import (
     task_iris_burndown_all
 )
 
-from jira_automation.compdiv_burndown import build_plot_html
+from jira_automation.jira_burndown import build_plot_html
 
 # Load environment variables from .env file
 load_dotenv()
@@ -318,20 +318,20 @@ async def trigger_bug_chart_generation(background_tasks: BackgroundTasks):
     }
 
 
-@app.post("/jobs/compdiv-burndown", status_code=202, summary="Trigger COMPDIV Burndown for All Epics")
+@app.post("/jobs/compdiv-burndown", status_code=202, summary="Trigger Orchestration Burndown for All Epics")
 async def trigger_compdiv_burndown(background_tasks: BackgroundTasks):
     """
-    Enqueues a background job to run COMPDIV burndown analysis for all epics.
+    Enqueues a background job to run Orchestration burndown analysis for all epics.
     Automatically regenerates the dashboard with updated FTE values upon completion.
     """
-    logger.info("COMPDIV burndown job endpoint triggered via API")
-    logger.processing("Scheduling COMPDIV burndown background task (includes dashboard generation)")
+    logger.info("Orchestration burndown job endpoint triggered via API")
+    logger.processing("Scheduling Orchestration burndown background task (includes dashboard generation)")
 
     background_tasks.add_task(task_compdiv_burndown_all)
 
-    logger.success("COMPDIV burndown job scheduled")
+    logger.success("Orchestration burndown job scheduled")
     return {
-        "message": "Enqueued COMPDIV burndown for all epics (includes dashboard generation)",
+        "message": "Enqueued Orchestration burndown for all epics (includes dashboard generation)",
         "status": "scheduled",
         "tasks": ["compdiv_burndown", "dashboard_generation"]
     }
@@ -360,7 +360,7 @@ async def trigger_iris_burndown(background_tasks: BackgroundTasks):
 async def trigger_burndown_dashboard_generation(background_tasks: BackgroundTasks):
     """
     Generates the burndown dashboard HTML file from existing burndown charts.
-    Creates a tabbed interface organizing COMPDIV, COMPLANG, and COMPHOST charts.
+    Creates a tabbed interface organizing Orchestration and IRIS charts.
     """
     logger.info("Burndown dashboard generation endpoint triggered via API")
     logger.processing("Scheduling burndown dashboard generation background task")
@@ -375,18 +375,18 @@ async def trigger_burndown_dashboard_generation(background_tasks: BackgroundTask
     }
 
 
-@app.get("/reports/compdiv-burndown/{epic_key}", response_class=HTMLResponse, summary="View COMPDIV Burndown Report")
+@app.get("/reports/compdiv-burndown/{epic_key}", response_class=HTMLResponse, summary="View Orchestration Burndown Report")
 async def report_compdiv_burndown(epic_key: str):
     """
-    Retrieves and displays the burndown chart for a specific COMPDIV epic.
-    
+    Retrieves and displays the burndown chart for a specific Orchestration epic.
+
     Args:
-        epic_key: The Jira epic key (e.g., COMPDIV-123)
-    
+        epic_key: The Jira epic key (e.g., ORCHDEPT-123)
+
     Returns:
         HTML page with the burndown chart
     """
-    logger.info(f"COMPDIV burndown report requested for epic: {epic_key}")
+    logger.info(f"Orchestration burndown report requested for epic: {epic_key}")
     
     try:
         html = build_plot_html(epic_key)
