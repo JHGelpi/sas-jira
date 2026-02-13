@@ -12,7 +12,9 @@ from jira import JIRA
 from jira_data_analysis import (jira_processor, initiative_children, investment_trends, db_utils)
 from jira_automation import (create_rca_subtasks, data_quality_report, customer_analysis,
                              derive_platform_version, ldap_manager_report, collect_bug_snapshots,
-                             generate_bug_charts, jira_burndown, generate_burndown_dashboard, iris_burndown)
+                             generate_bug_charts, jira_burndown, generate_burndown_dashboard, iris_burndown,
+                             changelog_dashboard)
+from jira_data_analysis import issue_changelog
 from logging_utils import get_logger, log_section_header
 
 logger = get_logger(__name__)
@@ -376,3 +378,30 @@ def task_iris_burndown_all():
     except Exception as e:
         logger.exception(f"An error occurred during IRIS burndown: {e}")
         return {}
+
+
+def run_changelog_collection_task():
+    """Runs the Jira changelog collection task."""
+    log_section_header(logger, "CHANGELOG COLLECTION")
+
+    logger.start("Starting changelog collection task")
+    try:
+        issue_changelog.main()
+        logger.complete("Changelog collection completed successfully")
+    except Exception as e:
+        logger.exception(f"An error occurred during changelog collection: {e}")
+
+
+def run_changelog_dashboard_task():
+    """Runs changelog collection then generates the changelog dashboard."""
+    log_section_header(logger, "CHANGELOG DASHBOARD")
+
+    logger.start("Starting changelog dashboard task")
+    try:
+        logger.info("Running changelog collection first to ensure data is fresh")
+        issue_changelog.main()
+        logger.info("Now generating changelog dashboard")
+        changelog_dashboard.main()
+        logger.complete("Changelog dashboard generation completed successfully")
+    except Exception as e:
+        logger.exception(f"An error occurred during changelog dashboard generation: {e}")

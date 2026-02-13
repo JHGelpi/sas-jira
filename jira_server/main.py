@@ -38,7 +38,9 @@ from tasks import (
     run_new_release_export_task,
     task_compdiv_burndown_all,
     run_burndown_dashboard_generation_task,
-    task_iris_burndown_all
+    task_iris_burndown_all,
+    run_changelog_collection_task,
+    run_changelog_dashboard_task
 )
 
 from jira_automation.jira_burndown import build_plot_html
@@ -398,6 +400,44 @@ async def report_compdiv_burndown(epic_key: str):
             status_code=500,
             detail=f"Failed to generate burndown report for {epic_key}"
         )
+
+
+@app.post("/jobs/collect-changelog", status_code=202, summary="Collect Jira Issue Changelog Data")
+async def trigger_changelog_collection(background_tasks: BackgroundTasks):
+    """
+    Starts a job to fetch changelog data from recently updated Jira issues
+    and store it in the database for activity analysis.
+    """
+    logger.info("Changelog collection job endpoint triggered via API")
+    logger.processing("Scheduling changelog collection background task")
+
+    background_tasks.add_task(run_changelog_collection_task)
+
+    logger.success("Changelog collection job scheduled")
+    return {
+        "message": "Changelog collection job started in the background.",
+        "status": "scheduled",
+        "tasks": ["changelog_collection"]
+    }
+
+
+@app.post("/jobs/generate-changelog-dashboard", status_code=202, summary="Generate Changelog Activity Dashboard")
+async def trigger_changelog_dashboard(background_tasks: BackgroundTasks):
+    """
+    Collects fresh changelog data and generates an interactive HTML dashboard
+    showing Jira issue modification patterns.
+    """
+    logger.info("Changelog dashboard generation endpoint triggered via API")
+    logger.processing("Scheduling changelog dashboard generation background task")
+
+    background_tasks.add_task(run_changelog_dashboard_task)
+
+    logger.success("Changelog dashboard generation scheduled")
+    return {
+        "message": "Changelog dashboard generation started in the background.",
+        "status": "scheduled",
+        "tasks": ["changelog_collection", "changelog_dashboard"]
+    }
 
 
 @app.exception_handler(Exception)

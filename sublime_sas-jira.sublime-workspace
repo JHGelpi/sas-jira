@@ -11,6 +11,311 @@
 	},
 	"buffers":
 	[
+		{
+			"contents": "# Servers/Host connection details\nDB_HOST=localhost\nDB_USER=jira_user\nDB_PASSWORD=Nursery8-Spherical-Deputy\nDB_NAME=jira_data\nDB_CONN_TIMEOUT=10\nDATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/jira_data\nJIRA_URL=https://rndjira.sas.com/\nJIRA_TOKEN=NTAwMzk3MDU0NjM0OulUkFHgw3GmBTs+Z4nuccbAoT+E\nJIRA_USER=\nJIRA_PASSWORD=\nLDAP_USER=wes.gelpi@sas.com\nLDAP_PASS=Prepaid-Reluctant4-Snowfall\nLDAP_INCLUDE_EMAILS=wes.gelpi@sas.com\nTEAMS_WEBHOOK_URL=\"https://defaultb1c14d5c362545b3a4309552373a0c.2f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cf1e98fbac2541378070cc6fb7607652/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-h-CXtMQ1uTghADYtXFJNdDrG_NXi9xN6m_2B9WS-ts\"\nDATA_QUALITY_FALLBACK_NAME=\"Wes Gelpi\"\nDATA_QUALITY_FALLBACK_EMAIL=\"wes.gelpi@sas.com\"\nDATA_QUALITY_EXCLUDE_PROJECTS=\"SIGNOFF,DEVOPSTEST, VSST\"\n#COMPDIV_TRACE=\"\"\nJIRA_TRACE=\"\"\n#COMPDIV_FILTER_FLAG=BURNDWN\nBURNDWN_FILTER_FLAG=BURNDWN\n#COMPDIV_MAX_LOOKAHEAD_DAYS=180\nMAX_LOOKAHEAD_DAYS=180\n#COMPDIV_BACKFILL_START=2026-01-15\nBACKFILL_START=2026-01-15\n#COMPDIV_BACKFILL_END=2026-01-15\nBACKFILL_END=2026-01-15\n#COMPDIV_SKIP_HTML=0\nSKIP_HTML=0\nTOTAL_FTES=45\n\n# JIRA Projects and Query/API parameters\nJIRA_PROJECTS=ORCHDEPT, COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS\nJIRA_MAX_RESULT=750\nJIRA_MAX_RETRIES=3\nJIRA_INITIATIVE_LABELS=orchdept-2026q1, orchdept-2026q2, orchdept-2026q3, orchdept-2026q4\nJIRA_IRIS_LABELS=orchestration_dept_iris_2026\nJIRA_INITIATIVE_JQL=\"project = ORCHDEPT AND labels in (orchdept-2026q1, orchdept-2026q2, orchdept-2026q3, orchdept-2026q4, orchestration_dept_iris_2026) AND type = Epic\"\nJIRA_PUSH_REPORT_DAYS=\"7\"\nJIRA_ICEBOX_DOC_NEEDED_VALUE=\"No\"\n\n# Settings for the RCA Sub-task creation job\nJIRA_RCA_ORIGIN_FIELD_ID=\"customfield_14504\"\nJIRA_CREATED_DATE=\"2025-08-01\"\nJIRA_RCA_ORIGIN_FIELD_NAME=\"Origin\"\n\n# JQL queries\nJQL_QUERY=\"project in (ORCHDEPT,COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS) AND type = Bug AND statusCategory != Done AND updatedDate <= endOfDay(-185) AND labels != orchdept-icebox-ignore\"\nJQL_QUERY_ICEBOX=\"project in (ORCHDEPT,COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS) AND labels = orchdept-icebox AND statusCategory != Done AND type = Bug AND updatedDate <= endOfDay(-30) AND labels != orchdept-icebox-ignore\"\nJQL_MISSING_FIXVER=\"filter = 94789 AND issuetype in (bug, story) AND resolution is EMPTY AND Fixversion is EMPTY AND statusCategory in ('In Progress') AND category != 'Software Delivery Engineering' AND project in (ORCHDEPT,COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS) AND updated >= '2025-01-01' ORDER BY status DESC\"\nJQL_INVALID_FIXVER=\"project in (ORCHDEPT,COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS) AND issuetype in (bug, story) AND (fixVersion is EMPTY OR fixVersion in(Now, 'Next', Future) ) AND (statusCategory in (Done) AND resolution in (Fixed, Completed, Done, Approved) ) AND updated >= endOfDay(-30) ORDER BY status DESC\"\n\n#Update to filter out those matching JIRA_PROJECTS env var\nJQL_MISSING_ORIGIN=\"filter = 'RnD-All-Divisions (v3.4)' AND filter = 'Bug in Progress' AND Origin is EMPTY AND updated >= '2025-01-01'\"\nJQL_MISSING_PIPEDISC=\"filter = 'RnD-All-Divisions (v3.4)' AND filter = 'Bug in Progress' AND 'Pipeline Discovery Stage' is EMPTY AND updated >= '2025-01-01'\"\nJQL_MISSING_PLATVER=\"filter = 'RnD-All-Divisions (v3.4)' AND filter = 'Bug in Progress' AND 'Platform Version' is EMPTY AND updated >= '2025-01-01'\"\nJQL_MISSING_SEVERITY=\"filter = 'RnD-All-Divisions (v3.4)' AND filter = 'Bug in Progress' AND Severity is EMPTY AND updated >= '2025-01-01'\"\nJQL_MISSING_AFFVER=\"filter = 'RnD-All-Divisions (v3.4)' AND issuetype in (bug) AND resolution is EMPTY AND (Origin in (CRP, ICRP, BRP) OR 'Pipeline Discovery Stage' = shipped) AND affectedVersion is EMPTY AND status in ('Developing(W)', 'Review-ready(Q)', 'Testing(W)', 'In Dev', 'In Test', 'In Verification', 'Ready for Merge', 'Ready for Verification', 'Test-ready(Q)', 'Code Review', testing, 'Final Sign-off', 'Ready for Test') AND category != 'Software Delivery Engineering' AND updated >= '2025-01-01'\"\nJQL_MISSING_COMMENT=\"filter = 94789 AND issuetype = bug AND filter != peng-bugs-in-triage AND origin in (CRP, BRP, ICRP, 'CRP PLAT', 'CRP PREM', 'CRP STND') AND Status not in ('Waiting on Requestor', 'Waiting on Resources', 'Waiting on Response') AND fixVersion is EMPTY AND resolution is EMPTY AND (Priority = blocker AND issueFunction in lastComment('before startOfDay(-1d)') AND NOT (issueFunction in lastComment('after startOfWeek(-2d) before startOfWeek(-1d) after startOfDay(-3d) before startOfDay(-1d)') OR issueFunction in lastComment('after startOfWeek(-1d) before startOfWeek() after startOfDay(-2d) before startOfDay(-1d)')) OR Priority = Critical AND issueFunction in lastComment('before startOfDay(-7d)') OR Priority in (Major, High) AND issueFunction in lastComment('before startOfDay(-30d)')) AND priority = Major\"\n\nJQL_CLT_BUGS=\"project in (ORCHDEPT,COMPWLM, DECPO, BOSS, PMBOSS, RFCSOLUTIONS) AND labels = CLTVIYA4.0.1 AND statusCategory != Done AND type = Bug\"\n\n# Folders and Directories\nBASE_DIR=\nOUTPUT_DIR=/tmp/jira_data\nCSV_HEADERS=epic_link, parent_link, operational_epic_team, operational_flag, triage_origin, pipeline_discovery_stage, bug_origin, escaped_bug, fix_version, component, issue_key, summary, issue_url, type, state, assignee, status, start_date, end_date, completed_date, sprint_name, labels, sprint_owner, export_date, story_points, run_flag, jira_created_date, jira_updated_date\nVIZ_DIR=/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/__ComputeDiv-Leadership/okr_data\nJIRA_DQ_REPORT_COPY_DIR=\"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/__ComputeDiv-Leadership/jira_audit/\"\nJIRA_REPORT_DIR=\"./reports\"\nHOMEPAGE_REPORTS_DIR=\"/Users/wegelpi/github_repos/homepage/reports/\"\nJIRA_CUSTOMER_JSON_PATH=\"./helper_files/customer_support_lvls.json\"\n#COMPDIV_BURNDOWN_DIR=\"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Orchestration - Orchestration/orchdept_burndown/\"\nBURNDOWN_DIR=\"/Users/wegelpi/Library/CloudStorage/OneDrive-SAS/Orchestration - Orchestration/orchdept_burndown/\"\n\n# The JIRA labels\nLABEL_TO_ADD=orchdept-icebox\nLABEL_IGNORE=orchdept-icebox-ignore\n\n# Comments\nCOMMENT_TO_ADD=\"***THIS IS AN AUTOMATED MESSAGE***\\n\\nThis issue has not been updated in over 6 months. It has been marked as stale and may be subject to closure.  If you believe this bug is still relevant and required please remove the 'orchdept-icebox' label and leave a comment with your business reason.  Thank you.\"\nCOMMENT_TO_ADD_ICEBOX=\"***THIS IS AN AUTOMATED MESSAGE***\\n\\nThis issue has not been updated in over 30 days and has the 'compdiv-icebox' label. It has therefore been closed out. If you need this bug reopened, please leave a comment explaining business need/justification and re-open the ticket. Thank you.\\n\\n\"\nCOMMENT_TO_ADD_RCA_ST=\"**Created via Automation**\\n\\nBased on the criteria of this being a Critical bug and having a CRP origin, please complete a Root Cause Analysis (RCA) by following the steps here: https://rndconfluence.sas.com/display/RDOPS/Root+Cause+Analysis+in+Platform+Engineering\\n\\nPlease be sure to focus on the '5 Whys' section.\" \n",
+			"file": "jira_server/.env",
+			"file_size": 7187,
+			"file_write_time": 134152127937476660,
+			"settings":
+			{
+				"buffer_size": 7187,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					32,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAAIIDAAAAAAAAgwMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAggMAAAAAAACCAwAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					35,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAJQDAAAAAAAAlQMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAlAMAAAAAAACUAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					37,
+					1,
+					"insert",
+					{
+						"characters": "JIRA_TRACE"
+					},
+					"CgAAAJQDAAAAAAAAlQMAAAAAAAAAAAAAlQMAAAAAAACWAwAAAAAAAAAAAACWAwAAAAAAAJcDAAAAAAAAAAAAAJcDAAAAAAAAmAMAAAAAAAAAAAAAmAMAAAAAAACZAwAAAAAAAAAAAACZAwAAAAAAAJoDAAAAAAAAAAAAAJoDAAAAAAAAmwMAAAAAAAAAAAAAmwMAAAAAAACcAwAAAAAAAAAAAACcAwAAAAAAAJ0DAAAAAAAAAAAAAJ0DAAAAAAAAngMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAlAMAAAAAAACUAwAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					38,
+					1,
+					"insert",
+					{
+						"characters": "="
+					},
+					"AQAAAJ4DAAAAAAAAnwMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAngMAAAAAAACeAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					39,
+					1,
+					"insert_snippet",
+					{
+						"contents": "\"$0\""
+					},
+					"AQAAAJ8DAAAAAAAAoQMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAnwMAAAAAAACfAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					44,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAAKIDAAAAAAAAowMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAogMAAAAAAACiAwAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					46,
+					1,
+					"insert",
+					{
+						"characters": "\nJIRA"
+					},
+					"BQAAAL4DAAAAAAAAvwMAAAAAAAAAAAAAvwMAAAAAAADAAwAAAAAAAAAAAADAAwAAAAAAAMEDAAAAAAAAAAAAAMEDAAAAAAAAwgMAAAAAAAAAAAAAwgMAAAAAAADDAwAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAvgMAAAAAAAC+AwAAAAAAAP///////+9/"
+				],
+				[
+					47,
+					1,
+					"insert",
+					{
+						"characters": "_FILTER_FL"
+					},
+					"CgAAAMMDAAAAAAAAxAMAAAAAAAAAAAAAxAMAAAAAAADFAwAAAAAAAAAAAADFAwAAAAAAAMYDAAAAAAAAAAAAAMYDAAAAAAAAxwMAAAAAAAAAAAAAxwMAAAAAAADIAwAAAAAAAAAAAADIAwAAAAAAAMkDAAAAAAAAAAAAAMkDAAAAAAAAygMAAAAAAAAAAAAAygMAAAAAAADLAwAAAAAAAAAAAADLAwAAAAAAAMwDAAAAAAAAAAAAAMwDAAAAAAAAzQMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAwwMAAAAAAADDAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					48,
+					1,
+					"insert",
+					{
+						"characters": "AG="
+					},
+					"AwAAAM0DAAAAAAAAzgMAAAAAAAAAAAAAzgMAAAAAAADPAwAAAAAAAAAAAADPAwAAAAAAANADAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAzQMAAAAAAADNAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					54,
+					1,
+					"paste",
+					null,
+					"AQAAANADAAAAAAAA1wMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA0AMAAAAAAADQAwAAAAAAAAAAAAAAgGhA"
+				],
+				[
+					57,
+					4,
+					"left_delete",
+					null,
+					"BAAAAMIDAAAAAAAAwgMAAAAAAAABAAAAQcEDAAAAAAAAwQMAAAAAAAABAAAAUsADAAAAAAAAwAMAAAAAAAABAAAASb8DAAAAAAAAvwMAAAAAAAABAAAASg",
+					"AQAAAAAAAAABAAAAwwMAAAAAAADDAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					58,
+					1,
+					"insert",
+					{
+						"characters": "BURN"
+					},
+					"BAAAAL8DAAAAAAAAwAMAAAAAAAAAAAAAwAMAAAAAAADBAwAAAAAAAAAAAADBAwAAAAAAAMIDAAAAAAAAAAAAAMIDAAAAAAAAwwMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAvwMAAAAAAAC/AwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					59,
+					4,
+					"left_delete",
+					null,
+					"BAAAAMIDAAAAAAAAwgMAAAAAAAABAAAATsEDAAAAAAAAwQMAAAAAAAABAAAAUsADAAAAAAAAwAMAAAAAAAABAAAAVb8DAAAAAAAAvwMAAAAAAAABAAAAQg",
+					"AQAAAAAAAAABAAAAwwMAAAAAAADDAwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					60,
+					1,
+					"paste",
+					null,
+					"AQAAAL8DAAAAAAAAxgMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAvwMAAAAAAAC/AwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					63,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAANsDAAAAAAAA3AMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA2wMAAAAAAADbAwAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					69,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAPoDAAAAAAAA+wMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA+gMAAAAAAAD6AwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					70,
+					1,
+					"paste",
+					null,
+					"AQAAAPsDAAAAAAAAEQQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA+wMAAAAAAAD7AwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					77,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAABIEAAAAAAAAEwQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					79,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAADQEAAAAAAAANQQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAANAQAAAAAAAA0BAAAAAAAAP///////+9/"
+				],
+				[
+					80,
+					1,
+					"paste",
+					null,
+					"AQAAADUEAAAAAAAATgQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAANQQAAAAAAAA1BAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					85,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAG4EAAAAAAAAbwQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAbgQAAAAAAABuBAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					86,
+					1,
+					"paste",
+					null,
+					"AQAAAG8EAAAAAAAAhgQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAbwQAAAAAAABvBAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					89,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAAE8EAAAAAAAAUAQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAATwQAAAAAAABPBAAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					94,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAJsEAAAAAAAAnAQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAmwQAAAAAAACbBAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					95,
+					1,
+					"paste",
+					null,
+					"AQAAAJwEAAAAAAAApwQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAnAQAAAAAAACcBAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					98,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAAIgEAAAAAAAAiQQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAiAQAAAAAAACIBAAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					105,
+					1,
+					"insert",
+					{
+						"characters": "#"
+					},
+					"AQAAAPcWAAAAAAAA+BYAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA9xYAAAAAAAD3FgAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					107,
+					1,
+					"paste",
+					null,
+					"AQAAAHEXAAAAAAAA4RcAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAcRcAAAAAAABxFwAAAAAAAAAAAAAAABxA"
+				],
+				[
+					108,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAOEXAAAAAAAA4hcAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA4RcAAAAAAADhFwAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					140,
+					1,
+					"insert",
+					{
+						"characters": "Let's"
+					},
+					"BQAAAG0WAAAAAAAAbhYAAAAAAAAAAAAAbhYAAAAAAABvFgAAAAAAAAAAAABvFgAAAAAAAHAWAAAAAAAAAAAAAHAWAAAAAAAAcRYAAAAAAAAAAAAAcRYAAAAAAAByFgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAbRYAAAAAAABtFgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					141,
+					5,
+					"left_delete",
+					null,
+					"BQAAAHEWAAAAAAAAcRYAAAAAAAABAAAAc3AWAAAAAAAAcBYAAAAAAAABAAAAJ28WAAAAAAAAbxYAAAAAAAABAAAAdG4WAAAAAAAAbhYAAAAAAAABAAAAZW0WAAAAAAAAbRYAAAAAAAABAAAATA",
+					"AQAAAAAAAAABAAAAchYAAAAAAAByFgAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -205,7 +510,7 @@
 	],
 	"find":
 	{
-		"height": 24.0
+		"height": 38.0
 	},
 	"find_in_files":
 	{
@@ -240,6 +545,36 @@
 		{
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "jira_server/.env",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7187,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1512,
+								1659
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 585.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -283,7 +618,7 @@
 	},
 	"output.Terminus 2":
 	{
-		"height": 476.0,
+		"height": 552.0,
 		"history":
 		[
 		]
