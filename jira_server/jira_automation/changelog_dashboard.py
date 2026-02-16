@@ -681,43 +681,53 @@ function renderHeatmap() {{
     var sortedNames = paired.map(function(p) {{ return p.name; }});
     var sortedZ = paired.map(function(p) {{ return p.row; }});
 
-    // Identify zero-activity row indices (after sort) for red highlighting
-    var zeroRows = [];
+    // Build background color matrix: #EFFD5F for zero-activity rows, white otherwise
+    // This is rendered as a second heatmap trace behind the main data trace
+    var bgZ = [];
+    var zeroSet = new Set();
     paired.forEach(function(p, i) {{
-        if (p.total === 0) zeroRows.push(i);
-    }});
-
-    // Build Plotly shapes: light red rectangles behind zero-activity rows
-    var shapes = zeroRows.map(function(rowIdx) {{
-        return {{
-            type: 'rect',
-            xref: 'paper',
-            yref: 'y',
-            x0: 0,
-            x1: 1,
-            y0: rowIdx - 0.5,
-            y1: rowIdx + 0.5,
-            fillcolor: 'rgba(239, 154, 154, 0.45)',
-            line: {{ width: 0 }},
-            layer: 'below'
-        }};
+        if (p.total === 0) {{
+            bgZ.push([1,1,1,1,1,1,1]);
+            zeroSet.add(i);
+        }} else {{
+            bgZ.push([0,0,0,0,0,0,0]);
+        }}
     }});
 
     var chartHeight = Math.max(450, sortedNames.length * 28 + 100);
 
-    Plotly.react('chart-heatmap', [{{
+    var traces = [];
+
+    // Background trace: highlights zero-activity rows
+    if (zeroSet.size > 0) {{
+        traces.push({{
+            x: dowLabels,
+            y: sortedNames,
+            z: bgZ,
+            type: 'heatmap',
+            colorscale: [[0, '#ffffff'], [1, '#EFFD5F']],
+            zmin: 0,
+            zmax: 1,
+            showscale: false,
+            hoverinfo: 'skip'
+        }});
+    }}
+
+    // Main data trace
+    traces.push({{
         x: dowLabels,
         y: sortedNames,
         z: sortedZ,
         type: 'heatmap',
-        colorscale: [[0, '#ffffff'], [0.25, '#c8e6c9'], [0.5, '#66bb6a'], [0.75, '#2e7d32'], [1, '#1b5e20']],
+        colorscale: [[0, 'rgba(255,255,255,0)'], [0.001, 'rgba(255,255,255,0)'], [0.001, '#c8e6c9'], [0.25, '#c8e6c9'], [0.5, '#66bb6a'], [0.75, '#2e7d32'], [1, '#1b5e20']],
         zmin: 0,
         hovertemplate: '%{{y}}<br>%{{x}}: %{{z}} changes<extra></extra>'
-    }}], Object.assign({{}}, plotlyLayout, {{
+    }});
+
+    Plotly.react('chart-heatmap', traces, Object.assign({{}}, plotlyLayout, {{
         margin: {{ l: 200, r: 30, t: 40, b: 60 }},
         yaxis: {{ autorange: 'reversed', tickfont: {{ size: 12 }} }},
-        height: chartHeight,
-        shapes: shapes
+        height: chartHeight
     }}), plotlyConfig);
 }}
 
