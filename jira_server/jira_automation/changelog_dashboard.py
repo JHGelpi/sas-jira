@@ -106,6 +106,9 @@ def prepare_chart_data(rows, ldap_lookup):
     type_set = sorted({r['issue_type'] or 'Unknown' for r in rows})
     type_idx = {t: i for i, t in enumerate(type_set)}
 
+    proj_set = sorted({r['project_key'] or 'Unknown' for r in rows})
+    proj_idx = {p: i for i, p in enumerate(proj_set)}
+
     # Employee list: ONLY people in the LDAP table (your direct/indirect reports)
     ldap_emails = set(ldap_lookup.keys())
     all_ldap_names = sorted(set(ldap_lookup.values()))
@@ -123,7 +126,7 @@ def prepare_chart_data(rows, ldap_lookup):
         else:
             row_emp_indices.append(-1)  # not in LDAP -- will be skipped
 
-    # Build compact parallel arrays: [date_i, type_i, dow, emp_i]
+    # Build compact parallel arrays: [date_i, type_i, dow, emp_i, proj_i]
     # Skip records from authors not in LDAP (emp_i == -1)
     records = []
     for i, r in enumerate(rows):
@@ -133,7 +136,8 @@ def prepare_chart_data(rows, ldap_lookup):
         d_i = date_idx[str(r['change_date'])]
         t_i = type_idx[r['issue_type'] or 'Unknown']
         dow = r['day_of_week'] if r['day_of_week'] is not None else 0
-        records.append([d_i, t_i, dow, e_i])
+        p_i = proj_idx[r['project_key'] or 'Unknown']
+        records.append([d_i, t_i, dow, e_i, p_i])
 
     # Compute default date range: most recent completed Mon-Fri work week
     today = date.today()
@@ -153,6 +157,7 @@ def prepare_chart_data(rows, ldap_lookup):
     return {
         'dates': date_set,
         'types': type_set,
+        'projects': proj_set,
         'employees': emp_list,
         'records': records,
         'defaultFrom': str(default_from),
@@ -355,6 +360,73 @@ def generate_dashboard_html(chart_data):
             font-size: 14px;
         }}
 
+        .heatmap-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }}
+
+        .heatmap-table thead th {{
+            padding: 8px 10px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }}
+
+        .heatmap-table thead th.col-name {{
+            text-align: left;
+            min-width: 180px;
+        }}
+
+        .heatmap-table thead th.col-projects {{
+            text-align: left;
+            min-width: 100px;
+        }}
+
+        .heatmap-table tbody td {{
+            padding: 6px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }}
+
+        .heatmap-table tbody td.cell-name {{
+            text-align: left;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }}
+
+        .heatmap-table tbody td.cell-projects {{
+            text-align: left;
+            color: #555;
+            font-size: 12px;
+            line-height: 1.5;
+        }}
+
+        .heatmap-table tbody td.cell-dow {{
+            min-width: 60px;
+            font-weight: 500;
+            color: #333;
+        }}
+
+        .heatmap-table tbody tr.zero-row {{
+            background-color: #EFFD5F;
+        }}
+
+        .heatmap-table tbody tr:hover {{
+            outline: 2px solid #1976d2;
+        }}
+
+        .heatmap-scroll {{
+            max-height: 800px;
+            overflow-y: auto;
+        }}
+
         @media (max-width: 768px) {{
             body {{
                 padding: 10px;
@@ -424,7 +496,7 @@ def generate_dashboard_html(chart_data):
             <label for="dateTo">End:</label>
             <input type="date" id="dateTo">
         </div>
-        <div id="chart-heatmap" class="chart-content"></div>
+        <div id="heatmap-container" class="heatmap-scroll"></div>
     </div>
 </div>
 
@@ -640,8 +712,36 @@ function renderTypes() {{
 }}
 
 // ---------------------------------------------------------------------------
-// Chart 4: Employee Activity Heatmap (date range filtered)
+// Chart 4: Employee Activity Heatmap (HTML table, date range filtered)
 // ---------------------------------------------------------------------------
+
+// Green gradient stops for heatmap cell coloring (white -> dark green)
+function heatmapCellColor(value, maxVal) {{
+    if (value === 0 || maxVal === 0) return 'transparent';
+    var ratio = value / maxVal;
+    // Interpolate through: #c8e6c9 -> #66bb6a -> #2e7d32 -> #1b5e20
+    var stops = [
+        [0.0,  200, 230, 201],  // #c8e6c9
+        [0.33, 102, 187, 106],  // #66bb6a
+        [0.66,  46, 125,  50],  // #2e7d32
+        [1.0,   27,  94,  32]   // #1b5e20
+    ];
+    // Find the two stops to interpolate between
+    var lo = stops[0], hi = stops[stops.length - 1];
+    for (var s = 0; s < stops.length - 1; s++) {{
+        if (ratio >= stops[s][0] && ratio <= stops[s+1][0]) {{
+            lo = stops[s];
+            hi = stops[s+1];
+            break;
+        }}
+    }}
+    var t = (hi[0] === lo[0]) ? 1 : (ratio - lo[0]) / (hi[0] - lo[0]);
+    var r = Math.round(lo[1] + t * (hi[1] - lo[1]));
+    var g = Math.round(lo[2] + t * (hi[2] - lo[2]));
+    var b = Math.round(lo[3] + t * (hi[3] - lo[3]));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+}}
+
 function renderHeatmap() {{
     var dowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -651,23 +751,29 @@ function renderHeatmap() {{
         if (d >= heatmapFromDate && d <= heatmapToDate) rangeDateIndices.add(i);
     }});
 
-    // Aggregate: employee x dow for ALL employees
+    // Aggregate: employee x dow + projects per employee
     var empCount = DATA.employees.length;
     var z = [];
+    var empProjects = [];  // set of project indices per employee
     for (var e = 0; e < empCount; e++) {{
         z.push([0,0,0,0,0,0,0]);
+        empProjects.push(new Set());
     }}
 
     DATA.records.forEach(function(rec) {{
         if (!isSelected(rec)) return;
         if (!rangeDateIndices.has(rec[0])) return;
         z[rec[3]][rec[2]] += 1;
+        empProjects[rec[3]].add(rec[4]);  // project index
     }});
 
     // Build paired array with totals for sorting
     var paired = DATA.employees.map(function(name, i) {{
         var total = z[i].reduce(function(a, b) {{ return a + b; }}, 0);
-        return {{ name: name, row: z[i], total: total }};
+        var projs = [];
+        empProjects[i].forEach(function(pi) {{ projs.push(DATA.projects[pi]); }});
+        projs.sort();
+        return {{ name: name, row: z[i], total: total, projects: projs }};
     }});
 
     // Sort: active employees first (desc by total), then zero-activity alphabetically
@@ -678,57 +784,36 @@ function renderHeatmap() {{
         return a.name.localeCompare(b.name);
     }});
 
-    var sortedNames = paired.map(function(p) {{ return p.name; }});
-    var sortedZ = paired.map(function(p) {{ return p.row; }});
-
-    // Build background color matrix: #EFFD5F for zero-activity rows, white otherwise
-    // This is rendered as a second heatmap trace behind the main data trace
-    var bgZ = [];
-    var zeroSet = new Set();
-    paired.forEach(function(p, i) {{
-        if (p.total === 0) {{
-            bgZ.push([1,1,1,1,1,1,1]);
-            zeroSet.add(i);
-        }} else {{
-            bgZ.push([0,0,0,0,0,0,0]);
-        }}
+    // Find max value across all cells for color scaling
+    var maxVal = 0;
+    paired.forEach(function(p) {{
+        p.row.forEach(function(v) {{ if (v > maxVal) maxVal = v; }});
     }});
 
-    var chartHeight = Math.max(450, sortedNames.length * 28 + 100);
+    // Build HTML table
+    var html = '<table class="heatmap-table">';
+    html += '<thead><tr>';
+    html += '<th class="col-name">Employee</th>';
+    html += '<th class="col-projects">Projects</th>';
+    dowLabels.forEach(function(d) {{ html += '<th>' + d + '</th>'; }});
+    html += '</tr></thead><tbody>';
 
-    var traces = [];
-
-    // Background trace: highlights zero-activity rows
-    if (zeroSet.size > 0) {{
-        traces.push({{
-            x: dowLabels,
-            y: sortedNames,
-            z: bgZ,
-            type: 'heatmap',
-            colorscale: [[0, '#ffffff'], [1, '#EFFD5F']],
-            zmin: 0,
-            zmax: 1,
-            showscale: false,
-            hoverinfo: 'skip'
+    paired.forEach(function(p) {{
+        var isZero = p.total === 0;
+        html += '<tr' + (isZero ? ' class="zero-row"' : '') + '>';
+        html += '<td class="cell-name">' + p.name + '</td>';
+        html += '<td class="cell-projects">' + (p.projects.length > 0 ? p.projects.join('<br>') : '') + '</td>';
+        p.row.forEach(function(v) {{
+            var bg = heatmapCellColor(v, maxVal);
+            var textColor = (v === 0) ? 'transparent' : (v / maxVal > 0.5 ? '#fff' : '#333');
+            var style = 'background-color:' + bg + ';color:' + textColor + ';';
+            html += '<td class="cell-dow" style="' + style + '">' + v + '</td>';
         }});
-    }}
-
-    // Main data trace
-    traces.push({{
-        x: dowLabels,
-        y: sortedNames,
-        z: sortedZ,
-        type: 'heatmap',
-        colorscale: [[0, 'rgba(255,255,255,0)'], [0.001, 'rgba(255,255,255,0)'], [0.001, '#c8e6c9'], [0.25, '#c8e6c9'], [0.5, '#66bb6a'], [0.75, '#2e7d32'], [1, '#1b5e20']],
-        zmin: 0,
-        hovertemplate: '%{{y}}<br>%{{x}}: %{{z}} changes<extra></extra>'
+        html += '</tr>';
     }});
 
-    Plotly.react('chart-heatmap', traces, Object.assign({{}}, plotlyLayout, {{
-        margin: {{ l: 200, r: 30, t: 40, b: 60 }},
-        yaxis: {{ autorange: 'reversed', tickfont: {{ size: 12 }} }},
-        height: chartHeight
-    }}), plotlyConfig);
+    html += '</tbody></table>';
+    document.getElementById('heatmap-container').innerHTML = html;
 }}
 
 // ---------------------------------------------------------------------------
