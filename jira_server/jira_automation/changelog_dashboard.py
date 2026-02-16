@@ -3,18 +3,23 @@
 Changelog activity dashboard generation.
 
 This module generates an interactive HTML dashboard with Plotly charts showing
-Jira issue modification patterns: daily volume, per-issue frequency, day-of-week
-trends, issue type breakdown, and employee activity heatmap.
+Jira issue modification patterns: daily volume, day-of-week trends, issue type
+breakdown, and employee activity heatmap with week selection.
+
+All data is scoped to a rolling 6-week window. The issue type filter applies
+globally to every chart.
 """
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from collections import defaultdict
 from logging_utils import get_logger, log_section_header
 from jira_data_analysis import db_utils
 
 logger = get_logger(__name__)
+
+ROLLING_WEEKS = 6
 
 
 # ---------------------------------------------------------------------------
@@ -23,12 +28,13 @@ logger = get_logger(__name__)
 
 def fetch_changelog_data(db_pool):
     """
-    Fetches all changelog data from the database.
+    Fetches changelog data from the last ROLLING_WEEKS weeks.
 
     Returns:
         List of dicts with keys: change_date, issue_key, project_key,
         issue_type, author_name, author_email, day_of_week, field_name
     """
+    cutoff = date.today() - timedelta(weeks=ROLLING_WEEKS)
     conn = db_pool.getconn()
     try:
         with conn.cursor() as cur:
@@ -37,12 +43,13 @@ def fetch_changelog_data(db_pool):
                        author_name, author_email, day_of_week, field_name
                 FROM tbl_issue_changelog
                 WHERE change_date IS NOT NULL
+                  AND change_date >= %s
                 ORDER BY change_date
-            """)
+            """, (cutoff,))
             columns = ['change_date', 'issue_key', 'project_key', 'issue_type',
                         'author_name', 'author_email', 'day_of_week', 'field_name']
             rows = [dict(zip(columns, row)) for row in cur.fetchall()]
-            logger.info(f"Fetched {len(rows)} changelog records from database")
+            logger.info(f"Fetched {len(rows)} changelog records (last {ROLLING_WEEKS} weeks, since {cutoff})")
             return rows
     except Exception as e:
         logger.error(f"Failed to fetch changelog data: {e}")
@@ -73,112 +80,94 @@ def fetch_ldap_lookup(db_pool):
 
 
 # ---------------------------------------------------------------------------
-# Chart data preparation
+# Data preparation
 # ---------------------------------------------------------------------------
 
 def prepare_chart_data(rows, ldap_lookup):
     """
-    Pre-processes raw rows into JSON-serializable structures for all charts.
+    Converts raw DB rows into compact JSON-friendly structures.
 
-    Returns a dict with keys:
-        dates, daily_counts, issue_type_dates, issue_type_series,
-        dow_labels, dow_averages, per_issue_counts,
-        heatmap_employees, heatmap_dow, heatmap_z,
-        all_issue_types
+    To support global issue-type filtering on every chart, we send per-row
+    data encoded as parallel index arrays so the browser can re-aggregate
+    on the fly.
+
+    Returns a dict ready for json.dumps().
     """
     if not rows:
         return None
 
-    # --- Daily change volume (Chart 1) ---
-    daily = defaultdict(int)
-    # --- Issue type breakdown (Chart 4) ---
-    type_daily = defaultdict(lambda: defaultdict(int))
-    # --- Day-of-week (Chart 3) ---
-    dow_totals = defaultdict(int)
-    dow_date_sets = defaultdict(set)
-    # --- Per-issue frequency (Chart 2) ---
-    issue_date_counts = defaultdict(lambda: defaultdict(int))
-    # --- Employee heatmap (Chart 5) ---
-    employee_dow = defaultdict(lambda: defaultdict(int))
+    # Build lookup indexes
+    date_set = sorted({str(r['change_date']) for r in rows})
+    date_idx = {d: i for i, d in enumerate(date_set)}
 
-    all_issue_types = set()
+    type_set = sorted({r['issue_type'] or 'Unknown' for r in rows})
+    type_idx = {t: i for i, t in enumerate(type_set)}
+
+    # Resolve employee names and build index
+    employee_names = {}  # canonical name -> index (assigned later)
+    row_employees = []   # parallel to rows, holds canonical name
 
     for r in rows:
-        d = str(r['change_date'])
-        itype = r['issue_type'] or 'Unknown'
-        dow = r['day_of_week']
-        issue_key = r['issue_key']
-
-        # Resolve employee name: LDAP display_name > author_name > email
         email = r['author_email'] or ''
         name = ldap_lookup.get(email) or r['author_name'] or email or 'Unknown'
+        row_employees.append(name)
+        employee_names[name] = 0  # placeholder
 
-        daily[d] += 1
-        type_daily[itype][d] += 1
-        all_issue_types.add(itype)
+    # Top 30 employees by activity, rest collapsed to "Other"
+    emp_counts = defaultdict(int)
+    for name in row_employees:
+        emp_counts[name] += 1
 
-        if dow is not None:
-            dow_totals[dow] += 1
-            dow_date_sets[dow].add(d)
-
-        issue_date_counts[issue_key][d] += 1
-        employee_dow[name][dow if dow is not None else 0] += 1
-
-    # Sort dates
-    dates = sorted(daily.keys())
-    daily_counts = [daily[d] for d in dates]
-
-    # Issue type series (sorted by total volume desc)
-    sorted_types = sorted(all_issue_types, key=lambda t: sum(type_daily[t].values()), reverse=True)
-    issue_type_series = {}
-    for itype in sorted_types:
-        issue_type_series[itype] = [type_daily[itype].get(d, 0) for d in dates]
-
-    # Day-of-week averages
-    dow_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    dow_averages = []
-    for i in range(7):
-        num_days = len(dow_date_sets[i]) if dow_date_sets[i] else 1
-        dow_averages.append(round(dow_totals[i] / num_days, 1))
-
-    # Per-issue update frequency (histogram data)
-    per_issue_counts = []
-    for issue_key, date_counts in issue_date_counts.items():
-        for d, count in date_counts.items():
-            per_issue_counts.append(count)
-
-    # Employee heatmap (top 30 by total activity)
-    employee_totals = {name: sum(dows.values()) for name, dows in employee_dow.items()}
-    sorted_employees = sorted(employee_totals.keys(), key=lambda n: employee_totals[n], reverse=True)
-
+    sorted_emp = sorted(emp_counts.keys(), key=lambda n: emp_counts[n], reverse=True)
     top_n = 30
-    top_employees = sorted_employees[:top_n]
+    top_set = set(sorted_emp[:top_n])
+    emp_list = sorted_emp[:top_n]
+    has_other = len(sorted_emp) > top_n
+    if has_other:
+        emp_list.append('Other')
 
-    # Collapse remaining into "Other"
-    if len(sorted_employees) > top_n:
-        other_dow = defaultdict(int)
-        for name in sorted_employees[top_n:]:
-            for dow_idx, cnt in employee_dow[name].items():
-                other_dow[dow_idx] += cnt
-        employee_dow['Other'] = dict(other_dow)
-        top_employees.append('Other')
+    emp_idx = {n: i for i, n in enumerate(emp_list)}
 
-    # Build heatmap z-matrix (employees x 7 days)
-    heatmap_z = []
-    for name in top_employees:
-        row = [employee_dow[name].get(i, 0) for i in range(7)]
-        heatmap_z.append(row)
+    # Map each row_employee to its index (collapsing non-top to "Other")
+    row_emp_indices = []
+    other_idx = emp_idx.get('Other', -1)
+    for name in row_employees:
+        if name in top_set:
+            row_emp_indices.append(emp_idx[name])
+        else:
+            row_emp_indices.append(other_idx)
+
+    # Build compact parallel arrays: [date_i, type_i, dow, emp_i]
+    records = []
+    for i, r in enumerate(rows):
+        d_i = date_idx[str(r['change_date'])]
+        t_i = type_idx[r['issue_type'] or 'Unknown']
+        dow = r['day_of_week'] if r['day_of_week'] is not None else 0
+        e_i = row_emp_indices[i]
+        records.append([d_i, t_i, dow, e_i])
+
+    # Compute default date range: most recent completed Mon-Fri work week
+    today = date.today()
+    # Find the most recent Friday on or before today
+    days_since_fri = (today.weekday() - 4) % 7  # weekday(): Mon=0..Sun=6, Fri=4
+    if days_since_fri == 0 and today.weekday() == 4:
+        # Today is Friday -- use this week
+        default_to = today
+    else:
+        default_to = today - timedelta(days=days_since_fri)
+    default_from = default_to - timedelta(days=4)  # Monday of that week
+
+    logger.info(f"Prepared data: {len(records)} records, {len(date_set)} dates, "
+                f"{len(type_set)} types, {len(emp_list)} employees")
+    logger.info(f"Default heatmap range: {default_from} to {default_to}")
 
     return {
-        'dates': dates,
-        'daily_counts': daily_counts,
-        'issue_type_series': issue_type_series,
-        'dow_labels': dow_labels,
-        'dow_averages': dow_averages,
-        'per_issue_counts': per_issue_counts,
-        'heatmap_employees': top_employees,
-        'heatmap_z': heatmap_z,
-        'all_issue_types': sorted_types,
+        'dates': date_set,
+        'types': type_set,
+        'employees': emp_list,
+        'records': records,
+        'defaultFrom': str(default_from),
+        'defaultTo': str(default_to),
     }
 
 
@@ -188,8 +177,8 @@ def prepare_chart_data(rows, ldap_lookup):
 
 def generate_dashboard_html(chart_data):
     """
-    Generates a complete HTML dashboard with 5 Plotly charts in tabs,
-    plus a global issue-type multi-select filter.
+    Generates a complete HTML dashboard with 4 Plotly charts in tabs,
+    a global issue-type multi-select filter, and a week slider for the heatmap.
 
     Args:
         chart_data: Dict from prepare_chart_data()
@@ -198,8 +187,6 @@ def generate_dashboard_html(chart_data):
         Complete HTML string
     """
     timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-
-    # Serialize data for client-side JS
     data_json = json.dumps(chart_data)
 
     html = f'''<!DOCTYPE html>
@@ -274,6 +261,20 @@ def generate_dashboard_html(chart_data):
             padding: 4px;
         }}
 
+        .filter-btn {{
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+        }}
+
+        .filter-btn:hover {{
+            background: #f5f5f5;
+        }}
+
         .tab-nav {{
             display: flex;
             gap: 0;
@@ -337,6 +338,34 @@ def generate_dashboard_html(chart_data):
             min-height: 450px;
         }}
 
+        .date-range-container {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }}
+
+        .date-range-container label {{
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            white-space: nowrap;
+        }}
+
+        .date-range-container input[type="date"] {{
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }}
+
+        .date-range-container .range-sep {{
+            color: #666;
+            font-size: 14px;
+        }}
+
         @media (max-width: 768px) {{
             body {{
                 padding: 10px;
@@ -358,19 +387,18 @@ def generate_dashboard_html(chart_data):
 
 <div class="dashboard-header">
     <h1>Changelog Activity Dashboard</h1>
-    <p>Jira issue modification patterns &bull; Generated {timestamp}</p>
+    <p>Jira issue modification patterns (rolling {ROLLING_WEEKS} weeks) &bull; Generated {timestamp}</p>
 </div>
 
 <div class="filter-bar">
     <label for="issueTypeFilter">Issue Types:</label>
     <select id="issueTypeFilter" multiple size="4">
     </select>
-    <button onclick="resetFilter()" style="padding:8px 16px; border:1px solid #ccc; border-radius:4px; background:#fff; cursor:pointer; font-family:inherit; font-size:14px;">Reset</button>
+    <button class="filter-btn" onclick="resetFilter()">Reset</button>
 </div>
 
 <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('daily-volume')">Daily Volume</button>
-    <button class="tab-btn" onclick="switchTab('per-issue')">Per-Issue Frequency</button>
     <button class="tab-btn" onclick="switchTab('day-of-week')">Day of Week</button>
     <button class="tab-btn" onclick="switchTab('issue-types')">Issue Types</button>
     <button class="tab-btn" onclick="switchTab('heatmap')">Employee Heatmap</button>
@@ -380,13 +408,6 @@ def generate_dashboard_html(chart_data):
     <div class="chart-container">
         <div class="chart-title">Daily Change Volume</div>
         <div id="chart-daily" class="chart-content"></div>
-    </div>
-</div>
-
-<div id="tab-per-issue" class="tab-content">
-    <div class="chart-container">
-        <div class="chart-title">Per-Issue Update Frequency</div>
-        <div id="chart-histogram" class="chart-content"></div>
     </div>
 </div>
 
@@ -407,6 +428,13 @@ def generate_dashboard_html(chart_data):
 <div id="tab-heatmap" class="tab-content">
     <div class="chart-container">
         <div class="chart-title">Employee Activity Heatmap</div>
+        <div class="date-range-container">
+            <label for="dateFrom">Start:</label>
+            <input type="date" id="dateFrom">
+            <span class="range-sep">to</span>
+            <label for="dateTo">End:</label>
+            <input type="date" id="dateTo">
+        </div>
         <div id="chart-heatmap" class="chart-content"></div>
     </div>
 </div>
@@ -416,13 +444,14 @@ def generate_dashboard_html(chart_data):
 // Embedded data
 // ---------------------------------------------------------------------------
 var DATA = {data_json};
+// records: [[date_i, type_i, dow, emp_i], ...]
 
-// ---------------------------------------------------------------------------
-// Issue type filter
-// ---------------------------------------------------------------------------
-var allTypes = DATA.all_issue_types || [];
+var allTypes = DATA.types || [];
 var selectedTypes = new Set(allTypes);
 
+// ---------------------------------------------------------------------------
+// Issue type filter (global)
+// ---------------------------------------------------------------------------
 (function populateFilter() {{
     var sel = document.getElementById('issueTypeFilter');
     allTypes.forEach(function(t) {{
@@ -449,6 +478,50 @@ function resetFilter() {{
 }}
 
 // ---------------------------------------------------------------------------
+// Date range setup (Start / End date pickers)
+// ---------------------------------------------------------------------------
+var heatmapFromDate = DATA.defaultFrom;
+var heatmapToDate = DATA.defaultTo;
+
+(function setupDateRange() {{
+    var fromInput = document.getElementById('dateFrom');
+    var toInput = document.getElementById('dateTo');
+
+    // Set min/max to the data range
+    var minDate = DATA.dates[0];
+    var maxDate = DATA.dates[DATA.dates.length - 1];
+    fromInput.min = minDate;
+    fromInput.max = maxDate;
+    toInput.min = minDate;
+    toInput.max = maxDate;
+
+    // Clamp defaults to available data range
+    if (heatmapFromDate < minDate) heatmapFromDate = minDate;
+    if (heatmapToDate > maxDate) heatmapToDate = maxDate;
+    if (heatmapFromDate > heatmapToDate) heatmapFromDate = heatmapToDate;
+
+    fromInput.value = heatmapFromDate;
+    toInput.value = heatmapToDate;
+
+    fromInput.addEventListener('change', function() {{
+        heatmapFromDate = this.value;
+        if (heatmapToDate < heatmapFromDate) {{
+            heatmapToDate = heatmapFromDate;
+            toInput.value = heatmapToDate;
+        }}
+        renderHeatmap();
+    }});
+    toInput.addEventListener('change', function() {{
+        heatmapToDate = this.value;
+        if (heatmapFromDate > heatmapToDate) {{
+            heatmapFromDate = heatmapToDate;
+            fromInput.value = heatmapFromDate;
+        }}
+        renderHeatmap();
+    }});
+}})();
+
+// ---------------------------------------------------------------------------
 // Tab switching
 // ---------------------------------------------------------------------------
 function switchTab(tabId) {{
@@ -459,18 +532,20 @@ function switchTab(tabId) {{
         btn.classList.remove('active');
     }});
     document.getElementById('tab-' + tabId).classList.add('active');
-    // Find the button that matches
     document.querySelectorAll('.tab-btn').forEach(function(btn) {{
         if (btn.getAttribute('onclick').indexOf(tabId) !== -1) btn.classList.add('active');
     }});
-    // Trigger Plotly resize on the active tab's chart
     var activeDiv = document.querySelector('#tab-' + tabId + ' .chart-content');
     if (activeDiv) Plotly.Plots.resize(activeDiv);
 }}
 
 // ---------------------------------------------------------------------------
-// Chart rendering
+// Helpers
 // ---------------------------------------------------------------------------
+function isSelected(rec) {{
+    return selectedTypes.has(DATA.types[rec[1]]);
+}}
+
 var plotlyLayout = {{
     paper_bgcolor: 'white',
     plot_bgcolor: 'white',
@@ -481,22 +556,17 @@ var plotlyLayout = {{
 
 var plotlyConfig = {{ displayModeBar: false, responsive: true }};
 
-function filterByType(issueTypeSeries, dates) {{
-    // Return per-date totals considering only selected issue types
-    var totals = new Array(dates.length).fill(0);
-    Object.keys(issueTypeSeries).forEach(function(t) {{
-        if (selectedTypes.has(t)) {{
-            issueTypeSeries[t].forEach(function(v, i) {{ totals[i] += v; }});
-        }}
-    }});
-    return totals;
-}}
-
+// ---------------------------------------------------------------------------
+// Chart 1: Daily Change Volume
+// ---------------------------------------------------------------------------
 function renderDaily() {{
-    var filtered = filterByType(DATA.issue_type_series, DATA.dates);
+    var counts = new Array(DATA.dates.length).fill(0);
+    DATA.records.forEach(function(rec) {{
+        if (isSelected(rec)) counts[rec[0]] += 1;
+    }});
     Plotly.react('chart-daily', [{{
         x: DATA.dates,
-        y: filtered,
+        y: counts,
         type: 'bar',
         marker: {{ color: '#1976d2' }},
         hovertemplate: '%{{x}}<br>%{{y}} changes<extra></extra>'
@@ -506,26 +576,29 @@ function renderDaily() {{
     }}), plotlyConfig);
 }}
 
-function renderHistogram() {{
-    // Per-issue counts are not filterable by type in the pre-computed data,
-    // so we show the full distribution regardless of filter.
-    Plotly.react('chart-histogram', [{{
-        x: DATA.per_issue_counts,
-        type: 'histogram',
-        marker: {{ color: '#1976d2' }},
-        hovertemplate: '%{{x}} changes/issue/day<br>Count: %{{y}}<extra></extra>'
-    }}], Object.assign({{}}, plotlyLayout, {{
-        xaxis: {{ title: 'Changes per Issue per Day', gridcolor: '#e0e0e0' }},
-        yaxis: {{ title: 'Frequency', gridcolor: '#e0e0e0' }},
-        bargap: 0.05
-    }}), plotlyConfig);
-}}
-
+// ---------------------------------------------------------------------------
+// Chart 2: Day of Week (average)
+// ---------------------------------------------------------------------------
 function renderDow() {{
-    // Day-of-week not filterable by type (aggregate)
+    var dowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var dowTotals = [0,0,0,0,0,0,0];
+    var dowDateSets = [new Set(), new Set(), new Set(), new Set(), new Set(), new Set(), new Set()];
+
+    DATA.records.forEach(function(rec) {{
+        if (!isSelected(rec)) return;
+        var dow = rec[2];
+        dowTotals[dow] += 1;
+        dowDateSets[dow].add(rec[0]);  // date index as proxy for unique date
+    }});
+
+    var avgs = dowLabels.map(function(_, i) {{
+        var numDays = dowDateSets[i].size || 1;
+        return Math.round(dowTotals[i] / numDays * 10) / 10;
+    }});
+
     Plotly.react('chart-dow', [{{
-        x: DATA.dow_labels,
-        y: DATA.dow_averages,
+        x: dowLabels,
+        y: avgs,
         type: 'bar',
         marker: {{ color: '#1976d2' }},
         hovertemplate: '%{{x}}<br>Avg: %{{y}} changes<extra></extra>'
@@ -535,18 +608,30 @@ function renderDow() {{
     }}), plotlyConfig);
 }}
 
+// ---------------------------------------------------------------------------
+// Chart 3: Issue Type Breakdown (stacked area)
+// ---------------------------------------------------------------------------
 function renderTypes() {{
-    var traces = [];
+    // Build per-type per-date counts (only selected types)
+    var typeCounts = {{}};
+    allTypes.forEach(function(t) {{ typeCounts[t] = new Array(DATA.dates.length).fill(0); }});
+
+    DATA.records.forEach(function(rec) {{
+        var t = DATA.types[rec[1]];
+        typeCounts[t][rec[0]] += 1;
+    }});
+
     var colors = [
         '#1976d2', '#c62828', '#2e7d32', '#f57c00', '#6a1b9a',
         '#00838f', '#ad1457', '#4e342e', '#37474f', '#558b2f'
     ];
+    var traces = [];
     var idx = 0;
-    Object.keys(DATA.issue_type_series).forEach(function(t) {{
+    allTypes.forEach(function(t) {{
         if (!selectedTypes.has(t)) return;
         traces.push({{
             x: DATA.dates,
-            y: DATA.issue_type_series[t],
+            y: typeCounts[t],
             name: t,
             type: 'scatter',
             mode: 'lines',
@@ -557,6 +642,7 @@ function renderTypes() {{
         }});
         idx++;
     }});
+
     Plotly.react('chart-types', traces, Object.assign({{}}, plotlyLayout, {{
         xaxis: {{ title: 'Date', gridcolor: '#e0e0e0' }},
         yaxis: {{ title: 'Changelog Entries', gridcolor: '#e0e0e0' }},
@@ -564,30 +650,81 @@ function renderTypes() {{
     }}), plotlyConfig);
 }}
 
+// ---------------------------------------------------------------------------
+// Chart 4: Employee Activity Heatmap (per-week with slider)
+// ---------------------------------------------------------------------------
 function renderHeatmap() {{
+    var dowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    // Find which date indices fall in the selected date range
+    var rangeDateIndices = new Set();
+    DATA.dates.forEach(function(d, i) {{
+        if (d >= heatmapFromDate && d <= heatmapToDate) rangeDateIndices.add(i);
+    }});
+
+    // Aggregate: employee x dow
+    var empCount = DATA.employees.length;
+    var z = [];
+    for (var e = 0; e < empCount; e++) {{
+        z.push([0,0,0,0,0,0,0]);
+    }}
+
+    DATA.records.forEach(function(rec) {{
+        if (!isSelected(rec)) return;
+        if (!rangeDateIndices.has(rec[0])) return;
+        z[rec[3]][rec[2]] += 1;
+    }});
+
+    // Filter out employees with zero activity this week
+    var activeEmployees = [];
+    var activeZ = [];
+    for (var e = 0; e < empCount; e++) {{
+        var total = z[e].reduce(function(a, b) {{ return a + b; }}, 0);
+        if (total > 0) {{
+            activeEmployees.push(DATA.employees[e]);
+            activeZ.push(z[e]);
+        }}
+    }}
+
+    // Sort by total activity descending
+    var paired = activeEmployees.map(function(name, i) {{
+        return {{ name: name, row: activeZ[i], total: activeZ[i].reduce(function(a,b){{ return a+b; }}, 0) }};
+    }});
+    paired.sort(function(a, b) {{ return b.total - a.total; }});
+
+    var sortedNames = paired.map(function(p) {{ return p.name; }});
+    var sortedZ = paired.map(function(p) {{ return p.row; }});
+
+    if (sortedNames.length === 0) {{
+        sortedNames = ['(no activity)'];
+        sortedZ = [[0,0,0,0,0,0,0]];
+    }}
+
     Plotly.react('chart-heatmap', [{{
-        x: DATA.dow_labels,
-        y: DATA.heatmap_employees,
-        z: DATA.heatmap_z,
+        x: dowLabels,
+        y: sortedNames,
+        z: sortedZ,
         type: 'heatmap',
-        colorscale: 'Blues',
+        colorscale: [[0, '#ffffff'], [0.25, '#c8e6c9'], [0.5, '#66bb6a'], [0.75, '#2e7d32'], [1, '#1b5e20']],
+        zmin: 0,
         hovertemplate: '%{{y}}<br>%{{x}}: %{{z}} changes<extra></extra>'
     }}], Object.assign({{}}, plotlyLayout, {{
         margin: {{ l: 200, r: 30, t: 40, b: 60 }},
         yaxis: {{ autorange: 'reversed', tickfont: {{ size: 12 }} }},
-        height: Math.max(450, DATA.heatmap_employees.length * 28 + 100)
+        height: Math.max(450, sortedNames.length * 28 + 100)
     }}), plotlyConfig);
 }}
 
+// ---------------------------------------------------------------------------
+// Render all
+// ---------------------------------------------------------------------------
 function renderAll() {{
     renderDaily();
-    renderHistogram();
     renderDow();
     renderTypes();
     renderHeatmap();
 }}
 
-// Initial render
 renderAll();
 </script>
 
