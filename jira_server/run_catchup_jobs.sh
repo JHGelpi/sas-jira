@@ -69,6 +69,7 @@ SCRIPTS=(
     "run_compdiv_burndown.sh"
     "run_iris_burndown.sh"
     "run_burndown_dashboard.sh"
+    "run_changelog_dashboard.sh"
 )
 
 # Total number of scripts

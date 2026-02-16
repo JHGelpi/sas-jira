@@ -91,6 +91,9 @@ def prepare_chart_data(rows, ldap_lookup):
     data encoded as parallel index arrays so the browser can re-aggregate
     on the fly.
 
+    The employee list includes ALL LDAP employees so the heatmap can
+    highlight those with zero activity.
+
     Returns a dict ready for json.dumps().
     """
     if not rows:
@@ -103,47 +106,33 @@ def prepare_chart_data(rows, ldap_lookup):
     type_set = sorted({r['issue_type'] or 'Unknown' for r in rows})
     type_idx = {t: i for i, t in enumerate(type_set)}
 
-    # Resolve employee names and build index
-    employee_names = {}  # canonical name -> index (assigned later)
-    row_employees = []   # parallel to rows, holds canonical name
-
-    for r in rows:
-        email = r['author_email'] or ''
-        name = ldap_lookup.get(email) or r['author_name'] or email or 'Unknown'
-        row_employees.append(name)
-        employee_names[name] = 0  # placeholder
-
-    # Top 30 employees by activity, rest collapsed to "Other"
-    emp_counts = defaultdict(int)
-    for name in row_employees:
-        emp_counts[name] += 1
-
-    sorted_emp = sorted(emp_counts.keys(), key=lambda n: emp_counts[n], reverse=True)
-    top_n = 30
-    top_set = set(sorted_emp[:top_n])
-    emp_list = sorted_emp[:top_n]
-    has_other = len(sorted_emp) > top_n
-    if has_other:
-        emp_list.append('Other')
+    # Employee list: ONLY people in the LDAP table (your direct/indirect reports)
+    ldap_emails = set(ldap_lookup.keys())
+    all_ldap_names = sorted(set(ldap_lookup.values()))
+    emp_list = all_ldap_names
 
     emp_idx = {n: i for i, n in enumerate(emp_list)}
 
-    # Map each row_employee to its index (collapsing non-top to "Other")
+    # Resolve each row's author; mark non-LDAP authors as None (excluded)
     row_emp_indices = []
-    other_idx = emp_idx.get('Other', -1)
-    for name in row_employees:
-        if name in top_set:
+    for r in rows:
+        email = (r['author_email'] or '').lower()
+        if email in ldap_emails:
+            name = ldap_lookup[email]
             row_emp_indices.append(emp_idx[name])
         else:
-            row_emp_indices.append(other_idx)
+            row_emp_indices.append(-1)  # not in LDAP -- will be skipped
 
     # Build compact parallel arrays: [date_i, type_i, dow, emp_i]
+    # Skip records from authors not in LDAP (emp_i == -1)
     records = []
     for i, r in enumerate(rows):
+        e_i = row_emp_indices[i]
+        if e_i == -1:
+            continue
         d_i = date_idx[str(r['change_date'])]
         t_i = type_idx[r['issue_type'] or 'Unknown']
         dow = r['day_of_week'] if r['day_of_week'] is not None else 0
-        e_i = row_emp_indices[i]
         records.append([d_i, t_i, dow, e_i])
 
     # Compute default date range: most recent completed Mon-Fri work week
@@ -651,7 +640,7 @@ function renderTypes() {{
 }}
 
 // ---------------------------------------------------------------------------
-// Chart 4: Employee Activity Heatmap (per-week with slider)
+// Chart 4: Employee Activity Heatmap (date range filtered)
 // ---------------------------------------------------------------------------
 function renderHeatmap() {{
     var dowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -662,7 +651,7 @@ function renderHeatmap() {{
         if (d >= heatmapFromDate && d <= heatmapToDate) rangeDateIndices.add(i);
     }});
 
-    // Aggregate: employee x dow
+    // Aggregate: employee x dow for ALL employees
     var empCount = DATA.employees.length;
     var z = [];
     for (var e = 0; e < empCount; e++) {{
@@ -675,30 +664,46 @@ function renderHeatmap() {{
         z[rec[3]][rec[2]] += 1;
     }});
 
-    // Filter out employees with zero activity this week
-    var activeEmployees = [];
-    var activeZ = [];
-    for (var e = 0; e < empCount; e++) {{
-        var total = z[e].reduce(function(a, b) {{ return a + b; }}, 0);
-        if (total > 0) {{
-            activeEmployees.push(DATA.employees[e]);
-            activeZ.push(z[e]);
-        }}
-    }}
-
-    // Sort by total activity descending
-    var paired = activeEmployees.map(function(name, i) {{
-        return {{ name: name, row: activeZ[i], total: activeZ[i].reduce(function(a,b){{ return a+b; }}, 0) }};
+    // Build paired array with totals for sorting
+    var paired = DATA.employees.map(function(name, i) {{
+        var total = z[i].reduce(function(a, b) {{ return a + b; }}, 0);
+        return {{ name: name, row: z[i], total: total }};
     }});
-    paired.sort(function(a, b) {{ return b.total - a.total; }});
+
+    // Sort: active employees first (desc by total), then zero-activity alphabetically
+    paired.sort(function(a, b) {{
+        if (a.total > 0 && b.total > 0) return b.total - a.total;
+        if (a.total > 0) return -1;
+        if (b.total > 0) return 1;
+        return a.name.localeCompare(b.name);
+    }});
 
     var sortedNames = paired.map(function(p) {{ return p.name; }});
     var sortedZ = paired.map(function(p) {{ return p.row; }});
 
-    if (sortedNames.length === 0) {{
-        sortedNames = ['(no activity)'];
-        sortedZ = [[0,0,0,0,0,0,0]];
-    }}
+    // Identify zero-activity row indices (after sort) for red highlighting
+    var zeroRows = [];
+    paired.forEach(function(p, i) {{
+        if (p.total === 0) zeroRows.push(i);
+    }});
+
+    // Build Plotly shapes: light red rectangles behind zero-activity rows
+    var shapes = zeroRows.map(function(rowIdx) {{
+        return {{
+            type: 'rect',
+            xref: 'paper',
+            yref: 'y',
+            x0: 0,
+            x1: 1,
+            y0: rowIdx - 0.5,
+            y1: rowIdx + 0.5,
+            fillcolor: 'rgba(239, 154, 154, 0.45)',
+            line: {{ width: 0 }},
+            layer: 'below'
+        }};
+    }});
+
+    var chartHeight = Math.max(450, sortedNames.length * 28 + 100);
 
     Plotly.react('chart-heatmap', [{{
         x: dowLabels,
@@ -711,7 +716,8 @@ function renderHeatmap() {{
     }}], Object.assign({{}}, plotlyLayout, {{
         margin: {{ l: 200, r: 30, t: 40, b: 60 }},
         yaxis: {{ autorange: 'reversed', tickfont: {{ size: 12 }} }},
-        height: Math.max(450, sortedNames.length * 28 + 100)
+        height: chartHeight,
+        shapes: shapes
     }}), plotlyConfig);
 }}
 
