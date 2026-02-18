@@ -20,7 +20,15 @@ from logging_utils import get_logger
 
 logger = get_logger(__name__)
 
-# Import the task functions
+# Load secrets from macOS Keychain BEFORE any module that needs DATABASE_URL or JIRA_TOKEN.
+# load_dotenv(override=False) won't overwrite Keychain values already in os.environ.
+from secrets_utils import load_secrets, build_database_url
+load_secrets()
+load_dotenv()
+build_database_url()
+
+# Import the task functions (db_utils initializes connection pool on import,
+# so secrets and DATABASE_URL must be set before this point)
 from tasks import (
     run_jira_export_task,
     run_initiative_analysis_task,
@@ -44,9 +52,6 @@ from tasks import (
 )
 
 from jira_automation.jira_burndown import build_plot_html
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Initialize FastAPI application
 app = FastAPI(

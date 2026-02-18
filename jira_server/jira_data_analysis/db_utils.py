@@ -3,26 +3,27 @@ import sys
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
-from dotenv import load_dotenv
 from logging_utils import get_logger
 
 logger = get_logger(__name__)
-# Load environment variables from a .env file
-#load_dotenv()
-# 1. Get the absolute path of the directory where the current script is located.
-#    For example: /Users/wegelpi/github_repos/sas-jira/jira_server/jira_data_analysis
-current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# 2. Get the parent directory's path by going one level up.
-#    This will be: /Users/wegelpi/github_repos/sas-jira/jira_server
-project_root = os.path.dirname(current_dir)
+# When loaded via main.py, secrets and .env are already in os.environ.
+# For direct script execution, load them here as a fallback.
+if not os.getenv('DATABASE_URL'):
+    from dotenv import load_dotenv
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    dotenv_path = os.path.join(project_root, '.env')
+    load_dotenv(dotenv_path=dotenv_path)
 
-# 3. Construct the full path to the .env file located in the project root.
-dotenv_path = os.path.join(project_root, '.env')
-
-# 4. Load the .env file from the specified path.
-#    The script will now have access to all the environment variables.
-load_dotenv(dotenv_path=dotenv_path)
+    # Try loading secrets from Keychain if DATABASE_URL still not set
+    if not os.getenv('DATABASE_URL'):
+        try:
+            from secrets_utils import load_secrets, build_database_url
+            load_secrets()
+            build_database_url()
+        except Exception as e:
+            logger.error(f"Failed to load secrets from Keychain: {e}")
 
 # --- Connection Pool Initialization ---
 

@@ -21,3 +21,6 @@ python-dateutil
 
 # --- LDAP Integration ---
 ldap3
+
+# --- macOS Keychain secrets management ---
+keyring
