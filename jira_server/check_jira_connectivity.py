@@ -75,5 +75,13 @@ if __name__ == "__main__":
         load_dotenv()
     except ImportError:
         pass  # dotenv not required if env vars already set
-
+# Load secrets from macOS Keychain (JIRA_TOKEN was migrated from .env)                                                                                                                                                              
+    try:                                                                                                                                                                                                                                
+      import keyring                                                                                                                                                                                                                
+      token = keyring.get_password("sas-jira", "JIRA_TOKEN")                                                                                                                                                                   
+      if token:                                                                                                                                                                                                                
+        os.environ["JIRA_TOKEN"] = token                                                                                                                                                                                     
+    except Exception:                                                                                                                                                                                                            
+      pass  # Fall through; main() will report missing env vars 
+    
     main()
